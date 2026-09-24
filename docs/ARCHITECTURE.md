@@ -18,7 +18,7 @@ Référence : cahier des charges v1.1, sections 13 et 14. Ce document décrit la
 | Playwright | 1.63.0 | Parcours navigateur `tests/e2e` (Chromium). |
 | ESLint | 9.39.5 + typescript-eslint 8.70.1 | Lint de l'ensemble du monorepo ; `eslint-config-next` pour `apps/web`. |
 
-Aucune image Docker `:latest` ; les images sont épinglées par tag et digest dans `docker/` et `docker-compose.prod.yml`.
+Aucune image Docker `:latest` ; les images sont épinglées par tag et digest dans `Dockerfile`, `docker-compose.yml` et `docker-compose.prod.yml`.
 
 ## Arborescence
 
@@ -56,8 +56,8 @@ Aucune image Docker `:latest` ; les images sont épinglées par tag et digest da
 │   │       ├── integration/       # vraie PostgreSQL (Docker), requêtes HTTP réelles, concurrence
 │   │       └── support/           # démarrage app de test, horloge contrôlable, fabriques de données
 │   ├── worker/                    # NestJS standalone : jobs PostgreSQL, outbox, synchronisation F11
-│   │   └── src/jobs/              # alert-catch-up, outbox-dispatcher, daily-digest, telemetry-sync,
-│   │                              #   retention, temp-files-cleanup, report-export, heartbeat
+│   │   └── src/jobs/              # alert-catch-up, outbox-dispatcher, daily-digest, daily-purge,
+│   │                              #   daily-retention, job-queue (exports), telemetry-sync, telemetry-webhook
 │   ├── web/                       # Next.js App Router, français, responsive
 │   │   ├── app/(auth)/            # /login, /mot-de-passe-oublie, /reinitialisation
 │   │   ├── app/(app)/             # routes de la section 10.2 (tableau-de-bord, vehicules, ..., mon-vehicule)
@@ -74,8 +74,9 @@ Aucune image Docker `:latest` ; les images sont épinglées par tag et digest da
 │   ├── contracts/                 # types OpenAPI générés + énumérations et libellés français partagés
 │   └── config/                    # configurations ESLint / TypeScript / Prettier partagées
 ├── tests/e2e/                     # Playwright : parcours clés (connexion, remise/retour, relevé, entretien, mobile)
-├── scripts/                       # sauvegarde, restauration, tests d'exploitation, utilitaires CI
-├── docker/                        # Dockerfiles api, worker, web ; configuration reverse proxy
+├── scripts/                       # ops/ (sauvegarde, restauration), tests/ (contrôle des secrets), docs/ (traçabilité)
+├── Dockerfile                     # image multi-cibles : api, worker, migrate, web
+├── deploy/Caddyfile               # reverse proxy HTTPS de production
 ├── docker-compose.yml             # développement local (PostgreSQL de dev et de test)
 ├── docker-compose.prod.yml        # production : web, api, worker, postgres, reverse proxy, volumes
 ├── .env.example
@@ -84,11 +85,30 @@ Aucune image Docker `:latest` ; les images sont épinglées par tag et digest da
     ├── ARCHITECTURE.md            # ce document
     ├── DECISIONS.md               # ambiguïtés tranchées
     ├── TRACEABILITY.md            # exigences ↔ modules ↔ fichiers ↔ tests
-    ├── RECETTE.md                 # rapport de recette T01 à T44
-    ├── installation.md, mise-a-jour.md, sauvegarde-restauration.md
-    ├── guide-chef-de-parc.md, guide-conducteur.md
-    └── connecteur-telematique.md
+    ├── modele-de-donnees.md       # tables, tables globales, fin de vie, suppressions physiques
+    ├── conservation-des-donnees.md # durées appliquées et points à valider avec le client
+    ├── installation.md, mise-a-jour.md, sauvegarde-restauration.md, exploitation.md
+    ├── guide-imports.md, guide-conformite-entretien.md
+    ├── connecteur-telematique.md
+    ├── openapi.json               # contrat OpenAPI versionné
+    └── traceability/              # exigences et état d'avancement (source de TRACEABILITY.md)
 ```
+
+## Adaptations au socle proposé (CDC 14.1)
+
+Le CDC 14.1 propose un monorepo `apps/web`, `apps/api`, `apps/worker`, `apps/telemetry-rpa`, `packages/contracts`, `packages/config`, `prisma/migrations`, `tests` et `docs`. Écarts retenus, cohérents avec ce socle :
+
+| Élément proposé | Réalisation | Motif |
+| --- | --- | --- |
+| `prisma/migrations` | `packages/db/prisma/migrations` | Prisma vit dans le paquet partagé `packages/db` (schéma, client généré, CLI `create-admin`), consommé par l'API et le worker (D-001, D-003). |
+| `apps/telemetry-rpa` | Absent | Canal RPA non retenu en V1 : interface documentée non activable (D-000, D-292). |
+| Composants shadcn/ui | Vendorisés dans `apps/web/components/ui`, sans `components.json` | Aucun générateur à l'exécution ; libellés d'accessibilité traduits en français. |
+| Configuration Tailwind | Tailwind CSS 4 configuré en CSS (`apps/web/app/globals.css`, `postcss.config.mjs`), sans `tailwind.config.ts` | Mode de configuration de Tailwind 4. |
+| Jeu de démonstration | `apps/api/src/cli/seed-demo.ts` | Réutilise les services de l'API ; refusé en production (D-324). |
+| Dockerfiles par application | `Dockerfile` unique à cibles (`api`, `worker`, `migrate`, `web`) et `deploy/Caddyfile` | Une seule construction du monorepo pour toutes les images. |
+| Redis | Non utilisé | Jobs et outbox en PostgreSQL, comme le permet le CDC 14.1. |
+
+La cohérence de ce tableau avec le dépôt est vérifiée par `apps/api/src/architecture-doc.spec.ts`.
 
 ## Principes structurants
 

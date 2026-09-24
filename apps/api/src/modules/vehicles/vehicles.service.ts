@@ -73,7 +73,7 @@ export class VehiclesService {
     };
     const sort = resolveSort(query.sort, ['code', 'registration', 'make', 'createdAt'] as const, 'code');
     const [items, total] = await Promise.all([
-      this.prisma.client.vehicle.findMany({ where, ...skipTake(query), orderBy: { [sort]: query.order }, include: vehicleInclude }),
+      this.prisma.client.vehicle.findMany({ where, ...skipTake(query), orderBy: [{ [sort]: query.order }, { id: 'asc' }], include: vehicleInclude }),
       this.prisma.client.vehicle.count({ where }),
     ]);
     return pageOf(items.map((v) => this.view(v)), total, query);

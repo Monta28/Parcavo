@@ -531,100 +531,143 @@
  "R-3.3-08": {
   "status": "partiel",
   "files": [
-   "packages/contracts/src/index.ts"
-  ],
-  "tests": [],
-  "note": ""
- },
- "R-10.1-01": {
-  "status": "partiel",
-  "files": [
-   "apps/web/app/(app)/layout.tsx",
-   "apps/web/components/layout/app-shell.tsx",
-   "apps/web/components/states.tsx",
-   "apps/web/lib/api-client.ts",
-   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+   "apps/api/src/modules/usages/departure-checks.service.ts",
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/organizations/dto/organizations.dto.ts",
+   "packages/db/prisma/schema.prisma",
+   "apps/web/app/(app)/administration/categories/category-dialog.tsx"
   ],
   "tests": [
-   "tests/e2e/specs/connexion.spec.ts",
-   "tests/e2e/specs/vehicules.spec.ts"
+   "apps/api/test/integration/reservations.int.spec.ts › modification : dérogation motivée transmise aux contrôles (exceptions.override), chevauchement et version contrôlés"
   ],
-  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+  "note": "Catégories de permis exigées portées par VehicleCategory.requiredPermitCategories (vide par défaut, aucune règle codée en dur) et justificatifs obligatoires par DocumentType (required/blocksCheckout) ; le refus PERMIS_NON_CONFORME est vérifié avec la catégorie VP→B du jeu de test, écrite directement en base : la route POST/PATCH /vehicle-categories elle-même n’est exercée par aucun test. Découpage (complément du lot A) : refus d’un départ sans permis de la catégorie exigée et dérogation motivée testés ; justificatifs obligatoires par type de document (DocumentType, documents.service.ts) : fonctionnalité et test livrés avec le lot C (documents.int.spec.ts)."
+ },
+ "R-10.1-01": {
+  "status": "fait",
+  "files": [
+   "apps/web/app/layout.tsx",
+   "packages/contracts/src/index.ts",
+   "apps/web/lib/api-error.ts",
+   "apps/web/components/states.tsx",
+   "apps/web/components/ui/dialog.tsx",
+   "apps/web/components/ui/sheet.tsx",
+   "apps/web/components/ui/pagination.tsx",
+   "apps/web/components/ui/breadcrumb.tsx",
+   "apps/web/components/ui/command.tsx",
+   "apps/web/components/ui/spinner.tsx",
+   "apps/web/components/ui/sonner.tsx",
+   "apps/api/src/common/validation.ts",
+   "apps/web/app/not-found.tsx",
+   "apps/web/app/error.tsx",
+   "apps/web/app/global-error.tsx",
+   "apps/web/components/unexpected-error.tsx"
+  ],
+  "tests": [
+   "apps/web/components/ui-labels-fr.spec.ts › les composants ui traduits rendent des libellés français (pagination, fil d’Ariane, chargement)",
+   "apps/web/components/ui-labels-fr.spec.ts › boîtes de dialogue et panneaux : bouton de fermeture « Fermer » (rendu hors serveur, vérifié dans la source)",
+   "apps/web/components/ui-labels-fr.spec.ts › aucun libellé anglais dans les attributs d’accessibilité, les textes sr-only ou les libellés par défaut de l’interface",
+   "tests/e2e/specs/connexion.spec.ts › refuse un mot de passe invalide avec un message non énumérant",
+   "tests/e2e/specs/parametres.spec.ts › modifie une valeur groupe avec motif, affiche les erreurs du serveur, l’historique et une surcharge société retirée",
+   "apps/api/src/common/validation.spec.ts › chaque décorateur de class-validator employé par l’API produit un message français par champ",
+   "apps/api/src/common/validation.spec.ts › traduit les bornes de liste avec leur valeur et ne renvoie jamais un message par défaut anglais inconnu",
+   "apps/api/test/integration/settings.int.spec.ts › versionne et audite chaque modification ; surcharge société explicite ; réservé à l’administrateur",
+   "apps/web/components/error-pages-fr.spec.ts › page introuvable : titre, explication et retour à l’accueil en français",
+   "apps/web/components/error-pages-fr.spec.ts › erreur inattendue : message français, référence du serveur, « Réessayer », jamais le texte technique de l’erreur",
+   "tests/e2e/specs/interface-francais.spec.ts › adresse inconnue : page introuvable en français (pas l’écran anglais de Next.js), retour à l’accueil"
+  ],
+  "note": "Libellés d’accessibilité des composants shadcn traduits (« Fermer » des Dialog/Sheet et du pied de dialogue, « Fermer la notification » des toasts, pagination « Précédent/Suivant/Aller à la page… », fil d’Ariane, « Chargement », palette de commandes) ; un test parcourt tous les .tsx de app/ et components/ (attributs aria-label, title, placeholder, alt, description, textes sr-only et textes JSX littéraux) et échoue sur un libellé anglais (liste de mots) ; vérifié qu’il détecte les libellés d’origine. Pages, statuts (packages/contracts) et messages d’API en français, html lang=\"fr\". Revue adversariale (2026-09-24) : deux fuites d’anglais corrigées. (1) Les messages par défaut de class-validator non traduits (IsDefined « should not be null or undefined », ArrayMaxSize/ArrayMinSize, ArrayUnique, IsObject, ValidateNested, forbidUnknownValues) arrivaient tels quels dans fieldErrors et donc sous les champs : traductions ajoutées et repli « Valeur invalide. » pour tout message par défaut anglais ; un test couvre chaque décorateur importé par l’API. (2) Sans app/not-found, app/error et app/global-error, Next.js affichait « This page could not be found » / « Application error » : écrans français ajoutés (référence digest, jamais le texte technique), vérifiés en rendu et en e2e (404 réel sur le web compilé)."
  },
  "R-10.1-03": {
   "status": "partiel",
   "files": [
-   "apps/web/app/(app)/layout.tsx",
-   "apps/web/components/layout/app-shell.tsx",
-   "apps/web/components/states.tsx",
-   "apps/web/lib/api-client.ts",
-   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+   "packages/contracts/src/index.ts",
+   "apps/web/app/layout.tsx",
+   "packages/db/prisma/schema.prisma",
+   "docs/DECISIONS.md"
   ],
-  "tests": [
-   "tests/e2e/specs/connexion.spec.ts",
-   "tests/e2e/specs/vehicules.spec.ts"
-  ],
-  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+  "tests": [],
+  "note": "Libellés métier externalisés dans packages/contracts (statuts, énumérations, libellés et bornes des paramètres, partagés par l’API et le web), Organization.locale = fr, lang=\"fr\", aucune interface arabe imposée ; les textes propres à chaque écran restent dans les composants (pas de catalogue de traduction). Écart assumé ajouté à D-016 (« Structure de traduction ») : externalisation des textes d’écran à faire si une seconde langue est commandée ; aucun faux catalogue créé."
  },
  "R-10.1-04": {
   "status": "partiel",
   "files": [
-   "apps/web/app/(app)/layout.tsx",
-   "apps/web/components/layout/app-shell.tsx",
-   "apps/web/components/states.tsx",
-   "apps/web/lib/api-client.ts",
-   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+   "apps/api/src/common/pagination.ts",
+   "packages/contracts/src/index.ts",
+   "apps/web/lib/use-list-params.ts",
+   "apps/web/lib/list-sort.ts",
+   "apps/web/lib/use-list-sort.ts",
+   "apps/web/components/maintenance/sortable-head.tsx",
+   "apps/web/components/pagination-controls.tsx",
+   "apps/web/app/(app)/vehicules/vehicles-list.tsx",
+   "apps/web/app/(app)/conducteurs/drivers-list.tsx",
+   "apps/web/app/(app)/administration/utilisateurs/users-admin.tsx",
+   "apps/web/app/(app)/administration/companies-admin.tsx",
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/drivers/drivers.service.ts",
+   "apps/api/src/modules/users/users.service.ts",
+   "apps/api/src/modules/organizations/organizations.service.ts"
   ],
   "tests": [
-   "tests/e2e/specs/connexion.spec.ts",
-   "tests/e2e/specs/vehicules.spec.ts"
+   "apps/api/test/integration/list-sort.int.spec.ts › véhicules : tri par code, immatriculation ou marque dans les deux sens ; pages stables à marque égale",
+   "apps/api/test/integration/list-sort.int.spec.ts › pagination : 25 par défaut, 100 au plus (422 au-delà), métadonnées items, total, page et pageSize",
+   "apps/api/test/integration/list-sort.int.spec.ts › conducteurs, utilisateurs et sociétés : tri au choix dans les deux sens",
+   "apps/web/lib/list-sort.spec.ts › lit la clé et le sens dans l’URL, bornés aux tris autorisés par l’API",
+   "tests/e2e/specs/parametres.spec.ts › liste des véhicules : tri au choix par colonne, conservé dans l’URL"
   ],
-  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+  "note": "Recherche, filtres persistants (URL) et pagination 25/100 (422 au-delà) ; tri au choix de l’utilisateur (en-têtes accessibles, aria-sort, tri/sens dans l’URL, liste autorisée par l’API, ordre stable par identifiant) sur véhicules, conducteurs, utilisateurs et sociétés en plus des plans d’entretien, interventions et dépenses. Reste : les autres listes (relevés, utilisations, réservations, documents, incidents, pleins, alertes, imports…) gardent un ordre métier fixe ; écart documenté dans D-016 (« Tri au choix des listes »), extension ouverte. Découpage (complément du lot A) : tri au choix des véhicules, conducteurs, utilisateurs et sociétés livré et testé (en-tête triable components/maintenance/sortable-head.tsx inclus par anticipation) ; tri des plans d’entretien, interventions et dépenses livré avec les lots C et D ; filtres du journal d’audit : test livré avec le lot E (audit.int.spec.ts)."
  },
  "R-10.1-05": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
-   "apps/web/app/(app)/layout.tsx",
-   "apps/web/components/layout/app-shell.tsx",
-   "apps/web/components/states.tsx",
-   "apps/web/lib/api-client.ts",
-   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+   "apps/web/components/ui/alert-dialog.tsx",
+   "apps/web/app/(app)/administration/confirm-dialog.tsx",
+   "apps/web/app/(app)/administration/utilisateurs/[id]/user-detail.tsx",
+   "apps/web/app/(app)/conducteurs/[id]/deactivate-dialog.tsx",
+   "apps/web/app/(app)/vehicules/[id]/lifecycle-dialog.tsx",
+   "apps/web/app/(app)/administration/parametres/setting-dialogs.tsx"
   ],
   "tests": [
-   "tests/e2e/specs/connexion.spec.ts",
-   "tests/e2e/specs/vehicules.spec.ts"
+   "tests/e2e/specs/conducteurs.spec.ts › crée un conducteur, renseigne puis modifie son permis, le désactive avec motif et le réactive",
+   "tests/e2e/specs/parametres.spec.ts › modifie une valeur groupe avec motif, affiche les erreurs du serveur, l’historique et une surcharge société retirée"
   ],
-  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+  "note": "Les actions sensibles (désactivation de compte ou de conducteur, révocation de sessions, cycle de vie et archivage, transfert, dérogations, clôtures, modification et retrait de surcharge d’un paramètre) passent par une confirmation ou un dialogue motivé ; vérifié : désactivation d’un conducteur (dialogue, motif obligatoire) et réactivation (alertdialog de confirmation), modification et retrait de surcharge d’un paramètre (dialogue motivé). e2e exécuté au vert le 2026-09-24 sur le code actuel (build API et web sous verrou, base parc_auto_test_e5, ports 3980/3981). Découpage (complément du lot A) : dialogue de transfert (transfer-dialog.tsx) livré avec le lot D."
  },
  "R-10.1-06": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
-   "apps/web/app/(app)/layout.tsx",
-   "apps/web/components/layout/app-shell.tsx",
-   "apps/web/components/states.tsx",
-   "apps/web/lib/api-client.ts",
-   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+   "apps/web/components/forms/field-error.tsx",
+   "apps/web/lib/api-error.ts",
+   "apps/web/app/(app)/administration/field-errors.ts",
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/http-exception.filter.ts"
   ],
   "tests": [
-   "tests/e2e/specs/connexion.spec.ts",
-   "tests/e2e/specs/vehicules.spec.ts"
+   "apps/api/test/integration/vehicles.int.spec.ts › valide les champs obligatoires et renvoie des erreurs par champ en français",
+   "tests/e2e/specs/vehicules.spec.ts › crée un véhicule, refuse le doublon d’immatriculation et déclare une localisation",
+   "tests/e2e/specs/parametres.spec.ts › modifie une valeur groupe avec motif, affiche les erreurs du serveur, l’historique et une surcharge société retirée",
+   "apps/api/test/integration/settings.int.spec.ts › versionne et audite chaque modification ; surcharge société explicite ; réservé à l’administrateur",
+   "apps/api/src/common/validation.spec.ts › chaque décorateur de class-validator employé par l’API produit un message français par champ"
   ],
-  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+  "note": "L’API renvoie fieldErrors (testé en intégration) et les formulaires les affichent sous le champ (FieldError, aria-describedby) : doublon d’immatriculation (vehicules.spec) ; valeur hors bornes (« valeur minimale 1 jours. » sous le champ) et motif manquant sous le champ Motif (parametres.spec). e2e exécuté au vert le 2026-09-24 sur le code actuel (build API et web sous verrou, base parc_auto_test_e5, ports 3980/3981). Revue adversariale : les fieldErrors de certains décorateurs étaient en anglais (valeur absente, bornes de liste) ; désormais traduits, vérifiés par champ en intégration (PUT /settings sans valeur → value « Ce champ est obligatoire. », motif trop court → reason « Longueur minimale non respectée. »). e2e vehicules/parametres re-exécutés au vert (base parc_auto_test_rvge, ports 3994/3995)."
  },
  "R-10.1-07": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
-   "apps/web/app/(app)/layout.tsx",
+   "apps/web/components/layout/company-selector.tsx",
    "apps/web/components/layout/app-shell.tsx",
-   "apps/web/components/states.tsx",
-   "apps/web/lib/api-client.ts",
-   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+   "apps/web/components/layout/session-context.tsx",
+   "apps/web/lib/company-scope.ts"
   ],
   "tests": [
-   "tests/e2e/specs/connexion.spec.ts",
-   "tests/e2e/specs/vehicules.spec.ts"
+   "tests/e2e/specs/connexion.spec.ts › l’administrateur bascule entre toutes les sociétés et une société",
+   "tests/e2e/specs/connexion.spec.ts › le chef de A voit uniquement les véhicules de A et se déconnecte",
+   "apps/web/lib/company-scope.spec.ts › compte d’une seule société : périmètre fixé à sa société, jamais « Toutes mes sociétés », même avec un cookie forgé",
+   "apps/web/lib/company-scope.spec.ts › administrateur ou compte de plusieurs sociétés : « Toutes mes sociétés » par défaut, bascule sur l’une de ses sociétés seulement",
+   "tests/e2e/specs/interface-francais.spec.ts › le chef d’une seule société voit son périmètre courant en clair, sans sélecteur ni « Toutes mes sociétés »",
+   "tests/e2e/specs/interface-francais.spec.ts › l’administrateur voit « Toutes mes sociétés » dans le sélecteur de société courante"
   ],
-  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+  "note": "Sélecteur « Société courante » dans l’en-tête, « Toutes mes sociétés » réservé à l’administrateur ou aux comptes à plusieurs sociétés, société unique affichée en texte ; vérifié : bascule de l’administrateur entre toutes les sociétés et une société, chef de A limité aux véhicules de A. e2e exécuté au vert le 2026-09-24 sur le code actuel (build API et web sous verrou, base parc_auto_test_e5, ports 3980/3981). Revue adversariale : l’e2e initial ne vérifiait ni l’affichage du périmètre courant d’un compte d’une seule société ni l’absence de « Toutes mes sociétés » pour lui ; ajoutés (e2e vert sur le web compilé) avec un test de la résolution de la société courante (cookie forgé ignoré)."
  },
  "R-10.1-08": {
   "status": "fait",
@@ -640,17 +683,16 @@
  "R-10.1-09": {
   "status": "partiel",
   "files": [
-   "apps/web/app/(app)/layout.tsx",
-   "apps/web/components/layout/app-shell.tsx",
    "apps/web/components/states.tsx",
-   "apps/web/lib/api-client.ts",
-   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+   "apps/web/app/(app)/vehicules/vehicles-list.tsx",
+   "apps/web/app/(app)/administration/admin-shell.tsx",
+   "apps/web/components/list-states.spec.ts"
   ],
   "tests": [
-   "tests/e2e/specs/connexion.spec.ts",
-   "tests/e2e/specs/vehicules.spec.ts"
+   "apps/web/components/list-states.spec.ts › chargement annoncé, vide explicite, erreur et accès refusé distincts, avec référence de la requête",
+   "tests/e2e/specs/vehicules.spec.ts › un identifiant de véhicule hors périmètre affiche un accès refusé"
   ],
-  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+  "note": "LoadingState (role=status), EmptyState et ErrorState (accès refusé distinct pour 403/404, erreur avec référence et « Réessayer ») rendus et vérifiés ; un test parcourt les 42 listes paginées (PaginationControls) et exige chargement, erreur et vide ; accès refusé vérifié à l’écran (véhicule hors périmètre, onglet Paramètres pour le chef). e2e exécuté au vert le 2026-09-24 sur le code actuel (build API et web sous verrou, base parc_auto_test_e5, ports 3980/3981). Découpage (complément du lot A) : composants d’état rendus et testés, accès refusé testé à l’écran (véhicule hors périmètre) ; contrôle de chaque liste paginée : test livré avec le lot D (list-states.spec.ts › chaque liste paginée…, qui exige plus de 30 listes : 14 dans cet arbre) ; onglet Paramètres refusé au chef de parc : test livré avec le lot E (parametres.spec.ts, message de l’onglet Audit)."
  },
  "R-10.2-01": {
   "status": "fait",
@@ -744,13 +786,18 @@
   ]
  },
  "R-13.1-05": {
-  "status": "à faire",
+  "status": "fait",
   "files": [
+   "docs/modele-de-donnees.md",
    "packages/db/prisma/schema.prisma",
-   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+   "docs/DECISIONS.md"
   ],
-  "tests": [],
-  "note": ""
+  "tests": [
+   "apps/api/src/data-model-doc.spec.ts › liste exactement les tables sans organizationId comme tables globales (plus _prisma_migrations)",
+   "apps/api/src/data-model-doc.spec.ts › décrit chaque table du schéma Prisma, une fois, avec sa portée et sa fin de vie",
+   "apps/api/test/integration/data-model.int.spec.ts › les tables sans organizationId de la base migrée sont exactement les tables globales documentées"
+  ],
+  "note": "docs/modele-de-donnees.md liste et justifie les tables globales (Organization racine, JobLease, WorkerHeartbeat, LoginAttempt, _prisma_migrations ; partitions des échantillons avec organizationId) et décrit chacune des 64 tables (rôle, portée, fin de vie) ; en-tête du schéma et renvoi de D-283 corrigés ; contrôlé contre le schéma (unitaire) et contre la base PostgreSQL migrée (intégration). Découpage (complément du lot A) : lignes des tables FuelPurchaseGap (lot D) et TelemetryWebhookDelivery (lot F) retirées de docs/modele-de-donnees.md, absentes du schéma de cet arbre."
  },
  "R-13.1-06": {
   "status": "fait",
@@ -799,13 +846,23 @@
   "verification": "review"
  },
  "R-13.1-11": {
-  "status": "à faire",
+  "status": "partiel",
   "files": [
-   "packages/db/prisma/schema.prisma",
-   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+   "docs/modele-de-donnees.md",
+   "docs/DECISIONS.md",
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/assignments/assignment-exit.ts"
   ],
-  "tests": [],
-  "note": ""
+  "tests": [
+   "apps/api/src/data-model-doc.spec.ts › ne documente comme archivables que des tables sans suppression physique par le code, hors cas listés",
+   "apps/api/test/integration/data-model.int.spec.ts › le journal d’audit est en ajout seul : ni modification ni suppression physique",
+   "apps/api/test/integration/vehicles.int.spec.ts › refuse l’archivage tant que des opérations sont ouvertes et conserve les dossiers",
+   "apps/api/test/integration/attachments.int.spec.ts › supprime logiquement un fichier avec motif et journalise la suppression",
+   "apps/api/test/integration/driver-deactivation.int.spec.ts › refuse avec une utilisation en cours, puis exige l’annulation explicite des réservations futures et clôt l’affectation habituelle"
+  ],
+  "note": "Politique documentée table par table (archivage/désactivation, clôture par statut, ajout seul, suppression logique) et liste exhaustive des suppressions physiques réellement faites par le code (données techniques expirées, brouillon de fournisseur télématique, lignes dépendantes remplacées, affectations à venir retirées, habilitations remplacées, cascades) ; un test parcourt apps/api/src et apps/worker/src et échoue si une table supprimée physiquement n’est pas documentée, ou si une table métier principale (véhicule, conducteur, relevé, utilisation, dépense…) l’est ; D-283 renvoie à ce document. Découpage (complément du lot A) : politique documentée ; audit en ajout seul, archivage et suppression logique testés ; contrôle des suppressions physiques du code contre le document : test livré avec le lot F (data-model-doc.spec.ts › liste chaque table…, qui exige plus de cinq tables supprimées et les fichiers cités des lots C à F)."
  },
  "R-13.2-01": {
   "status": "fait",
@@ -867,26 +924,28 @@
   ]
  },
  "R-13.2-32": {
-  "status": "à faire",
+  "status": "fait",
   "files": [
-   "packages/contracts/src/index.ts"
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql",
+   "apps/api/src/modules/settings/settings.service.ts"
   ],
-  "tests": [],
-  "note": ""
+  "tests": [
+   "apps/api/test/integration/settings.int.spec.ts › versionne et audite chaque modification ; surcharge société explicite ; réservé à l’administrateur"
+  ],
+  "note": "SettingValue : settingVersion, isCurrent, motif et auteur ; une version courante unique par clé (index partiels). Deux modifications simultanées de la même clé ne sont pas testées."
  },
  "R-13.2-33": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
-   "apps/api/src/common/errors.ts",
-   "apps/api/src/common/pagination.ts",
-   "apps/api/src/common/http-exception.filter.ts",
-   "apps/api/src/common/validation.ts",
+   "packages/db/prisma/schema.prisma",
    "apps/api/src/common/idempotency.service.ts",
-   "apps/api/src/common/optimistic-lock.ts",
-   "apps/api/src/bootstrap.ts"
+   "apps/api/src/common/idempotency.decorator.ts"
   ],
-  "tests": [],
-  "note": "Idempotence : service prêt, appliqué aux remises/retours au lot B"
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T33 — même clé et même corps : réponse initiale rejouée ; même clé et corps différent : 409"
+  ],
+  "note": "IdempotencyRecord : unicité (organizationId, userId, operation, key), empreinte du corps, statut EN_COURS/TERMINE, réponse (statut et corps) rejouée ; enregistrement hors transaction métier (écart assumé D-016). Découpage (complément du lot A) : création manuelle de dépense idempotente : test livré avec le lot D (expenses.int.spec.ts)."
  },
  "R-13.3-01": {
   "status": "fait",
@@ -917,19 +976,20 @@
   ]
  },
  "R-14.1-01": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
-   "apps/web/app/(app)/layout.tsx",
-   "apps/web/components/layout/app-shell.tsx",
-   "apps/web/components/states.tsx",
-   "apps/web/lib/api-client.ts",
-   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+   "apps/web/package.json",
+   "apps/web/app/layout.tsx",
+   "apps/web/app/globals.css",
+   "apps/web/postcss.config.mjs",
+   "apps/web/tsconfig.json",
+   "apps/web/components/ui/button.tsx",
+   "docs/ARCHITECTURE.md"
   ],
   "tests": [
-   "tests/e2e/specs/connexion.spec.ts",
-   "tests/e2e/specs/vehicules.spec.ts"
+   "apps/api/src/architecture-doc.spec.ts › frontend Next.js App Router en TypeScript strict, Tailwind CSS et composants shadcn/ui vendorisés"
   ],
-  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+  "note": "Next.js 16 App Router (apps/web/app, pas de pages/), TypeScript strict, Tailwind CSS 4 (import dans globals.css), composants shadcn/ui vendorisés (Radix, class-variance-authority) ; vérifié par un test automatisé sur le dépôt ; build web vert sous verrou le 2026-09-24."
  },
  "R-14.1-02": {
   "status": "fait",
@@ -967,13 +1027,13 @@
   "verification": "review"
  },
  "R-14.1-07": {
-  "status": "à faire",
+  "status": "non testé",
   "files": [
    "docs/ARCHITECTURE.md",
    "docs/DECISIONS.md"
   ],
   "tests": [],
-  "note": ""
+  "note": "Section « Adaptations au socle proposé (CDC 14.1) » ajoutée à ARCHITECTURE.md : migrations sous packages/db/prisma/migrations, apps/telemetry-rpa absent (RPA non retenu), shadcn vendorisé sans components.json, Tailwind 4 sans tailwind.config, jeu de démonstration dans apps/api/src/cli, Dockerfile unique à cibles et deploy/Caddyfile, pas de Redis ; arborescence corrigée (docs réellement présents, jobs du worker, Dockerfile) ; un test confronte chaque ligne au dépôt et vérifie que les documents cités existent. Revue adversariale : le test ne lisait pas le tableau du document (retirer une ligne ne le faisait pas échouer) ; il analyse désormais chaque ligne « élément proposé → réalisation » et la confronte au dépôt. Découpage (complément du lot A) : section « Adaptations au socle proposé » livrée ; tests livrés avec les lots E et F (architecture-doc.spec.ts › chaque adaptation… : Dockerfile, deploy/Caddyfile et seed-demo du lot E ; › les documents cités… : documents des lots C, E et F)."
  },
  "R-14.1-08": {
   "status": "fait",
@@ -1210,40 +1270,42 @@
   ]
  },
  "R-15.2-26": {
-  "status": "à faire",
+  "status": "fait",
   "files": [
-   "packages/contracts/src/index.ts"
+   "apps/api/src/modules/settings/settings.controller.ts",
+   "apps/api/src/modules/settings/settings.service.ts",
+   "apps/api/src/modules/access-control/access-control.service.ts"
   ],
-  "tests": [],
-  "note": ""
+  "tests": [
+   "apps/api/test/integration/settings.int.spec.ts › expose les valeurs initiales du CDC avec leur origine",
+   "apps/api/test/integration/settings.int.spec.ts › versionne et audite chaque modification ; surcharge société explicite ; réservé à l’administrateur",
+   "apps/api/test/integration/assignments.int.spec.ts › D-268 : véhicule de soumission du conducteur (utilisation EN_COURS, sinon responsable en cours si le paramètre de groupe est actif)"
+  ],
+  "note": "GET /settings pour le personnel, PUT /settings/:key, GET :key/history et DELETE :key/override réservés à l’administrateur (chef refusé en 403, testé)."
  },
  "R-15.3-09": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
-   "apps/api/src/common/errors.ts",
-   "apps/api/src/common/pagination.ts",
-   "apps/api/src/common/http-exception.filter.ts",
-   "apps/api/src/common/validation.ts",
    "apps/api/src/common/idempotency.service.ts",
-   "apps/api/src/common/optimistic-lock.ts",
-   "apps/api/src/bootstrap.ts"
+   "packages/db/prisma/schema.prisma"
   ],
-  "tests": [],
-  "note": "Idempotence : service prêt, appliqué aux remises/retours au lot B"
+  "tests": [
+   "apps/api/test/integration/idempotency.int.spec.ts › service : même clé et même corps rejoués dans la même portée ; autre opération, autre utilisateur, autre organisation exécutés indépendamment ; corps différent → 409",
+   "apps/api/test/integration/usages.int.spec.ts › T33 — même clé et même corps : réponse initiale rejouée ; même clé et corps différent : 409"
+  ],
+  "note": "Unicité (organizationId, userId, operation, key) ; vérifié sur PostgreSQL réel : même clé et même corps pour une autre opération (catalogues initiaux d’entretien puis de documents), un autre utilisateur ou une autre organisation → exécution indépendante (quatre enregistrements distincts, chaque portée rejoue sa propre réponse) ; même portée → rejeu ; corps différent → 409 IDEMPOTENCE_CORPS_DIFFERENT. Découpage (complément du lot A) : portée vérifiée par le service sur PostgreSQL réel ; cas HTTP (catalogues initiaux d’entretien et de documents) : test livré avec le lot C."
  },
  "R-15.3-10": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
-   "apps/api/src/common/errors.ts",
-   "apps/api/src/common/pagination.ts",
-   "apps/api/src/common/http-exception.filter.ts",
-   "apps/api/src/common/validation.ts",
    "apps/api/src/common/idempotency.service.ts",
-   "apps/api/src/common/optimistic-lock.ts",
-   "apps/api/src/bootstrap.ts"
+   "apps/api/src/common/idempotency.decorator.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
   ],
-  "tests": [],
-  "note": "Idempotence : service prêt, appliqué aux remises/retours au lot B"
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T33 — même clé et même corps : réponse initiale rejouée ; même clé et corps différent : 409"
+  ],
+  "note": "vehicle-transfer.int.spec.ts a été relancé au vert après correction (échec initial dans full-int-1.log). Découpage (complément du lot A) : dépenses et transfert idempotents : tests livrés avec le lot D."
  },
  "R-15.3-11": {
   "status": "fait",
@@ -1411,33 +1473,36 @@
   ]
  },
  "R-16.1-12": {
-  "status": "à faire",
-  "files": [
-   "apps/api/src/common/errors.ts",
-   "apps/api/src/common/pagination.ts",
-   "apps/api/src/common/http-exception.filter.ts",
-   "apps/api/src/common/validation.ts",
-   "apps/api/src/common/idempotency.service.ts",
-   "apps/api/src/common/optimistic-lock.ts",
-   "apps/api/src/bootstrap.ts"
-  ],
-  "tests": [],
-  "note": ""
- },
- "R-16.1-13": {
   "status": "partiel",
   "files": [
-   "apps/web/app/(app)/layout.tsx",
-   "apps/web/components/layout/app-shell.tsx",
-   "apps/web/components/states.tsx",
-   "apps/web/lib/api-client.ts",
-   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+   "scripts/tests/check-secrets.mjs",
+   "scripts/tests/check-secrets.test.mjs",
+   "package.json",
+   "docker-compose.yml",
+   ".gitignore",
+   "README.md",
+   "apps/api/src/infra/env.ts",
+   ".env.example"
   ],
   "tests": [
-   "tests/e2e/specs/connexion.spec.ts",
-   "tests/e2e/specs/vehicules.spec.ts"
+   "scripts/tests/check-secrets.test.mjs › accepte les valeurs de développement documentées, les interpolations et les exemples vides",
+   "scripts/tests/check-secrets.test.mjs › refuse une clé privée, une clé de chiffrement littérale, un mot de passe de production et des identifiants dans une URL",
+   "scripts/tests/check-secrets.test.mjs › bundle client : refuse un nom de configuration serveur, une chaîne de connexion et la valeur d’une variable sensible ; exige le bundle après build",
+   "apps/api/test/integration/auth.int.spec.ts › journalise les connexions sans mot de passe ni jeton"
   ],
-  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+  "note": "scripts/tests/check-secrets.mjs contrôle tous les fichiers suivis ou à suivre par git (clés privées PEM, jetons AWS/GitHub/Slack/Google/Stripe/Anthropic/OpenAI/JWT signé, identifiants dans une URL hors hôte local ou de documentation, valeur littérale de SECRETS_ENCRYPTION_KEY, SMTP_PASSWORD, POSTGRES_PASSWORD, DATABASE_URL, *_PASSWORD/SECRET/TOKEN/API_KEY) et le bundle client apps/web/.next/static (noms de configuration serveur, chaînes PostgreSQL, valeurs des variables sensibles de l’environnement) ; branché dans pnpm lint (check:secrets), pnpm test (test:secrets), pnpm build et le Dockerfile (bundle obligatoire après build) ; exécuté vert sur le dépôt (934 fichiers) et sur le bundle construit sous verrou (130 fichiers). Mots de passe parc_auto_dev/parc_auto_test documentés comme exclusivement locaux (docker-compose.yml) ; mot de passe d’exemple retiré du README ; SESSION_TTL_HOURS supprimée. Découpage (complément du lot A) : contrôle du dépôt et du bundle client livré, branché dans pnpm lint, pnpm test et pnpm build, et testé ; masquage des secrets dans les journaux (secret-redaction, redacting-logger, audit-redaction), contrôle du bundle dans le Dockerfile et secrets télématiques (T44) : livrés et testés avec les lots D, E et F."
+ },
+ "R-16.1-13": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/web/app/api/v1/[...path]/route.ts",
+   "apps/web/lib/api-client.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts › ouvre une session en cookie HttpOnly et renvoie le profil et les habilitations"
+  ],
+  "note": "Le jeton de session n’existe que dans un cookie HttpOnly et n’apparaît pas dans le corps de réponse (testé), donc aucun script du navigateur ne peut le lire ni le persister ; revue : aucun usage de localStorage dans apps/web (seuls des brouillons de saisie en sessionStorage)."
  },
  "R-16.1-14": {
   "status": "fait",
@@ -1506,14 +1571,18 @@
   ]
  },
  "R-16.2-07": {
-  "status": "à faire",
+  "status": "partiel",
   "files": [
+   "docs/conservation-des-donnees.md",
    "apps/api/src/modules/attachments/attachments.service.ts",
-   "apps/api/src/modules/attachments/owner-authorization.service.ts",
-   "apps/api/src/infra/storage.service.ts"
+   "apps/api/src/modules/attachments/attachments.controller.ts",
+   "apps/api/src/infra/audit.service.ts",
+   "docs/DECISIONS.md"
   ],
-  "tests": [],
-  "note": ""
+  "tests": [
+   "apps/api/test/integration/attachments.int.spec.ts › supprime logiquement un fichier avec motif et journalise la suppression"
+  ],
+  "note": "Suppressions de fichiers logiques, motivées et auditées (testé) ; docs/conservation-des-donnees.md recense toutes les durées réellement appliquées (sessions, liens d’accès, tentatives de connexion, idempotence, fichiers temporaires 24 h, exports 24 h, imports 7 j/90 j, échantillons télématiques 90 j, webhooks 7 j, traces du worker 30 j, sauvegardes 30 j), les données conservées sans limite en V1 (dont l’outbox) et n’annonce aucune conformité juridique ; chaque durée est comparée au code par un test. Reste une dépendance externe : la validation par le client de ses obligations de conservation (six points listés dans le document). Découpage (complément du lot A) : docs/conservation-des-donnees.md livré ; sa comparaison au code (data-retention-doc.spec.ts, 4 cas) : test livré avec le lot F, les durées des exports, imports, échantillons, webhooks, traces du worker et sauvegardes relevant des lots D à F ; suppression d’un justificatif de document : test livré avec le lot C (attachments-deletion.int.spec.ts)."
  },
  "R-17.1-01": {
   "status": "fait",
@@ -1523,20 +1592,27 @@
   "tests": []
  },
  "R-17.1-16": {
-  "status": "à faire",
+  "status": "partiel",
   "files": [
-   "packages/contracts/src/index.ts"
+   "apps/api/src/modules/settings/settings.service.ts",
+   "apps/api/src/infra/audit.service.ts",
+   "apps/api/src/modules/organizations/organizations.service.ts"
   ],
-  "tests": [],
-  "note": ""
+  "tests": [
+   "apps/api/test/integration/settings.int.spec.ts › versionne et audite chaque modification ; surcharge société explicite ; réservé à l’administrateur",
+   "tests/e2e/specs/parametres.spec.ts › modifie une valeur groupe avec motif, affiche les erreurs du serveur, l’historique et une surcharge société retirée"
+  ],
+  "note": "Chaque PUT /settings écrit parametre.modification (acteur, type UTILISATEUR, date, motif, société) avec avant = valeur qui s’appliquait réellement (défaut, valeur groupe pour une première surcharge, ou version précédente) et après = nouvelle valeur et version ; le retrait de surcharge écrit parametre.surcharge_retiree avec avant (surcharge, version) et après = valeur qui s’applique désormais et son origine (groupe ou défaut) ; retrait sans surcharge en vigueur → 404 sans trace ; vérifié en base et via GET /audit. Revue adversariale : relu et ré-exécuté au vert (parc_auto_test_rvga) ; aucune autre écriture de SettingValue hors ce service (CLI de charge exceptée) ; fuseau de l’organisation et activation télématique audités avant/après par leurs propres services. Découpage (complément du lot A) : versions et audit de chaque modification testés (settings.int.spec.ts, parametres.spec.ts) ; contenu avant/après de l’audit, verrou optimiste et retrait de surcharge : test livré avec le lot E (settings.int.spec.ts › audit avant/après…, qui lit aussi GET /audit)."
  },
  "R-17.1-17": {
-  "status": "à faire",
+  "status": "partiel",
   "files": [
-   "packages/contracts/src/index.ts"
+   "apps/api/src/modules/settings/settings.service.ts"
   ],
-  "tests": [],
-  "note": ""
+  "tests": [
+   "apps/api/test/integration/settings.int.spec.ts › versionne et audite chaque modification ; surcharge société explicite ; réservé à l’administrateur"
+  ],
+  "note": "Résolution défaut produit < valeur groupe < surcharge société explicite (SettingsService.get, source affichée) ; préavis d’entretien explicites par plan, à défaut valeurs société ou groupe reprises à la création du plan. Découpage (complément du lot A) : défaut produit < valeur groupe < surcharge société testé ; surcharge par plan (préavis d’entretien) et seuil du tableau de bord : tests livrés avec les lots C et E."
  },
  "R-18-01": {
   "status": "fait",
@@ -1585,18 +1661,15 @@
   ]
  },
  "R-18-33": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
-   "apps/api/src/common/errors.ts",
-   "apps/api/src/common/pagination.ts",
-   "apps/api/src/common/http-exception.filter.ts",
-   "apps/api/src/common/validation.ts",
    "apps/api/src/common/idempotency.service.ts",
-   "apps/api/src/common/optimistic-lock.ts",
-   "apps/api/src/bootstrap.ts"
+   "apps/api/src/modules/usages/usages.service.ts"
   ],
-  "tests": [],
-  "note": "Idempotence : service prêt, appliqué aux remises/retours au lot B"
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T33 — même clé et même corps : réponse initiale rejouée ; même clé et corps différent : 409"
+  ],
+  "note": "Découpage (complément du lot A) : dépenses et transfert : tests livrés avec le lot D."
  },
  "R-18-47": {
   "status": "fait",
@@ -1633,15 +1706,15 @@
  },
  "__tests__": {
   "T01": {
-   "file": "apps/api/test/integration/scope.int.spec.ts",
-   "status": "réussi (2026-09-24, 27 tests d’intégration verts)"
+   "file": "apps/api/test/integration/scope.int.spec.ts ; apps/api/test/integration/attachments.int.spec.ts",
+   "status": "réussi"
   },
   "T02": {
    "file": "apps/api/test/integration/scope.int.spec.ts",
    "status": "réussi"
   },
   "T03": {
-   "file": "apps/api/test/integration/scope.int.spec.ts",
+   "file": "apps/api/test/integration/scope.int.spec.ts ; apps/api/test/integration/usages.int.spec.ts ; apps/api/test/integration/driver-vehicle-view.int.spec.ts",
    "status": "réussi"
   },
   "T28": {
@@ -1694,6 +1767,10 @@
   },
   "T14": {
    "file": "apps/api/test/integration/odometer.int.spec.ts ; apps/api/src/domain/odometer-rules.spec.ts ; tests/e2e/specs/compteur.spec.ts",
+   "status": "réussi"
+  },
+  "T33": {
+   "file": "apps/api/test/integration/usages.int.spec.ts ; apps/api/test/integration/idempotency.int.spec.ts",
    "status": "réussi"
   }
  },
@@ -3523,5 +3600,35 @@
    "packages/contracts/src/index.spec.ts › seuls l’administrateur et le chef disposent des corrections et dérogations"
   ],
   "note": "Refus 403 testé pour l’opérateur ; lecteur et conducteur couverts par la matrice de permissions testée ; l’exigence du motif (MOTIF_REQUIS) n’est pas testée."
+ },
+ "R-17.1-X01": {
+  "status": "partiel",
+  "files": [
+   "packages/contracts/src/index.ts",
+   "apps/api/src/modules/settings/settings.service.ts",
+   "apps/api/src/modules/settings/settings.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/web/app/(app)/administration/parametres/settings-admin.tsx",
+   "apps/web/app/(app)/administration/parametres/settings-table.tsx",
+   "apps/web/app/(app)/administration/parametres/setting-dialogs.tsx",
+   "apps/web/lib/settings-admin.ts",
+   "apps/web/app/(app)/administration/admin-shell.tsx",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [
+   "packages/contracts/src/index.spec.ts › reprennent exactement le tableau 17.1",
+   "packages/contracts/src/index.spec.ts › chaque paramètre a un descripteur dont les bornes contiennent la valeur initiale",
+   "packages/contracts/src/index.spec.ts › seules les bornes de pagination de l’API sont des valeurs fixes, non surchargeables, et PAGINATION en découle",
+   "apps/api/test/integration/settings.int.spec.ts › expose les valeurs initiales du CDC avec leur origine",
+   "apps/api/test/integration/settings.int.spec.ts › versionne et audite chaque modification ; surcharge société explicite ; réservé à l’administrateur",
+   "apps/api/test/integration/settings.int.spec.ts › durée de session : le paramètre session.ttlHours fixe l’échéance des nouvelles connexions ; les sessions ouvertes gardent la leur",
+   "apps/web/lib/settings-admin.spec.ts › convertit la saisie sans la valider : le serveur reçoit le texte non numérique et répond avec son message",
+   "apps/web/lib/settings-admin.spec.ts › version attendue du verrou optimiste : celle du niveau modifié, 0 quand ce niveau n’a pas de valeur",
+   "apps/web/components/settings-admin-render.spec.ts › vue groupe : rubriques, origine et version, actions de modification et d’historique ; la pagination est une valeur fixe non modifiable",
+   "apps/web/components/settings-admin-render.spec.ts › vue société : surcharge proposée seulement pour les paramètres qui l’autorisent, retrait d’une surcharge en vigueur",
+   "tests/e2e/specs/parametres.spec.ts › modifie une valeur groupe avec motif, affiche les erreurs du serveur, l’historique et une surcharge société retirée",
+   "apps/web/lib/settings-admin.spec.ts › indique les bornes du descripteur partagé avec l’API"
+  ],
+  "note": "Écran Administration › Paramètres livré (onglet « Paramètres », /administration/parametres) : valeur groupe et surcharges par société quand companyOverride, validation et messages du serveur sous les champs, motif obligatoire, verrou optimiste (expectedVersion, 409), historique par niveau avec auteur, retrait motivé d’une surcharge ; réservé à l’administrateur (API 403, onglet masqué). session.ttlHours a désormais un effet réel (lu à chaque connexion, SESSION_TTL_HOURS supprimée) ; pagination.* rendus non modifiables (valeurs fixes du contrat d’API, 422 PARAMETRE_NON_MODIFIABLE) : écart assumé D-016, de même que langue fr, devise TND et 3 décimales portées par l’organisation (fuseau modifiable dans Administration › Organisation) et l’activation F11 par société (Administration › Télématique). e2e parametres.spec.ts vert le 2026-09-24 (build sous verrou). Reste : surcharge par véhicule des seuils de baisse carburant (« ajustable par véhicule », 17.1), absente — code télématique d’une autre mission. Revue adversariale : la part fixe en TND (fuel.amountToleranceTnd) acceptait un nombre à décimales illimitées ; borne « 3 décimales au plus » ajoutée au descripteur partagé et contrôlée par le serveur (422 par champ, rien n’enregistré ; 0.125 accepté), rappelée sous le champ. expectedVersion reste facultatif dans PUT /settings (l’écran l’envoie toujours ; des tests d’autres modules appellent l’API sans) : une écriture sans version n’est protégée que par l’index « une version courante ». Découpage (complément du lot A) : cas « pagination : bornes fixes… » (settings.int.spec.ts, lit GET /audit) et e2e « le chef de parc n’accède pas à l’onglet Paramètres » : tests livrés avec le lot E ; borne de trois décimales des montants en TND (paramètre fuel.amountToleranceTnd) livrée avec le lot D."
  }
 }

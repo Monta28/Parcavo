@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useAppScope } from '@/components/layout/session-context';
+import { SortableHead } from '@/components/maintenance/sortable-head';
 import { PageHeader } from '@/components/page-header';
 import { PaginationControls } from '@/components/pagination-controls';
 import { EmptyState, ErrorState, LoadingState } from '@/components/states';
@@ -20,6 +21,7 @@ import { isApiError } from '@/lib/api-error';
 import type { Page } from '@/lib/api-types';
 import { formatDate } from '@/lib/format';
 import { useListParams } from '@/lib/use-list-params';
+import { useListSort } from '@/lib/use-list-sort';
 import { CompanyDialog } from './company-dialog';
 import { ConfirmDialog } from './confirm-dialog';
 import { ALL, COMPANY_STATUS_LABELS } from './labels';
@@ -27,6 +29,9 @@ import { ALL, COMPANY_STATUS_LABELS } from './labels';
 type DialogState = { mode: 'create' } | { mode: 'edit'; company: CompanyView } | null;
 
 /** Sociétés du groupe (CDC 2.1) : création, modification, activation de la télématique, archivage. */
+/** Tris autorisés par GET /companies. */
+const COMPANY_SORTS = ['code', 'legalName', 'createdAt'] as const;
+
 export function CompaniesAdmin() {
   const { session } = useAppScope();
   const router = useRouter();
@@ -34,7 +39,8 @@ export function CompaniesAdmin() {
   const { get, set, page } = useListParams();
   const q = get('q');
   const status = get('statut');
-  const query = toQuery({ q, status, page, pageSize: 25, sort: 'code' });
+  const { sort, order, onSort } = useListSort(COMPANY_SORTS, 'code');
+  const query = toQuery({ q, status, page, pageSize: 25, sort, order });
   const [dialog, setDialog] = useState<DialogState>(null);
   const [archiving, setArchiving] = useState<CompanyView | null>(null);
 
@@ -112,12 +118,12 @@ export function CompaniesAdmin() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Raison sociale</TableHead>
+                  <SortableHead label="Code" sortKey="code" current={sort} order={order} onSort={onSort} />
+                  <SortableHead label="Raison sociale" sortKey="legalName" current={sort} order={order} onSort={onSort} />
                   <TableHead>Statut</TableHead>
                   <TableHead>Télématique</TableHead>
                   <TableHead className="hidden md:table-cell">Contact</TableHead>
-                  <TableHead className="hidden lg:table-cell">Créée le</TableHead>
+                  <SortableHead label="Créée le" sortKey="createdAt" current={sort} order={order} onSort={onSort} defaultOrder="desc" descLabel="la plus récente d’abord" ascLabel="la plus ancienne d’abord" className="hidden lg:table-cell" />
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>

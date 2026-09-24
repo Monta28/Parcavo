@@ -1,6 +1,7 @@
+import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DEFAULT_PASSWORD, createVehicle, seedFixture, type Fixture } from '../support/factories.js';
-import { login, resetDatabase, startTestApp, type Agent, type TestApp } from '../support/test-app.js';
+import { TEST_ORIGIN, login, resetDatabase, startTestApp, type Agent, type TestApp } from '../support/test-app.js';
 
 describe('Paramètres versionnés (CDC 17.1)', () => {
   let t: TestApp;
@@ -31,13 +32,19 @@ describe('Paramètres versionnés (CDC 17.1)', () => {
     expect(byKey['telemetry.silentAfterHours'].value).toBe(24);
     expect(byKey['telemetry.driftThresholdPercent'].value).toBe(3);
     expect(byKey['pagination.maxPageSize'].value).toBe(100);
+    expect(byKey['odometer.staleAfterDays'].editable).toBe(true);
   });
 
   it('versionne et audite chaque modification ; surcharge société explicite ; réservé à l’administrateur', async () => {
     expect((await chefA.put('/settings/odometer.staleAfterDays', { value: 10, reason: 'essai' })).status).toBe(403);
     const invalid = await admin.put('/settings/odometer.staleAfterDays', { value: 0, reason: 'valeur hors bornes' });
     expect(invalid.status).toBe(422);
-    const v1 = await admin.put('/settings/odometer.staleAfterDays', { value: 10, reason: 'politique groupe' });
+    expect(invalid.body.fieldErrors).toEqual({ value: ['valeur minimale 1 jours.'] });
+    // Champs absents ou trop courts : messages par champ en français, jamais ceux de class-validator (CDC 10.1).
+    const missing = await admin.put('/settings/odometer.staleAfterDays', { reason: 'x' });
+    expect(missing.status).toBe(422);
+    expect(missing.body.fieldErrors).toEqual({ value: ['Ce champ est obligatoire.'], reason: ['Longueur minimale non respectée.'] });
+    const v1 =await admin.put('/settings/odometer.staleAfterDays', { value: 10, reason: 'politique groupe' });
     expect(v1.body).toMatchObject({ value: 10, source: 'groupe', settingVersion: 1 });
     const v2 = await admin.put('/settings/odometer.staleAfterDays', { value: 14, reason: 'révision' });
     expect(v2.body.settingVersion).toBe(2);
@@ -54,5 +61,25 @@ describe('Paramètres versionnés (CDC 17.1)', () => {
     expect((await chefA.get(`/vehicles/${vehicleId}/synthesis`)).body.freshness).toBe('A_ACTUALISER');
     await admin.delete('/settings/odometer.staleAfterDays/override').send({ companyId: f.companies.A, reason: 'retour au groupe' });
     expect((await chefA.get(`/vehicles/${vehicleId}/synthesis`)).body.freshness).toBe('A_JOUR');
+  });
+
+  it('durée de session : le paramètre session.ttlHours fixe l’échéance des nouvelles connexions ; les sessions ouvertes gardent la leur', async () => {
+    const before = await chefA.get('/auth/session');
+    expect(before.body.sessionExpiresAt).toBe('2026-09-24T22:00:00.000Z'); // 12 h par défaut (CDC 16.1)
+    expect((await admin.put('/settings/session.ttlHours', { value: 0, reason: 'hors bornes' })).status).toBe(422);
+    const changed = await admin.put('/settings/session.ttlHours', { value: 2, reason: 'postes partagés', expectedVersion: 0 });
+    expect(changed.body).toMatchObject({ value: 2, source: 'groupe' });
+
+    const res = await request(t.server).post('/api/v1/auth/login').set('Origin', TEST_ORIGIN).send({ email: f.emails.lecteurA, password: DEFAULT_PASSWORD });
+    expect(res.status).toBe(200);
+    const cookies = ([] as string[]).concat(res.headers['set-cookie'] ?? []);
+    expect(cookies.find((c) => c.startsWith('pa_session='))).toMatch(/Max-Age=7200/);
+    const lecteur = await login(t.server, f.emails.lecteurA, DEFAULT_PASSWORD);
+    expect((await lecteur.get('/auth/session')).body.sessionExpiresAt).toBe('2026-09-24T12:00:00.000Z');
+
+    // Deux heures et une minute plus tard : la nouvelle session a expiré, celle ouverte avant la modification reste valide.
+    t.clock.set('2026-09-24T12:01:00.000Z');
+    expect((await lecteur.get('/auth/session')).status).toBe(401);
+    expect((await chefA.get('/auth/session')).status).toBe(200);
   });
 });

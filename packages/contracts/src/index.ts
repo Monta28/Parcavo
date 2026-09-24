@@ -326,7 +326,15 @@ export interface SettingDescriptor {
   unit?: string;
   /** Surcharge possible par société (sinon valeur groupe uniquement). */
   companyOverride: boolean;
+  /**
+   * Valeur fixe du produit, affichée mais non modifiable (PUT refusé en 422 PARAMETRE_NON_MODIFIABLE) :
+   * le texte explique pourquoi. Sans ce champ, le paramètre est modifiable par l'administrateur.
+   */
+  fixed?: string;
 }
+
+/** Pagination (CDC 15.1, 17.1) : borne du contrat de l'API documentée dans OpenAPI, identique pour toutes les organisations. */
+const PAGINATION_FIXED = `Borne du contrat de l’API (CDC 15.1), documentée dans OpenAPI et identique pour toutes les organisations : ${SETTING_DEFAULTS['pagination.defaultPageSize']} lignes par défaut, ${SETTING_DEFAULTS['pagination.maxPageSize']} au plus par requête.`;
 
 export const SETTING_DESCRIPTORS: Record<SettingKey, SettingDescriptor> = {
   'odometer.staleAfterDays': { label: 'Kilométrage ancien après', kind: 'integer', min: 1, max: 365, unit: 'jours', companyOverride: true },
@@ -341,8 +349,8 @@ export const SETTING_DESCRIPTORS: Record<SettingKey, SettingDescriptor> = {
   'attachments.maxSizeBytes': { label: 'Taille maximale d’une pièce jointe', kind: 'integer', min: 1024, max: 10485760, unit: 'octets', companyOverride: false },
   'imports.maxSizeBytes': { label: 'Taille maximale d’un import', kind: 'integer', min: 1024, max: 5242880, unit: 'octets', companyOverride: false },
   'imports.maxRows': { label: 'Lignes maximales par import', kind: 'integer', min: 1, max: 2000, unit: 'lignes', companyOverride: false },
-  'pagination.defaultPageSize': { label: 'Pagination par défaut', kind: 'integer', min: 5, max: 100, unit: 'lignes', companyOverride: false },
-  'pagination.maxPageSize': { label: 'Pagination maximale', kind: 'integer', min: 10, max: 100, unit: 'lignes', companyOverride: false },
+  'pagination.defaultPageSize': { label: 'Pagination par défaut', kind: 'integer', min: 5, max: 100, unit: 'lignes', companyOverride: false, fixed: PAGINATION_FIXED },
+  'pagination.maxPageSize': { label: 'Pagination maximale', kind: 'integer', min: 10, max: 100, unit: 'lignes', companyOverride: false, fixed: PAGINATION_FIXED },
   'fuel.amountToleranceRatio': { label: 'Tolérance litres × prix / total', kind: 'number', min: 0, max: 0.5, unit: 'ratio', companyOverride: true },
   'telemetry.syncIntervalMinutes': { label: 'Synchronisation télématique', kind: 'integer', min: 5, max: 1440, unit: 'minutes', companyOverride: false },
   'telemetry.silentAfterHours': { label: 'Source GPS muette après', kind: 'integer', min: 1, max: 720, unit: 'heures', companyOverride: true },
@@ -357,7 +365,7 @@ export const SETTING_DESCRIPTORS: Record<SettingKey, SettingDescriptor> = {
   'telemetry.fuelSampleStepMinutes': { label: 'Pas des échantillons carburant', kind: 'integer', min: 1, max: 5, unit: 'minutes', companyOverride: false },
   'telemetry.fuelSampleRetentionDays': { label: 'Rétention des échantillons carburant', kind: 'integer', min: 7, max: 730, unit: 'jours', companyOverride: false },
   'telemetry.calibrationMaxGapMinutes': { label: 'Écart maximal pour le calibrage GPS', kind: 'integer', min: 5, max: 1440, unit: 'minutes', companyOverride: false },
-  'session.ttlHours': { label: 'Durée de session', kind: 'integer', min: 1, max: 72, unit: 'heures', companyOverride: false },
+  'session.ttlHours': { label: 'Durée de session (appliquée aux nouvelles connexions)', kind: 'integer', min: 1, max: 72, unit: 'heures', companyOverride: false },
   'usage.checklistItems': { label: 'Checklist de remise et de restitution', kind: 'string-list', companyOverride: true },
   'expenses.vehiclePurchaseExcludedByDefault': { label: 'Achats de véhicules exclus du coût d’exploitation', kind: 'boolean', companyOverride: false },
   'reservations.noShowGraceMinutes': { label: 'Délai avant constat manuel de non-présentation (après le début prévu)', kind: 'integer', min: 0, max: 1440, unit: 'minutes', companyOverride: true },
@@ -365,4 +373,5 @@ export const SETTING_DESCRIPTORS: Record<SettingKey, SettingDescriptor> = {
   'drivers.allowHabitualVehicleSubmissions': { label: 'Soumissions du conducteur sur le véhicule dont il est responsable habituel (sans utilisation en cours)', kind: 'boolean', companyOverride: false },
 };
 
-export const PAGINATION = { defaultPageSize: 25, maxPageSize: 100 } as const;
+/** Bornes de pagination de l'API (CDC 15.1, 17.1) : valeurs fixes des paramètres pagination.* (non modifiables). */
+export const PAGINATION = { defaultPageSize: SETTING_DEFAULTS['pagination.defaultPageSize'], maxPageSize: SETTING_DEFAULTS['pagination.maxPageSize'] } as const;

@@ -18,9 +18,11 @@ cp .env.example .env && docker compose up -d --wait && pnpm install && pnpm db:m
 - Premier administrateur sur une base vierge (le mot de passe est demandé au clavier, jamais passé en argument) :
 
 ```bash
-ADMIN_PASSWORD='Un-Mot-De-Passe-Solide-2026' pnpm --filter @parc-auto/db create-admin \
+pnpm --filter @parc-auto/db create-admin \
   --org-code GROUPE --org-name "Mon groupe" --email admin@exemple.tn --first-name Prénom --last-name Nom
 ```
+
+Sans terminal interactif (script de déploiement), le mot de passe vient de la variable `ADMIN_PASSWORD`, alimentée par le gestionnaire de secrets : jamais écrite dans un fichier versionné (contrôle `pnpm check:secrets`).
 
 
 ## Commandes de qualité

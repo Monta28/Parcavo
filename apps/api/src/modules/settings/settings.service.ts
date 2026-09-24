@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '@parc-auto/db';
+import { Prisma } from '@parc-auto/db';
 import { SETTING_DEFAULTS, SETTING_DESCRIPTORS, type SettingKey } from '@parc-auto/contracts';
-import { BusinessRuleError, NotFoundOrOutOfScopeError } from '../../common/errors.js';
+import { BusinessRuleError, ConflictError, ErrorCodes, NotFoundOrOutOfScopeError } from '../../common/errors.js';
 import type { RequestContext } from '../../common/request-context.js';
 import { AuditService } from '../../infra/audit.service.js';
 import { PrismaService, type Tx } from '../../infra/prisma.service.js';
@@ -17,6 +17,20 @@ export interface EffectiveSetting {
   source: 'defaut' | 'groupe' | 'societe';
   settingVersion: number | null;
   companyOverride: boolean;
+  /** Faux pour une valeur fixe du produit (descripteur `fixed`) : affichée, jamais modifiable. */
+  editable: boolean;
+}
+
+export interface SettingVersionView {
+  companyId: string | null;
+  value: unknown;
+  settingVersion: number;
+  isCurrent: boolean;
+  reason: string | null;
+  createdAt: string;
+  createdById: string | null;
+  /** Prénom et nom de l'auteur de la version (null si le compte n'existe plus). */
+  createdByName: string | null;
 }
 
 /**
@@ -33,6 +47,8 @@ export class SettingsService {
 
   /** Valeur effective pour une organisation et, si fournie, une société (surcharge explicite). */
   async get<K extends SettingKey>(organizationId: string, key: K, companyId?: string | null, tx?: Tx): Promise<SettingValueOf<K>> {
+    // Valeur fixe du produit : une ligne enregistrée avant qu'elle ne le devienne n'a aucun effet.
+    if (SETTING_DESCRIPTORS[key].fixed !== undefined) return SETTING_DEFAULTS[key] as unknown as SettingValueOf<K>;
     const client = tx ?? this.prisma.client;
     const rows = await client.settingValue.findMany({
       where: { organizationId, key, isCurrent: true, OR: [{ companyId: null }, ...(companyId ? [{ companyId }] : [])] },
@@ -49,8 +65,9 @@ export class SettingsService {
     const rows = await this.prisma.client.settingValue.findMany({ where: { organizationId: ctx.organizationId, isCurrent: true, OR: [{ companyId: null }, ...(companyId ? [{ companyId }] : [])] } });
     return (Object.keys(SETTING_DEFAULTS) as SettingKey[]).map((key) => {
       const d = SETTING_DESCRIPTORS[key];
-      const company = companyId ? rows.find((r) => r.key === key && r.companyId === companyId) : undefined;
-      const group = rows.find((r) => r.key === key && r.companyId === null);
+      const editable = d.fixed === undefined;
+      const company = editable && companyId ? rows.find((r) => r.key === key && r.companyId === companyId) : undefined;
+      const group = editable ? rows.find((r) => r.key === key && r.companyId === null) : undefined;
       const chosen = company ?? group;
       return {
         key,
@@ -60,49 +77,132 @@ export class SettingsService {
         source: company ? 'societe' : group ? 'groupe' : 'defaut',
         settingVersion: chosen?.settingVersion ?? null,
         companyOverride: d.companyOverride,
+        editable,
       };
     });
   }
 
-  async history(ctx: RequestContext, key: SettingKey): Promise<Array<{ companyId: string | null; value: unknown; settingVersion: number; isCurrent: boolean; reason: string | null; createdAt: string; createdById: string | null }>> {
-    this.access.requireAdmin(ctx);
-    const rows = await this.prisma.client.settingValue.findMany({ where: { organizationId: ctx.organizationId, key }, orderBy: [{ companyId: 'asc' }, { settingVersion: 'desc' }] });
-    return rows.map((r) => ({ companyId: r.companyId, value: r.value, settingVersion: r.settingVersion, isCurrent: r.isCurrent, reason: r.reason, createdAt: r.createdAt.toISOString(), createdById: r.createdById }));
-  }
-
-  /** Nouvelle version d'un paramètre (administrateur ; motif obligatoire ; audit avant/après). */
-  async set(ctx: RequestContext, key: string, value: unknown, companyId: string | null, reason: string): Promise<EffectiveSetting> {
+  async history(ctx: RequestContext, key: string): Promise<SettingVersionView[]> {
     this.access.requireAdmin(ctx);
     if (!(key in SETTING_DEFAULTS)) throw new NotFoundOrOutOfScopeError('Paramètre');
-    const k = key as SettingKey;
+    const rows = await this.prisma.client.settingValue.findMany({ where: { organizationId: ctx.organizationId, key }, orderBy: [{ companyId: 'asc' }, { settingVersion: 'desc' }] });
+    const authorIds = [...new Set(rows.map((r) => r.createdById).filter((id): id is string => id !== null))];
+    const authors = authorIds.length > 0 ? await this.prisma.client.user.findMany({ where: { organizationId: ctx.organizationId, id: { in: authorIds } }, select: { id: true, firstName: true, lastName: true } }) : [];
+    const names = new Map(authors.map((u) => [u.id, `${u.firstName} ${u.lastName}`.trim()]));
+    return rows.map((r) => ({
+      companyId: r.companyId,
+      value: r.value,
+      settingVersion: r.settingVersion,
+      isCurrent: r.isCurrent,
+      reason: r.reason,
+      createdAt: r.createdAt.toISOString(),
+      createdById: r.createdById,
+      createdByName: r.createdById ? (names.get(r.createdById) ?? null) : null,
+    }));
+  }
+
+  /**
+   * Nouvelle version d'un paramètre (administrateur ; motif obligatoire ; audit avant/après). `expectedVersion`
+   * (facultatif) est la version courante du niveau modifié, 0 quand ce niveau n'a aucune valeur : une
+   * modification concurrente est refusée en 409 au lieu d'être écrasée.
+   */
+  async set(ctx: RequestContext, key: string, value: unknown, companyId: string | null, reason: string, expectedVersion?: number): Promise<EffectiveSetting> {
+    this.access.requireAdmin(ctx);
+    const k = this.editableKey(key);
     const descriptor = SETTING_DESCRIPTORS[k];
     if (companyId) {
       if (!descriptor.companyOverride) throw new BusinessRuleError('SURCHARGE_INTERDITE', 'Ce paramètre ne se surcharge pas par société.');
-      const company = await this.prisma.client.company.findFirst({ where: { id: companyId, organizationId: ctx.organizationId } });
-      if (!company) throw new NotFoundOrOutOfScopeError('Société');
+      await this.assertCompany(ctx, companyId);
     }
     const normalized = validateSettingValue(k, value);
-    await this.prisma.client.$transaction(async (tx) => {
-      const previous = await tx.settingValue.findFirst({ where: { organizationId: ctx.organizationId, companyId, key: k, isCurrent: true } });
-      if (previous) await tx.settingValue.update({ where: { id: previous.id }, data: { isCurrent: false } });
-      const last = await tx.settingValue.findFirst({ where: { organizationId: ctx.organizationId, companyId, key: k }, orderBy: { settingVersion: 'desc' } });
-      await tx.settingValue.create({
-        data: { organizationId: ctx.organizationId, companyId, key: k, value: normalized as Prisma.InputJsonValue, settingVersion: (last?.settingVersion ?? 0) + 1, isCurrent: true, reason, createdById: ctx.userId },
-      });
-      await this.audit.record(ctx, { action: 'parametre.modification', objectType: 'Setting', objectId: null, companyId, reason, before: { key: k, value: previous?.value ?? SETTING_DEFAULTS[k] }, after: { key: k, value: normalized } }, tx);
-    });
+    await this.withConcurrencyGuard(() =>
+      this.prisma.client.$transaction(async (tx) => {
+        const previous = await tx.settingValue.findFirst({ where: { organizationId: ctx.organizationId, companyId, key: k, isCurrent: true } });
+        assertSettingVersion(previous?.settingVersion ?? 0, expectedVersion);
+        // Valeur remplacée : la version courante de ce niveau, sinon celle qui s'appliquait (groupe ou défaut).
+        const replaced = previous ? previous.value : companyId ? await this.get(ctx.organizationId, k, null, tx) : SETTING_DEFAULTS[k];
+        if (previous) await tx.settingValue.update({ where: { id: previous.id }, data: { isCurrent: false } });
+        const last = await tx.settingValue.findFirst({ where: { organizationId: ctx.organizationId, companyId, key: k }, orderBy: { settingVersion: 'desc' } });
+        const settingVersion = (last?.settingVersion ?? 0) + 1;
+        await tx.settingValue.create({
+          data: { organizationId: ctx.organizationId, companyId, key: k, value: normalized as Prisma.InputJsonValue, settingVersion, isCurrent: true, reason, createdById: ctx.userId },
+        });
+        await this.audit.record(
+          ctx,
+          { action: 'parametre.modification', objectType: 'Setting', objectId: null, companyId, reason, before: { key: k, value: replaced, settingVersion: previous?.settingVersion ?? null }, after: { key: k, value: normalized, settingVersion } },
+          tx,
+        );
+      }),
+    );
     return (await this.list(ctx, companyId)).find((s) => s.key === k) as EffectiveSetting;
   }
 
-  /** Retire une surcharge société (retour à la valeur groupe), avec trace. */
-  async clearCompanyOverride(ctx: RequestContext, key: string, companyId: string, reason: string): Promise<void> {
+  /**
+   * Retire une surcharge société (retour à la valeur groupe), avec trace : l'audit porte la surcharge
+   * retirée (avant) et la valeur qui s'applique désormais à la société, avec son origine (après).
+   * Sans surcharge en vigueur : 404 (rien n'est retiré, rien n'est tracé).
+   */
+  async clearCompanyOverride(ctx: RequestContext, key: string, companyId: string, reason: string, expectedVersion?: number): Promise<void> {
     this.access.requireAdmin(ctx);
+    const k = this.editableKey(key);
+    if (!SETTING_DESCRIPTORS[k].companyOverride) throw new BusinessRuleError('SURCHARGE_INTERDITE', 'Ce paramètre ne se surcharge pas par société.');
+    await this.assertCompany(ctx, companyId);
+    await this.withConcurrencyGuard(() =>
+      this.prisma.client.$transaction(async (tx) => {
+        const current = await tx.settingValue.findFirst({ where: { organizationId: ctx.organizationId, companyId, key: k, isCurrent: true } });
+        if (!current) throw new NotFoundOrOutOfScopeError('Surcharge société');
+        assertSettingVersion(current.settingVersion, expectedVersion);
+        await tx.settingValue.update({ where: { id: current.id }, data: { isCurrent: false } });
+        const group = await tx.settingValue.findFirst({ where: { organizationId: ctx.organizationId, companyId: null, key: k, isCurrent: true } });
+        await this.audit.record(
+          ctx,
+          {
+            action: 'parametre.surcharge_retiree',
+            objectType: 'Setting',
+            companyId,
+            reason,
+            before: { key: k, value: current.value, source: 'societe', settingVersion: current.settingVersion },
+            after: { key: k, value: group ? group.value : SETTING_DEFAULTS[k], source: group ? 'groupe' : 'defaut', settingVersion: group?.settingVersion ?? null },
+          },
+          tx,
+        );
+      }),
+    );
+  }
+
+  /** Clé connue et modifiable : inconnue → 404 ; valeur fixe du produit → 422 PARAMETRE_NON_MODIFIABLE. */
+  private editableKey(key: string): SettingKey {
     if (!(key in SETTING_DEFAULTS)) throw new NotFoundOrOutOfScopeError('Paramètre');
-    await this.prisma.client.$transaction(async (tx) => {
-      const current = await tx.settingValue.findFirst({ where: { organizationId: ctx.organizationId, companyId, key, isCurrent: true } });
-      if (!current) return;
-      await tx.settingValue.update({ where: { id: current.id }, data: { isCurrent: false } });
-      await this.audit.record(ctx, { action: 'parametre.surcharge_retiree', objectType: 'Setting', companyId, reason, before: { key, value: current.value } }, tx);
+    const k = key as SettingKey;
+    const fixed = SETTING_DESCRIPTORS[k].fixed;
+    if (fixed !== undefined) throw new BusinessRuleError('PARAMETRE_NON_MODIFIABLE', `${SETTING_DESCRIPTORS[k].label} : valeur fixe, non modifiable. ${fixed}`);
+    return k;
+  }
+
+  private async assertCompany(ctx: RequestContext, companyId: string): Promise<void> {
+    const company = await this.prisma.client.company.findFirst({ where: { id: companyId, organizationId: ctx.organizationId }, select: { id: true } });
+    if (!company) throw new NotFoundOrOutOfScopeError('Société');
+  }
+
+  /** Deux écritures simultanées du même niveau se heurtent à l'index « une version courante » : 409, jamais 500. */
+  private async withConcurrencyGuard<T>(work: () => Promise<T>): Promise<T> {
+    try {
+      return await work();
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictError(ErrorCodes.VERSION_OBSOLETE, 'Ce paramètre vient d’être modifié par ailleurs. Rechargez puis réessayez.');
+      }
+      throw error;
+    }
+  }
+}
+
+/** Verrou optimiste d'un niveau de paramètre (groupe ou société) : version courante, 0 sans valeur. */
+function assertSettingVersion(current: number, expected: number | undefined): void {
+  if (expected !== undefined && expected !== current) {
+    throw new ConflictError(ErrorCodes.VERSION_OBSOLETE, `Ce paramètre a été modifié entre-temps : version ${current} enregistrée, version ${expected} attendue. Rechargez puis réessayez.`, {
+      currentVersion: current,
+      expectedVersion: expected,
     });
   }
 }

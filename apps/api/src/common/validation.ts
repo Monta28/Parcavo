@@ -14,7 +14,8 @@ export function createValidationPipe(): ValidationPipe {
   });
 }
 
-function flatten(errors: ValidationError[], prefix = '', acc: FieldErrors = {}): FieldErrors {
+/** Erreurs class-validator aplaties par chemin de propriété, messages traduits (pipe global et imports). */
+export function flatten(errors: ValidationError[], prefix = '', acc: FieldErrors = {}): FieldErrors {
   for (const error of errors) {
     const path = prefix ? `${prefix}.${error.property}` : error.property;
     if (error.constraints) {
@@ -45,11 +46,25 @@ const TRANSLATIONS: Array<[RegExp, string]> = [
   [/must be an array/i, 'Une liste est attendue.'],
   [/must be a positive number/i, 'Une valeur strictement positive est attendue.'],
   [/must match/i, 'Format invalide.'],
+  [/should not be null or undefined/i, 'Ce champ est obligatoire.'],
+  [/must contain no more than (\d+) elements/i, 'Liste trop longue : $1 éléments au plus.'],
+  [/must contain at least (\d+) elements/i, 'Liste trop courte : $1 élément(s) au moins.'],
+  [/elements must be unique/i, 'Les éléments de la liste doivent être distincts.'],
+  [/must be either object or array/i, 'Un objet ou une liste est attendu.'],
+  [/must be an object/i, 'Un objet est attendu.'],
+  [/an unknown value was passed to the validate function/i, 'Contenu de requête inattendu.'],
 ];
 
-function translate(message: string): string {
+/**
+ * Message par défaut de class-validator resté en anglais (décorateur sans traduction ci-dessus) : jamais
+ * renvoyé tel quel à l'interface (CDC 10.1). Les messages propres au projet, en français, sont conservés.
+ */
+const ENGLISH_DEFAULT = /^[\x20-\x7E]*\b(must|should|is not|are not|has to|elements|property)\b[\x20-\x7E]*$/;
+
+export function translate(message: string): string {
   for (const [pattern, fr] of TRANSLATIONS) {
-    if (pattern.test(message)) return fr;
+    const m = pattern.exec(message);
+    if (m) return fr.replace(/\$(\d)/g, (_, i: string) => m[Number(i)] ?? '');
   }
-  return message;
+  return ENGLISH_DEFAULT.test(message) ? 'Valeur invalide.' : message;
 }

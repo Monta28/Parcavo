@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { VEHICLE_LIFECYCLE_LABELS, VEHICLE_OPERATIONAL_STATUS_LABELS } from '@parc-auto/contracts';
 import { useAppScope, useRoleIn } from '@/components/layout/session-context';
+import { SortableHead } from '@/components/maintenance/sortable-head';
 import { PageHeader } from '@/components/page-header';
 import { PaginationControls } from '@/components/pagination-controls';
 import { EmptyState, ErrorState, LoadingState } from '@/components/states';
@@ -16,9 +17,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { api, toQuery } from '@/lib/api-client';
 import type { Page } from '@/lib/api-types';
 import { useListParams } from '@/lib/use-list-params';
+import { useListSort } from '@/lib/use-list-sort';
 import type { VehicleCategory, VehicleView } from '@/lib/vehicles-types';
 
 const ALL = '__all__';
+/** Tris autorisés par GET /vehicles. */
+const VEHICLE_SORTS = ['code', 'registration', 'make', 'createdAt'] as const;
 
 export function VehiclesList() {
   const { companyId, session } = useAppScope();
@@ -28,7 +32,8 @@ export function VehiclesList() {
   const lifecycle = get('lifecycle');
   const operational = get('statut');
   const categoryId = get('categorie');
-  const query = toQuery({ companyId, q, lifecycleStatus: lifecycle, operationalStatus: operational, categoryId, page, pageSize: 25, sort: 'code' });
+  const { sort, order, onSort } = useListSort(VEHICLE_SORTS, 'code');
+  const query = toQuery({ companyId, q, lifecycleStatus: lifecycle, operationalStatus: operational, categoryId, page, pageSize: 25, sort, order });
 
   const vehicles = useQuery({ queryKey: ['vehicles', query], queryFn: () => api<Page<VehicleView>>(`/vehicles${query}`) });
   const categories = useQuery({ queryKey: ['vehicle-categories'], queryFn: () => api<VehicleCategory[]>('/vehicle-categories') });
@@ -103,9 +108,9 @@ export function VehiclesList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Immatriculation</TableHead>
-                <TableHead>Marque / modèle</TableHead>
+                <SortableHead label="Code" sortKey="code" current={sort} order={order} onSort={onSort} />
+                <SortableHead label="Immatriculation" sortKey="registration" current={sort} order={order} onSort={onSort} />
+                <SortableHead label="Marque / modèle" sortKey="make" current={sort} order={order} onSort={onSort} />
                 <TableHead>Catégorie</TableHead>
                 {companyId === null ? <TableHead>Société</TableHead> : null}
                 <TableHead>Statut</TableHead>

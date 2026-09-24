@@ -11,7 +11,6 @@ export interface AppEnv {
   /** Origine publique du site (contrôle d'origine des mutations, cookies). */
   appOrigin: string;
   cookieSecure: boolean;
-  sessionTtlHours: number;
   storageDir: string;
   /** Clé de chiffrement au repos des secrets télématiques (32 octets en base64). */
   secretsEncryptionKey: Buffer | null;
@@ -89,7 +88,6 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
       databaseUrl,
       appOrigin,
       cookieSecure: readBool('COOKIE_SECURE', nodeEnv === 'production'),
-      sessionTtlHours: readInt('SESSION_TTL_HOURS', 12),
       storageDir: read('STORAGE_DIR') ?? './storage',
       secretsEncryptionKey,
       secretsEncryptionKeyId: read('SECRETS_ENCRYPTION_KEY_ID') ?? 'k1',

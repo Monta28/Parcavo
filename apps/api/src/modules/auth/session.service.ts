@@ -4,6 +4,7 @@ import type { Response } from 'express';
 import { Clock } from '../../common/clock.js';
 import { APP_ENV, type AppEnv } from '../../infra/env.js';
 import { PrismaService } from '../../infra/prisma.service.js';
+import { SettingsService } from '../settings/settings.service.js';
 
 export const SESSION_COOKIE = 'pa_session';
 export const CSRF_COOKIE = 'pa_csrf';
@@ -22,7 +23,9 @@ export function hashToken(token: string): string {
 
 /**
  * Sessions serveur révocables (CDC 16.1) : le navigateur ne reçoit qu'un jeton opaque en cookie
- * HttpOnly ; seule son empreinte est stockée. Le jeton CSRF est lié à la session.
+ * HttpOnly ; seule son empreinte est stockée. Le jeton CSRF est lié à la session. Durée : paramètre
+ * `session.ttlHours` de l'organisation (12 h par défaut, modifiable par l'administrateur, audité),
+ * lu à chaque connexion ; une session déjà ouverte garde l'échéance fixée à sa création.
  */
 @Injectable()
 export class SessionService {
@@ -30,13 +33,15 @@ export class SessionService {
     private readonly prisma: PrismaService,
     private readonly clock: Clock,
     @Inject(APP_ENV) private readonly env: AppEnv,
+    private readonly settings: SettingsService,
   ) {}
 
   async issue(user: { id: string; organizationId: string }, meta: { ipAddress: string | null; userAgent: string | null }): Promise<IssuedSession> {
     const sessionToken = randomBytes(32).toString('base64url');
     const csrfToken = randomBytes(32).toString('base64url');
     const now = this.clock.now();
-    const expiresAt = new Date(now.getTime() + this.env.sessionTtlHours * 3600 * 1000);
+    const ttlHours = await this.settings.get(user.organizationId, 'session.ttlHours');
+    const expiresAt = new Date(now.getTime() + ttlHours * 3600 * 1000);
     const session = await this.prisma.client.session.create({
       data: {
         organizationId: user.organizationId,

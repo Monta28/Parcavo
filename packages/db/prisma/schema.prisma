@@ -15,7 +15,8 @@
 //  - Contraintes non représentables ici (EXCLUDE, CHECK, triggers, partitions)
 //    : migrations SQL versionnées dans prisma/migrations.
 // Tables techniques globales (sans organizationId) : JobLease,
-// WorkerHeartbeat. Voir docs/DECISIONS.md.
+// WorkerHeartbeat, LoginAttempt (et _prisma_migrations, gérée par Prisma).
+// Rôle et fin de vie de chaque table : docs/modele-de-donnees.md (D-283).
 // =============================================================================
 
 generator client {

@@ -49,7 +49,7 @@ export class UsersService {
     };
     const sort = resolveSort(query.sort, SORTS, 'lastName');
     const [items, total] = await Promise.all([
-      this.prisma.client.user.findMany({ where, ...skipTake(query), orderBy: { [sort]: query.order }, include: this.include() }),
+      this.prisma.client.user.findMany({ where, ...skipTake(query), orderBy: [{ [sort]: query.order }, { id: 'asc' }], include: this.include() }),
       this.prisma.client.user.count({ where }),
     ]);
     return pageOf(items.map((u) => this.view(u)), total, query);

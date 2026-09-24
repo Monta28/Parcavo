@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useAppScope, useRoleIn } from '@/components/layout/session-context';
+import { SortableHead } from '@/components/maintenance/sortable-head';
 import { PageHeader } from '@/components/page-header';
 import { PaginationControls } from '@/components/pagination-controls';
 import { EmptyState, ErrorState, LoadingState } from '@/components/states';
@@ -17,8 +18,11 @@ import type { Page } from '@/lib/api-types';
 import { DRIVER_STATUS_LABELS, type DriverView } from '@/lib/drivers-types';
 import { formatDate } from '@/lib/format';
 import { useListParams } from '@/lib/use-list-params';
+import { useListSort } from '@/lib/use-list-sort';
 
 const ALL = '__all__';
+/** Tris autorisés par GET /drivers. */
+const DRIVER_SORTS = ['lastName', 'code', 'createdAt'] as const;
 
 export function DriversList() {
   const { companyId, session } = useAppScope();
@@ -26,7 +30,8 @@ export function DriversList() {
   const { get, set, page } = useListParams();
   const q = get('q');
   const status = get('statut');
-  const query = toQuery({ companyId, q, status, page, pageSize: 25, sort: 'lastName' });
+  const { sort, order, onSort } = useListSort(DRIVER_SORTS, 'lastName');
+  const query = toQuery({ companyId, q, status, page, pageSize: 25, sort, order });
 
   const drivers = useQuery({ queryKey: ['drivers', query], queryFn: () => api<Page<DriverView>>(`/drivers${query}`) });
   const canCreate = session.isAdmin || role === 'CHEF_PARC' || role === 'OPERATEUR' || (companyId === null && session.grants.some((g) => g.role === 'CHEF_PARC' || g.role === 'OPERATEUR'));
@@ -75,8 +80,8 @@ export function DriversList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Nom</TableHead>
+                <SortableHead label="Code" sortKey="code" current={sort} order={order} onSort={onSort} />
+                <SortableHead label="Nom" sortKey="lastName" current={sort} order={order} onSort={onSort} />
                 <TableHead>Prénom</TableHead>
                 {companyId === null ? <TableHead>Société</TableHead> : null}
                 <TableHead>Statut</TableHead>

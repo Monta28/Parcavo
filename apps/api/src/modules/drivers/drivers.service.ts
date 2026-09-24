@@ -48,7 +48,7 @@ export class DriversService {
     };
     const sort = resolveSort(query.sort, ['lastName', 'code', 'createdAt'] as const, 'lastName');
     const [items, total] = await Promise.all([
-      this.prisma.client.driver.findMany({ where, ...skipTake(query), orderBy: [{ [sort]: query.order }, { firstName: 'asc' }], include: this.include() }),
+      this.prisma.client.driver.findMany({ where, ...skipTake(query), orderBy: [{ [sort]: query.order }, { firstName: 'asc' }, { id: 'asc' }], include: this.include() }),
       this.prisma.client.driver.count({ where }),
     ]);
     return pageOf(items.map((d) => this.view(d)), total, query);

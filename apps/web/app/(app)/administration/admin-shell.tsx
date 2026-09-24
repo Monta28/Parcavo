@@ -14,6 +14,7 @@ const SECTIONS = [
   { href: '/administration/categories', label: 'Catégories de véhicules' },
   { href: '/administration/utilisateurs', label: 'Utilisateurs' },
   { href: '/administration/organisation', label: 'Organisation' },
+  { href: '/administration/parametres', label: 'Paramètres' },
 ] as const;
 
 const FORBIDDEN = new ApiRequestError(403, { code: 'ADMIN_REQUIS', message: 'La section Administration est réservée à l’administrateur groupe.' });

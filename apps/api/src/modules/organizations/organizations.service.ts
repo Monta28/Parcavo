@@ -78,7 +78,7 @@ export class OrganizationsService {
     };
     const sort = resolveSort(query.sort, ['code', 'legalName', 'createdAt'] as const, 'code');
     const [items, total] = await Promise.all([
-      this.prisma.client.company.findMany({ where, ...skipTake(query), orderBy: { [sort]: query.order } }),
+      this.prisma.client.company.findMany({ where, ...skipTake(query), orderBy: [{ [sort]: query.order }, { id: 'asc' }] }),
       this.prisma.client.company.count({ where }),
     ]);
     return pageOf(items.map(companyView), total, query);

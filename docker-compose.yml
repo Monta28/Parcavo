@@ -1,5 +1,9 @@
 # Développement local : bases PostgreSQL de développement et de test.
 # Démarrage : `docker compose up -d` puis `pnpm dev`. Les applications tournent hors conteneur.
+# Mots de passe « parc_auto_dev » et « parc_auto_test » : exclusivement locaux (bases publiées sur le
+# poste du développeur, base de test en mémoire), jamais utilisés ailleurs. La production (docker-compose.prod.yml)
+# exige POSTGRES_PASSWORD et les autres secrets dans un .env non versionné ; `pnpm check:secrets` refuse
+# toute autre valeur littérale de mot de passe, clé ou jeton dans le dépôt et dans le bundle client.
 services:
   postgres:
     image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea

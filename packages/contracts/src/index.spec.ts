@@ -43,6 +43,20 @@ describe('Valeurs initiales du CDC 17.1', () => {
     // Synchronisation télématique : minimum 5 minutes (17.1).
     expect(SETTING_DESCRIPTORS['telemetry.syncIntervalMinutes'].min).toBe(5);
   });
+
+  it('seules les bornes de pagination de l’API sont des valeurs fixes, non surchargeables, et PAGINATION en découle', () => {
+    const fixed = (Object.keys(SETTING_DESCRIPTORS) as SettingKey[]).filter((k) => SETTING_DESCRIPTORS[k].fixed !== undefined);
+    expect(fixed.sort()).toEqual(['pagination.defaultPageSize', 'pagination.maxPageSize']);
+    for (const key of fixed) {
+      expect(SETTING_DESCRIPTORS[key].companyOverride, key).toBe(false);
+      expect(SETTING_DESCRIPTORS[key].fixed, key).toContain('CDC 15.1');
+    }
+    expect(PAGINATION.defaultPageSize).toBe(SETTING_DEFAULTS['pagination.defaultPageSize']);
+    expect(PAGINATION.maxPageSize).toBe(SETTING_DEFAULTS['pagination.maxPageSize']);
+    // La durée de session reste modifiable (CDC 16.1 « configurable ») ; elle vaut pour l'organisation entière.
+    expect(SETTING_DESCRIPTORS['session.ttlHours'].fixed).toBeUndefined();
+    expect(SETTING_DESCRIPTORS['session.ttlHours'].companyOverride).toBe(false);
+  });
 });
 
 describe('Permissions par défaut des rôles (CDC 2.2)', () => {

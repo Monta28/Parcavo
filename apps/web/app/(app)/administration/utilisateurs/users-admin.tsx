@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useAppScope } from '@/components/layout/session-context';
+import { SortableHead } from '@/components/maintenance/sortable-head';
 import { PageHeader } from '@/components/page-header';
 import { PaginationControls } from '@/components/pagination-controls';
 import { EmptyState, ErrorState, LoadingState } from '@/components/states';
@@ -17,10 +18,14 @@ import { api, toQuery } from '@/lib/api-client';
 import type { Page } from '@/lib/api-types';
 import { formatDateTime, fullName } from '@/lib/format';
 import { useListParams } from '@/lib/use-list-params';
+import { useListSort } from '@/lib/use-list-sort';
 import { ALL, USER_STATUS_LABELS } from '../labels';
 import { MembershipSummary } from './membership-summary';
 
 /** Comptes utilisateurs de l'organisation (CDC 2.2). */
+/** Tris autorisés par GET /users. */
+const USER_SORTS = ['lastName', 'email', 'createdAt', 'lastLoginAt'] as const;
+
 export function UsersAdmin() {
   const { session, companyId: scopeCompanyId } = useAppScope();
   const { get, set, page } = useListParams();
@@ -30,7 +35,8 @@ export function UsersAdmin() {
   // (valeur ALL : toutes les sociétés explicitement).
   const societe = get('societe');
   const companyId = societe === ALL ? '' : societe || scopeCompanyId || '';
-  const query = toQuery({ q, status, companyId, page, pageSize: 25, sort: 'lastName' });
+  const { sort, order, onSort } = useListSort(USER_SORTS, 'lastName');
+  const query = toQuery({ q, status, companyId, page, pageSize: 25, sort, order });
 
   const users = useQuery({ queryKey: ['users', query], queryFn: () => api<Page<UserView>>(`/users${query}`) });
   const companies = useQuery({ queryKey: ['companies', 'options'], queryFn: () => api<Page<CompanyView>>(`/companies${toQuery({ pageSize: 100, sort: 'code' })}`) });
@@ -90,11 +96,11 @@ export function UsersAdmin() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nom</TableHead>
-                <TableHead className="hidden md:table-cell">E-mail</TableHead>
+                <SortableHead label="Nom" sortKey="lastName" current={sort} order={order} onSort={onSort} />
+                <SortableHead label="E-mail" sortKey="email" current={sort} order={order} onSort={onSort} className="hidden md:table-cell" />
                 <TableHead>Habilitations</TableHead>
                 <TableHead>Statut</TableHead>
-                <TableHead className="hidden lg:table-cell">Dernière connexion</TableHead>
+                <SortableHead label="Dernière connexion" sortKey="lastLoginAt" current={sort} order={order} onSort={onSort} defaultOrder="desc" descLabel="la plus récente d’abord" ascLabel="la plus ancienne d’abord" className="hidden lg:table-cell" />
               </TableRow>
             </TableHeader>
             <TableBody>

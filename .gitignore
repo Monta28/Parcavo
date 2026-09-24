@@ -1,0 +1,32 @@
+# Dépendances et sorties de build
+node_modules/
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+.turbo/
+
+# Client Prisma généré
+packages/db/src/generated/
+
+# Environnement local (jamais de secret dans le dépôt)
+.env
+.env.*
+!.env.example
+
+# Données locales
+/data/
+/storage/
+/backups/
+tests/e2e/.storage/
+test-results/
+playwright-report/
+blob-report/
+
+# Outils
+.DS_Store
+*.log
+.idea/
+.vscode/*
+!.vscode/extensions.json

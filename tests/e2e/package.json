@@ -1,0 +1,29 @@
+{
+  "name": "@parc-auto/e2e",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Parcours navigateur Playwright (Chromium) contre une pile complète de test",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report",
+    "seed": "tsx support/seed-e2e.ts",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@parc-auto/config": "workspace:*",
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.13.6",
+    "@types/pg": "8.23.1",
+    "eslint": "9.39.5",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "2.2.1",
+    "@parc-auto/db": "workspace:*",
+    "pg": "8.23.0"
+  }
+}

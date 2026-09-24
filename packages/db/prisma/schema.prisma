@@ -1,0 +1,2202 @@
+// =============================================================================
+// Parc Auto — schéma de données (CDC v1.1, section 13)
+// -----------------------------------------------------------------------------
+// Conventions (13.1) :
+//  - Identifiants UUID v7 ; createdAt / updatedAt / createdById / version sur
+//    les objets modifiables ; organizationId sur toutes les données métier ;
+//    companyId sur les objets appartenant à une société. Les événements portent
+//    leur companyId historique (jamais recalculé après un transfert).
+//  - Montants et quantités DECIMAL(18,3) ; kilomètres DECIMAL(15,3).
+//  - Horodatages TIMESTAMPTZ (UTC) ; dates civiles en DATE (sans fuseau).
+//  - Relations obligatoires protégées par des clés composites
+//    (id, organizationId) : une relation entre organisations est impossible.
+//  - Les colonnes d'acteur (createdById, approvedById...) ne portent pas de FK :
+//    les utilisateurs ne sont jamais supprimés physiquement (désactivation).
+//  - Contraintes non représentables ici (EXCLUDE, CHECK, triggers, partitions)
+//    : migrations SQL versionnées dans prisma/migrations.
+// Tables techniques globales (sans organizationId) : JobLease,
+// WorkerHeartbeat. Voir docs/DECISIONS.md.
+// =============================================================================
+
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  runtime                = "nodejs"
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "js"
+  previewFeatures        = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// Énumérations
+// -----------------------------------------------------------------------------
+
+enum RecordStatus {
+  ACTIF
+  ARCHIVE
+}
+
+enum UserStatus {
+  ACTIF
+  DESACTIVE
+}
+
+/// Rôles de base (2.2). ADMIN = administrateur groupe (membership sans société).
+enum MembershipRole {
+  ADMIN
+  CHEF_PARC
+  OPERATEUR
+  CONDUCTEUR
+  LECTEUR
+}
+
+/// Permissions fines (2.2) : costs.read, costs.write, reports.export,
+/// readings.approve, readings.correct, maintenance.complete, documents.manage,
+/// exceptions.override, users.manage.
+enum Permission {
+  COSTS_READ
+  COSTS_WRITE
+  REPORTS_EXPORT
+  READINGS_APPROVE
+  READINGS_CORRECT
+  MAINTENANCE_COMPLETE
+  DOCUMENTS_MANAGE
+  EXCEPTIONS_OVERRIDE
+  USERS_MANAGE
+}
+
+enum ActorType {
+  UTILISATEUR
+  SYSTEME
+}
+
+enum VehicleLifecycle {
+  ACTIF
+  HORS_SERVICE
+  CEDE
+  ARCHIVE
+}
+
+enum OwnershipMode {
+  ACHAT
+  LOCATION
+  LEASING
+  AUTRE
+}
+
+enum EnergyType {
+  DIESEL
+  ESSENCE
+  GPL
+  HYBRIDE
+  ELECTRIQUE
+  AUTRE
+}
+
+enum DriverStatus {
+  ACTIF
+  INACTIF
+}
+
+enum ReservationStatus {
+  CONFIRMEE
+  CONVERTIE
+  ANNULEE
+  NON_HONOREE
+}
+
+enum UsageStatus {
+  EN_COURS
+  TERMINEE
+}
+
+enum DistanceStatus {
+  VALIDEE
+  NON_VALIDEE
+  INDETERMINEE
+}
+
+enum FuelGauge {
+  VIDE
+  QUART
+  DEMI
+  TROIS_QUARTS
+  PLEIN
+}
+
+enum LocationContext {
+  DECLARATION
+  REMISE
+  RESTITUTION
+  GARAGE
+  TRANSFERT
+}
+
+enum ReadingSource {
+  MANUAL
+  IMPORT
+  TELEMATICS
+}
+
+enum ReadingContext {
+  RELEVE_LIBRE
+  REMISE
+  RESTITUTION
+  CARBURANT
+  ENTRETIEN
+  SYNCHRONISATION
+  INITIALISATION
+  TRANSFERT
+}
+
+enum ReadingStatus {
+  EN_ATTENTE
+  ACCEPTE
+  REJETE
+  REMPLACE
+}
+
+/// Nature de la mesure : compteur lu sur le tableau de bord (manuel/import),
+/// compteur CAN (traité comme physique) ou distance GPS (estimation calibrée).
+enum MeasurementKind {
+  COMPTEUR_AFFICHE
+  COMPTEUR_CAN
+  DISTANCE_GPS
+}
+
+enum TelemetryChannel {
+  API
+  RAPPORT
+  RPA
+}
+
+enum TelemetryProviderKind {
+  TRACCAR
+  WIALON
+  RAPPORT_GENERIQUE
+  RPA
+  SIMULATEUR
+}
+
+enum TelemetryProviderStatus {
+  BROUILLON
+  ACTIF
+  SUSPENDU
+  DESACTIVE
+}
+
+enum TelemetryCredentialKind {
+  JETON_API
+  IDENTIFIANTS_API
+  IMAP
+  SFTP
+  RPA
+}
+
+enum TelemetryMappingStatus {
+  PROPOSE
+  CONFIRME
+  REJETE
+  CLOTURE
+}
+
+enum TelemetryOdometerKind {
+  COMPTEUR_CAN
+  DISTANCE_GPS
+  AUCUN
+}
+
+enum FuelMeasureKind {
+  NIVEAU_CAN
+  NIVEAU_SONDE
+  CONSOMMATION_CAN
+}
+
+enum FuelEventType {
+  REMPLISSAGE_DETECTE
+  BAISSE_ANORMALE
+  ECART_TICKET
+}
+
+enum FuelEventStatus {
+  A_QUALIFIER
+  QUALIFIE
+}
+
+enum FuelEventQualification {
+  JUSTIFIE
+  ANOMALIE_CONFIRMEE
+  ERREUR_CAPTEUR
+}
+
+enum SyncTrigger {
+  PLANIFIE
+  MANUEL
+  REPRISE_INITIALE
+  WEBHOOK
+}
+
+enum SyncRunStatus {
+  EN_COURS
+  SUCCES
+  PARTIEL
+  ECHEC
+  IGNORE
+}
+
+enum CalibrationStatus {
+  CALIBRE
+  NON_CALIBRABLE
+}
+
+enum PlanStatus {
+  INCOMPLET
+  A_JOUR
+  A_PREVOIR
+  A_FAIRE
+  EN_RETARD
+}
+
+/// Mode d'initialisation de la base d'un plan (6.1, 12.2 base_mode).
+enum PlanBaseMode {
+  DERNIERE_OPERATION
+  BASE_TECHNIQUE
+  ECHEANCE_INITIALE
+  AUCUNE
+}
+
+enum PlanReadingSources {
+  TOUTES
+  MANUEL_OU_CAN
+}
+
+enum InterventionKind {
+  PREVENTIF
+  CORRECTIF
+}
+
+enum InterventionStatus {
+  BROUILLON
+  PLANIFIEE
+  EN_COURS
+  TERMINEE
+  ANNULEE
+}
+
+enum InterventionLineKind {
+  PIECE
+  MAIN_OEUVRE
+  AUTRE
+}
+
+enum DocumentOwnerType {
+  VEHICULE
+  CONDUCTEUR
+}
+
+enum IncidentType {
+  PANNE
+  DOMMAGE
+  ACCIDENT
+  CREVAISON
+  ANOMALIE_COMPTEUR
+  CONTRAVENTION
+  AUTRE
+}
+
+enum IncidentSeverity {
+  FAIBLE
+  MOYENNE
+  ELEVEE
+  CRITIQUE
+}
+
+enum IncidentStatus {
+  OUVERT
+  EN_TRAITEMENT
+  RESOLU
+  CLOTURE
+}
+
+enum ImmobilizationStatus {
+  ACTIVE
+  TERMINEE
+}
+
+enum ImmobilizationCauseKind {
+  INCIDENT
+  INTERVENTION
+  AUTRE
+}
+
+enum SupplierCategory {
+  GARAGE
+  STATION
+  ASSURANCE
+  LOUEUR
+  AUTRE
+}
+
+enum FuelEntryStatus {
+  SOUMIS
+  VALIDE
+  REJETE
+  ANNULE
+}
+
+enum ExpenseCategory {
+  ENTRETIEN_REPARATION
+  CARBURANT
+  ASSURANCE
+  LOCATION
+  TAXES
+  PEAGE
+  STATIONNEMENT
+  ACHAT_VEHICULE
+  AUTRE
+}
+
+enum ExpenseKind {
+  DEPENSE
+  AVOIR
+}
+
+enum ExpenseStatus {
+  VALIDEE
+  ANNULEE
+  REMPLACEE
+}
+
+enum ExpenseSourceType {
+  PLEIN
+  INTERVENTION
+}
+
+enum AttachmentOwnerType {
+  SOCIETE_LOGO
+  VEHICULE
+  CONDUCTEUR
+  PERMIS
+  DOCUMENT
+  UTILISATION
+  RELEVE
+  SEGMENT_COMPTEUR
+  INTERVENTION
+  INCIDENT
+  PLEIN
+  DEPENSE
+  IMPORT
+  EXPORT
+  TELEMETRIE_RAPPORT
+}
+
+enum AlertType {
+  ENTRETIEN_ECHEANCE
+  ENTRETIEN_PLAN_INCOMPLET
+  DOCUMENT_MANQUANT
+  DOCUMENT_ECHEANCE
+  KILOMETRAGE_ABSENT
+  KILOMETRAGE_ANCIEN
+  RELEVE_A_VALIDER
+  RETOUR_DEPASSE
+  RESERVATION_COMPROMISE
+  INCIDENT_CRITIQUE
+  DEPART_SANS_RELEVE
+  DISTANCE_NON_VALIDEE
+  IMMOBILISATION_PENDANT_UTILISATION
+  GPS_SOURCE_MUETTE
+  GPS_DERIVE
+  GPS_UNITE_NON_MAPPEE
+  GPS_SYNCHRO_EN_ECHEC
+  CARBURANT_BAISSE_ANORMALE
+  CARBURANT_ECART_TICKET
+  CARBURANT_REMPLISSAGE_DETECTE
+}
+
+enum AlertSeverity {
+  INFO
+  ATTENTION
+  URGENT
+  CRITIQUE
+}
+
+enum AlertStatus {
+  ACTIVE
+  RESOLUE
+}
+
+enum OutboxKind {
+  ALERTE_CRITIQUE
+  RECAPITULATIF_QUOTIDIEN
+  REINITIALISATION_MOT_DE_PASSE
+  INVITATION
+}
+
+enum OutboxStatus {
+  EN_ATTENTE
+  EN_COURS
+  ENVOYE
+  ECHEC
+  ABANDONNE
+  ANNULE
+}
+
+enum JobStatus {
+  EN_ATTENTE
+  EN_COURS
+  TERMINE
+  ECHEC
+  ABANDONNE
+}
+
+enum ImportKind {
+  VEHICULES
+  CONDUCTEURS
+  RELEVES
+  BASES_ENTRETIEN
+}
+
+enum ImportStatus {
+  TELEVERSE
+  CONTROLE
+  CONFIRME
+  ABANDONNE
+}
+
+enum ImportRowStatus {
+  VALIDE
+  ERREUR
+  IMPORTEE
+}
+
+enum IdempotencyStatus {
+  EN_COURS
+  TERMINE
+}
+
+// -----------------------------------------------------------------------------
+// F01 — Organisation, sociétés, sites, utilisateurs, habilitations
+// -----------------------------------------------------------------------------
+
+model Organization {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  code             String   @unique
+  name             String
+  /// Fuseau de référence du groupe (9.3), configurable.
+  timezone         String   @default("Africa/Tunis")
+  /// Devise unique du groupe (8.4) et nombre de décimales d'affichage.
+  currency         String   @default("TND") @db.Char(3)
+  currencyDecimals Int      @default(3) @db.SmallInt
+  locale           String   @default("fr")
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
+  createdById      String?  @db.Uuid
+  version          Int      @default(1)
+
+  companies          Company[]
+  users              User[]
+  vehicleCategories  VehicleCategory[]
+  maintenanceTypes   MaintenanceType[]
+  planTemplates      MaintenancePlanTemplate[]
+  documentTypes      DocumentType[]
+  telemetryProviders TelemetryProvider[]
+  settings           SettingValue[]
+  auditEvents        AuditEvent[]
+  alerts             Alert[]
+  idempotencyRecords IdempotencyRecord[]
+  importBatches      ImportBatch[]
+  attachments        Attachment[]
+}
+
+model Company {
+  id               String       @id @default(uuid(7)) @db.Uuid
+  organizationId   String       @db.Uuid
+  /// Code unique dans l'organisation.
+  code             String
+  legalName        String
+  address          String?
+  phone            String?
+  email            String?
+  taxIdentifier    String?
+  logoAttachmentId String?      @db.Uuid
+  status           RecordStatus @default(ACTIF)
+  /// Module F11 : faux par défaut (14.3).
+  telemetryEnabled Boolean      @default(false)
+  archivedAt       DateTime?    @db.Timestamptz(3)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(3)
+  createdById      String?      @db.Uuid
+  version          Int          @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  sites        Site[]
+  departments  Department[]
+  memberships  Membership[]
+  vehicles     Vehicle[]
+  drivers      Driver[]
+  suppliers    Supplier[]
+
+  @@unique([organizationId, code])
+  @@unique([id, organizationId])
+  @@index([organizationId, status])
+}
+
+model Site {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  organizationId String       @db.Uuid
+  companyId      String       @db.Uuid
+  name           String
+  /// Adresse libre : ne constitue jamais une position GPS (2.1).
+  address        String?
+  managerName    String?
+  status         RecordStatus @default(ACTIF)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @db.Timestamptz(3)
+  createdById    String?      @db.Uuid
+  version        Int          @default(1)
+
+  company Company @relation(fields: [companyId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  vehicles        Vehicle[]
+  drivers         Driver[]
+  locationReports VehicleLocationReport[]
+  reservations    Reservation[]
+  incidents       Incident[]
+  immobilizations Immobilization[]
+
+  @@unique([companyId, name])
+  @@unique([id, organizationId])
+  @@index([organizationId, companyId, status])
+}
+
+/// Service (2.1 : Société > Site / service).
+model Department {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  organizationId String       @db.Uuid
+  companyId      String       @db.Uuid
+  name           String
+  status         RecordStatus @default(ACTIF)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @db.Timestamptz(3)
+  createdById    String?      @db.Uuid
+  version        Int          @default(1)
+
+  company  Company   @relation(fields: [companyId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  vehicles Vehicle[]
+  drivers  Driver[]
+
+  @@unique([companyId, name])
+  @@index([organizationId, companyId, status])
+}
+
+model User {
+  id                String     @id @default(uuid(7)) @db.Uuid
+  organizationId    String     @db.Uuid
+  /// Adresse e-mail normalisée en minuscules ; identifiant de connexion.
+  email             String
+  firstName         String
+  lastName          String
+  /// Argon2id (16.1). Null tant que l'invitation n'est pas acceptée.
+  passwordHash      String?
+  status            UserStatus @default(ACTIF)
+  lastLoginAt       DateTime?  @db.Timestamptz(3)
+  passwordChangedAt DateTime?  @db.Timestamptz(3)
+  disabledAt        DateTime?  @db.Timestamptz(3)
+  createdAt         DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime   @updatedAt @db.Timestamptz(3)
+  createdById       String?    @db.Uuid
+  version           Int        @default(1)
+
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  memberships            Membership[]
+  sessions               Session[]
+  passwordResetTokens    PasswordResetToken[]
+  driver                 Driver?
+  alertStates            AlertRecipientState[]
+  notificationPreference NotificationPreference?
+
+  @@unique([organizationId, email])
+  @@unique([id, organizationId])
+  @@index([organizationId, status])
+}
+
+/// Rôle d'un utilisateur dans une société (companyId renseigné) ou au niveau
+/// du groupe (companyId null, rôle ADMIN uniquement).
+model Membership {
+  id                 String         @id @default(uuid(7)) @db.Uuid
+  organizationId     String         @db.Uuid
+  userId             String         @db.Uuid
+  companyId          String?        @db.Uuid
+  role               MembershipRole
+  /// Permissions ajoutées au rôle (ex. costs.read pour un lecteur).
+  grantedPermissions Permission[]   @default([])
+  /// Permissions retirées au rôle.
+  revokedPermissions Permission[]   @default([])
+  createdAt          DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime       @updatedAt @db.Timestamptz(3)
+  createdById        String?        @db.Uuid
+  version            Int            @default(1)
+
+  user    User     @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, companyId])
+  @@unique([userId], map: "membership_one_org_admin_per_user", where: raw("\"companyId\" IS NULL"))
+  @@index([organizationId, companyId])
+}
+
+/// Session serveur révocable (16.1). Seule l'empreinte SHA-256 du jeton est stockée.
+model Session {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  organizationId String    @db.Uuid
+  userId         String    @db.Uuid
+  tokenHash      String    @unique
+  /// Empreinte du jeton CSRF synchronisé avec la session.
+  csrfTokenHash  String
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  lastSeenAt     DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt      DateTime  @db.Timestamptz(3)
+  revokedAt      DateTime? @db.Timestamptz(3)
+  revokedReason  String?
+  ipAddress      String?
+  userAgent      String?
+
+  user User @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+/// Jeton de réinitialisation court, à usage unique, stocké en empreinte (16.1).
+model PasswordResetToken {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  organizationId String    @db.Uuid
+  userId         String    @db.Uuid
+  tokenHash      String    @unique
+  expiresAt      DateTime  @db.Timestamptz(3)
+  usedAt         DateTime? @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@index([userId])
+}
+
+/// Tentatives de connexion : limitation persistante par compte et par IP.
+model LoginAttempt {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  emailNormalized String
+  ipAddress       String
+  success         Boolean
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([emailNormalized, createdAt])
+  @@index([ipAddress, createdAt])
+}
+
+model NotificationPreference {
+  userId           String        @id @db.Uuid
+  organizationId   String        @db.Uuid
+  emailCritical    Boolean       @default(true)
+  emailDailyDigest Boolean       @default(true)
+  minimumSeverity  AlertSeverity @default(URGENT)
+  updatedAt        DateTime      @updatedAt @db.Timestamptz(3)
+  version          Int           @default(1)
+
+  user User @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([userId, organizationId])
+}
+
+// -----------------------------------------------------------------------------
+// F02 — Véhicules, conducteurs
+// -----------------------------------------------------------------------------
+
+/// Catégorie de véhicule paramétrée par l'organisation, avec les catégories de
+/// permis exigées (3.3 : aucune règle juridique inventée).
+model VehicleCategory {
+  id                       String       @id @default(uuid(7)) @db.Uuid
+  organizationId           String       @db.Uuid
+  code                     String
+  label                    String
+  requiredPermitCategories String[]     @default([])
+  status                   RecordStatus @default(ACTIF)
+  createdAt                DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime     @updatedAt @db.Timestamptz(3)
+  createdById              String?      @db.Uuid
+  version                  Int          @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  vehicles     Vehicle[]
+
+  @@unique([organizationId, code])
+  @@unique([id, organizationId])
+}
+
+model Driver {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  organizationId String       @db.Uuid
+  companyId      String       @db.Uuid
+  /// Identifiant interne (driver_code), unique dans l'organisation.
+  code           String
+  firstName      String
+  lastName       String
+  phone          String?
+  email          String?
+  status         DriverStatus @default(ACTIF)
+  siteId         String?      @db.Uuid
+  departmentId   String?      @db.Uuid
+  /// Compte de connexion facultatif (2.3 : un conducteur peut exister sans compte).
+  userId         String?      @unique @db.Uuid
+  notes          String?
+  deactivatedAt  DateTime?    @db.Timestamptz(3)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @db.Timestamptz(3)
+  createdById    String?      @db.Uuid
+  version        Int          @default(1)
+
+  company    Company     @relation(fields: [companyId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  site       Site?       @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  user       User?       @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  permits                DriverPermit[]
+  responsibleAssignments VehicleResponsibleAssignment[]
+  reservations           Reservation[]
+  usages                 VehicleUsage[]
+  documents              DocumentVersion[]
+  incidents              Incident[]
+  fuelEntries            FuelEntry[]
+
+  @@unique([organizationId, code])
+  @@unique([id, organizationId])
+  @@index([organizationId, companyId, status])
+  @@index([organizationId, lastName, firstName])
+}
+
+/// Permis : numéro, catégories, dates et justificatif (3.3).
+model DriverPermit {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  organizationId String    @db.Uuid
+  driverId       String    @db.Uuid
+  number         String
+  categories     String[]  @default([])
+  issuedOn       DateTime? @db.Date
+  expiresOn      DateTime? @db.Date
+  attachmentId   String?   @db.Uuid
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
+  createdById    String?   @db.Uuid
+  version        Int       @default(1)
+
+  driver Driver @relation(fields: [driverId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@index([driverId])
+}
+
+model Vehicle {
+  id                      String           @id @default(uuid(7)) @db.Uuid
+  organizationId          String           @db.Uuid
+  /// Société gestionnaire courante.
+  companyId               String           @db.Uuid
+  /// Code interne, unique dans l'organisation.
+  code                    String
+  /// Immatriculation ou identifiant provisoire, valeur d'affichage conservée.
+  registration            String
+  /// Immatriculation normalisée (espaces/casse/séparateurs) pour l'unicité.
+  registrationNormalized  String
+  provisionalRegistration Boolean          @default(false)
+  vin                     String?
+  make                    String
+  model                   String
+  categoryId              String           @db.Uuid
+  lifecycleStatus         VehicleLifecycle @default(ACTIF)
+  year                    Int?             @db.SmallInt
+  commissioningDate       DateTime?        @db.Date
+  energy                  EnergyType?
+  tankCapacityLiters      Decimal?         @db.Decimal(18, 3)
+  siteId                  String?          @db.Uuid
+  departmentId            String?          @db.Uuid
+  ownershipMode           OwnershipMode?
+  contractSupplierId      String?          @db.Uuid
+  contractEndDate         DateTime?        @db.Date
+  notes                   String?
+  /// Identifiant opaque du QR code interne (10.3) ; n'autorise rien à lui seul.
+  qrToken                 String           @unique
+  archivedAt              DateTime?        @db.Timestamptz(3)
+  disposedAt              DateTime?        @db.Timestamptz(3)
+  createdAt               DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime         @updatedAt @db.Timestamptz(3)
+  createdById             String?          @db.Uuid
+  version                 Int              @default(1)
+
+  company          Company         @relation(fields: [companyId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  category         VehicleCategory @relation(fields: [categoryId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  site             Site?           @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  department       Department?     @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  contractSupplier Supplier?       @relation("VehicleContractSupplier", fields: [contractSupplierId], references: [id], onDelete: Restrict)
+
+  companyHistory         VehicleCompanyHistory[]
+  responsibleAssignments VehicleResponsibleAssignment[]
+  reservations           Reservation[]
+  usages                 VehicleUsage[]
+  locationReports        VehicleLocationReport[]
+  odometerSegments       OdometerSegment[]
+  odometerReadings       OdometerReading[]
+  maintenancePlans       VehicleMaintenancePlan[]
+  interventions          Intervention[]
+  documents              DocumentVersion[]
+  incidents              Incident[]
+  immobilizations        Immobilization[]
+  fuelEntries            FuelEntry[]
+  expenses               Expense[]
+  telemetryMappings      TelemetryVehicleMapping[]
+  telemetryCalibrations  TelemetryCalibration[]
+  fuelEvents             FuelEvent[]
+
+  @@unique([organizationId, code])
+  @@unique([organizationId, registrationNormalized])
+  @@unique([organizationId, vin], map: "vehicle_vin_unique_when_set", where: raw("\"vin\" IS NOT NULL"))
+  @@unique([id, organizationId])
+  @@index([organizationId, companyId, lifecycleStatus])
+  @@index([organizationId, make, model])
+}
+
+/// Historique des sociétés gestionnaires : création puis chaque transfert (2.4).
+model VehicleCompanyHistory {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  organizationId    String   @db.Uuid
+  vehicleId         String   @db.Uuid
+  fromCompanyId     String?  @db.Uuid
+  toCompanyId       String   @db.Uuid
+  effectiveAt       DateTime @db.Timestamptz(3)
+  reason            String?
+  /// Instantané technique au transfert : compteur, statuts des plans, documents partagés.
+  technicalSnapshot Json?
+  transferReadingId String?  @db.Uuid
+  sharedDocumentIds String[] @default([]) @db.Uuid
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+  createdById       String?  @db.Uuid
+
+  vehicle Vehicle @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@index([vehicleId, effectiveAt])
+}
+
+// -----------------------------------------------------------------------------
+// F03 — Responsable habituel, réservations, utilisations, localisation
+// -----------------------------------------------------------------------------
+
+/// Affectation habituelle : responsable principal sur une période (4.1).
+/// Non-chevauchement par véhicule garanti par contrainte EXCLUDE (migration SQL).
+model VehicleResponsibleAssignment {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  organizationId String    @db.Uuid
+  companyId      String    @db.Uuid
+  vehicleId      String    @db.Uuid
+  driverId       String    @db.Uuid
+  startsAt       DateTime  @db.Timestamptz(3)
+  endsAt         DateTime? @db.Timestamptz(3)
+  notes          String?
+  endReason      String?
+  endedById      String?   @db.Uuid
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
+  createdById    String?   @db.Uuid
+  version        Int       @default(1)
+
+  vehicle Vehicle @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  driver  Driver  @relation(fields: [driverId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@index([organizationId, companyId])
+  @@index([vehicleId, startsAt])
+  @@index([driverId, startsAt])
+}
+
+/// Réservation [startAt, endAt[ (4.2, 4.5). Chevauchements CONFIRMEE interdits
+/// par véhicule et par conducteur via EXCLUDE USING gist (migration SQL).
+model Reservation {
+  id               String            @id @default(uuid(7)) @db.Uuid
+  organizationId   String            @db.Uuid
+  companyId        String            @db.Uuid
+  vehicleId        String            @db.Uuid
+  driverId         String            @db.Uuid
+  startAt          DateTime          @db.Timestamptz(3)
+  endAt            DateTime          @db.Timestamptz(3)
+  purpose          String
+  destination      String?
+  siteId           String?           @db.Uuid
+  comment          String?
+  status           ReservationStatus @default(CONFIRMEE)
+  convertedUsageId String?           @unique @db.Uuid
+  cancelledAt      DateTime?         @db.Timestamptz(3)
+  cancelledById    String?           @db.Uuid
+  cancelReason     String?
+  noShowAt         DateTime?         @db.Timestamptz(3)
+  createdAt        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
+  createdById      String?           @db.Uuid
+  version          Int               @default(1)
+
+  vehicle        Vehicle       @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  driver         Driver        @relation(fields: [driverId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  site           Site?         @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  convertedUsage VehicleUsage? @relation("ReservationConversion", fields: [convertedUsageId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, companyId, status])
+  @@index([vehicleId, startAt])
+  @@index([driverId, startAt])
+}
+
+/// Utilisation réelle : remise puis restitution (4.3, 4.4). Une seule
+/// utilisation EN_COURS par véhicule et par conducteur (index uniques partiels).
+model VehicleUsage {
+  id                      String         @id @default(uuid(7)) @db.Uuid
+  organizationId          String         @db.Uuid
+  companyId               String         @db.Uuid
+  vehicleId               String         @db.Uuid
+  driverId                String         @db.Uuid
+  status                  UsageStatus    @default(EN_COURS)
+  purpose                 String
+  checkedOutAt            DateTime       @db.Timestamptz(3)
+  expectedReturnAt        DateTime       @db.Timestamptz(3)
+  returnedAt              DateTime?      @db.Timestamptz(3)
+  checkoutReadingId       String?        @unique @db.Uuid
+  returnReadingId         String?        @unique @db.Uuid
+  /// Départ sans relevé : exception motivée (chef/admin), alerte persistante.
+  checkoutWithoutReading  Boolean        @default(false)
+  checkoutExceptionReason String?
+  /// Retour constaté sans relevé valide : « distance non validée ».
+  returnWithoutReading    Boolean        @default(false)
+  returnExceptionReason   String?
+  /// Dérogation documentaire au départ (7.2).
+  documentOverrideReason  String?
+  documentOverrideById    String?        @db.Uuid
+  checkoutFuelGauge       FuelGauge?
+  returnFuelGauge         FuelGauge?
+  checkoutChecklist       Json?
+  returnChecklist         Json?
+  checkoutNotes           String?
+  returnNotes             String?
+  /// Confirmation nominative (non présentée comme signature certifiée).
+  checkoutConfirmedBy     String?
+  returnConfirmedBy       String?
+  distanceStatus          DistanceStatus @default(INDETERMINEE)
+  distanceKm              Decimal?       @db.Decimal(15, 3)
+  checkedOutById          String?        @db.Uuid
+  returnedById            String?        @db.Uuid
+  createdAt               DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime       @updatedAt @db.Timestamptz(3)
+  createdById             String?        @db.Uuid
+  version                 Int            @default(1)
+
+  vehicle         Vehicle                 @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  driver          Driver                  @relation(fields: [driverId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  checkoutReading OdometerReading?        @relation("UsageCheckoutReading", fields: [checkoutReadingId], references: [id], onDelete: Restrict)
+  returnReading   OdometerReading?        @relation("UsageReturnReading", fields: [returnReadingId], references: [id], onDelete: Restrict)
+  reservation     Reservation?            @relation("ReservationConversion")
+  locationReports VehicleLocationReport[]
+  incidents       Incident[]
+
+  @@unique([vehicleId], map: "usage_one_open_per_vehicle", where: raw("\"status\" = 'EN_COURS'"))
+  @@unique([driverId], map: "usage_one_open_per_driver", where: raw("\"status\" = 'EN_COURS'"))
+  @@unique([id, organizationId])
+  @@index([organizationId, companyId, status])
+  @@index([vehicleId, checkedOutAt])
+  @@index([driverId, checkedOutAt])
+  @@index([status, expectedReturnAt])
+}
+
+/// Dernière localisation déclarée (3.4) : jamais une position temps réel.
+model VehicleLocationReport {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  organizationId String          @db.Uuid
+  companyId      String          @db.Uuid
+  vehicleId      String          @db.Uuid
+  siteId         String?         @db.Uuid
+  placeLabel     String?
+  observedAt     DateTime        @db.Timestamptz(3)
+  comment        String?
+  context        LocationContext @default(DECLARATION)
+  usageId        String?         @db.Uuid
+  createdAt      DateTime        @default(now()) @db.Timestamptz(3)
+  createdById    String?         @db.Uuid
+
+  vehicle Vehicle       @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  site    Site?         @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  usage   VehicleUsage? @relation(fields: [usageId], references: [id], onDelete: Restrict)
+
+  @@index([vehicleId, observedAt])
+  @@index([organizationId, companyId])
+}
+
+// -----------------------------------------------------------------------------
+// F04 — Kilométrage : segments de compteur et relevés
+// -----------------------------------------------------------------------------
+
+/// Segment de compteur (5.4). kmCumules = startCumulativeKm + (physique - startPhysicalKm).
+/// Un seul segment ouvert par véhicule (index unique partiel).
+model OdometerSegment {
+  id                        String    @id @default(uuid(7)) @db.Uuid
+  organizationId            String    @db.Uuid
+  vehicleId                 String    @db.Uuid
+  sequence                  Int
+  startedAt                 DateTime  @db.Timestamptz(3)
+  endedAt                   DateTime? @db.Timestamptz(3)
+  startPhysicalKm           Decimal   @db.Decimal(15, 3)
+  startCumulativeKm         Decimal   @db.Decimal(15, 3)
+  /// Faux si l'historique antérieur est inconnu : affichage « cumul incomplet ».
+  cumulativeKnown           Boolean   @default(true)
+  replacementReason         String?
+  justificationAttachmentId String?   @db.Uuid
+  lastPhysicalKm            Decimal?  @db.Decimal(15, 3)
+  createdAt                 DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt                 DateTime  @updatedAt @db.Timestamptz(3)
+  createdById               String?   @db.Uuid
+  version                   Int       @default(1)
+
+  vehicle  Vehicle           @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  readings OdometerReading[]
+
+  @@unique([vehicleId, sequence])
+  @@unique([vehicleId], map: "odometer_segment_one_open_per_vehicle", where: raw("\"endedAt\" IS NULL"))
+  @@unique([id, organizationId])
+}
+
+/// Relevé kilométrique (5.1, 5.6). Un relevé accepté n'est jamais écrasé :
+/// une correction crée un remplacement (statut REMPLACE sur l'original).
+model OdometerReading {
+  id                String            @id @default(uuid(7)) @db.Uuid
+  organizationId    String            @db.Uuid
+  /// Société du véhicule au moment de l'observation.
+  companyId         String            @db.Uuid
+  vehicleId         String            @db.Uuid
+  segmentId         String            @db.Uuid
+  source            ReadingSource
+  context           ReadingContext
+  measurementKind   MeasurementKind   @default(COMPTEUR_AFFICHE)
+  status            ReadingStatus
+  /// Valeur physique affichée (null pour une DISTANCE_GPS).
+  physicalKm        Decimal?          @db.Decimal(15, 3)
+  /// Kilométrage cumulé (exact) ou estimé (DISTANCE_GPS calibrée).
+  cumulativeKm      Decimal?          @db.Decimal(15, 3)
+  isEstimate        Boolean           @default(false)
+  /// Odomètre virtuel brut du fournisseur (DISTANCE_GPS).
+  gpsDistanceKm     Decimal?          @db.Decimal(15, 3)
+  calibrationId     String?           @db.Uuid
+  observedAt        DateTime          @db.Timestamptz(3)
+  enteredAt         DateTime          @default(now()) @db.Timestamptz(3)
+  /// Motif d'attente/rejet lisible (anomalie, plausibilité, conflit).
+  statusReason      String?
+  anomalyCode       String?
+  attachmentId      String?           @db.Uuid
+  note              String?
+  replacesReadingId String?           @unique @db.Uuid
+  correctionReason  String?
+  decidedAt         DateTime?         @db.Timestamptz(3)
+  decidedById       String?           @db.Uuid
+  decisionReason    String?
+  // Métadonnées F11 (5.6)
+  channel           TelemetryChannel?
+  providerId        String?           @db.Uuid
+  providerUnitId    String?
+  sourceReference   String?
+  receivedAt        DateTime?         @db.Timestamptz(3)
+  importBatchId     String?           @db.Uuid
+  createdAt         DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime          @updatedAt @db.Timestamptz(3)
+  createdById       String?           @db.Uuid
+  version           Int               @default(1)
+
+  vehicle         Vehicle                @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  segment         OdometerSegment        @relation(fields: [segmentId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  replaces        OdometerReading?       @relation("ReadingReplacement", fields: [replacesReadingId], references: [id], onDelete: Restrict)
+  replacedBy      OdometerReading?       @relation("ReadingReplacement")
+  calibration     TelemetryCalibration?  @relation("ReadingCalibration", fields: [calibrationId], references: [id], onDelete: Restrict)
+  usageCheckout   VehicleUsage?          @relation("UsageCheckoutReading")
+  usageReturn     VehicleUsage?          @relation("UsageReturnReading")
+  interventions   Intervention[]
+  fuelEntries     FuelEntry[]
+  calibrationRefs TelemetryCalibration[] @relation("CalibrationReference")
+
+  /// Deux valeurs acceptées différentes au même instant dans le même segment = conflit (5.2).
+  @@unique([segmentId, observedAt], map: "reading_one_accepted_physical_per_instant", where: raw("\"status\" = 'ACCEPTE' AND \"isEstimate\" = false"))
+  /// Idempotence télématique (5.6) : (fournisseur, unité, sourceReference).
+  @@unique([providerId, providerUnitId, sourceReference], map: "reading_telematics_source_ref", where: raw("\"sourceReference\" IS NOT NULL"))
+  @@index([vehicleId, status, observedAt])
+  @@index([segmentId, status, observedAt])
+  @@index([organizationId, companyId, status])
+  @@index([organizationId, status, enteredAt])
+}
+
+// -----------------------------------------------------------------------------
+// F05 — Entretien, interventions
+// -----------------------------------------------------------------------------
+
+model MaintenanceType {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  organizationId String       @db.Uuid
+  code           String
+  label          String
+  description    String?
+  status         RecordStatus @default(ACTIF)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @db.Timestamptz(3)
+  createdById    String?      @db.Uuid
+  version        Int          @default(1)
+
+  organization  Organization                  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  plans         VehicleMaintenancePlan[]
+  templateItems MaintenancePlanTemplateItem[]
+  tasks         InterventionTask[]
+
+  @@unique([organizationId, code])
+  @@unique([id, organizationId])
+}
+
+/// Modèle de plan copiable vers plusieurs véhicules (6.1).
+model MaintenancePlanTemplate {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String
+  description    String?
+  status         RecordStatus @default(ACTIF)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @db.Timestamptz(3)
+  createdById    String?      @db.Uuid
+  version        Int          @default(1)
+
+  organization Organization                  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  items        MaintenancePlanTemplateItem[]
+
+  @@unique([organizationId, name])
+}
+
+model MaintenancePlanTemplateItem {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  organizationId    String   @db.Uuid
+  templateId        String   @db.Uuid
+  maintenanceTypeId String   @db.Uuid
+  intervalKm        Decimal? @db.Decimal(15, 3)
+  intervalMonths    Int?
+  intervalDays      Int?
+  noticeKm          Decimal? @db.Decimal(15, 3)
+  noticeDays        Int?
+
+  template        MaintenancePlanTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  maintenanceType MaintenanceType         @relation(fields: [maintenanceTypeId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([templateId, maintenanceTypeId])
+}
+
+/// Plan véhicule/opération (6.1, 6.2). Les champs next* et computedStatus sont
+/// matérialisés pour la lecture et recalculables depuis les opérations validées.
+model VehicleMaintenancePlan {
+  id                 String             @id @default(uuid(7)) @db.Uuid
+  organizationId     String             @db.Uuid
+  companyId          String             @db.Uuid
+  vehicleId          String             @db.Uuid
+  maintenanceTypeId  String             @db.Uuid
+  intervalKm         Decimal?           @db.Decimal(15, 3)
+  intervalMonths     Int?
+  intervalDays       Int?
+  noticeKm           Decimal?           @db.Decimal(15, 3)
+  noticeDays         Int?
+  baseMode           PlanBaseMode
+  /// Base déclarée à l'initialisation (dernière opération connue ou base technique).
+  initialBaseKm      Decimal?           @db.Decimal(15, 3)
+  initialBaseDate    DateTime?          @db.Date
+  /// Échéance initiale saisie faute d'historique fiable.
+  initialNextDueKm   Decimal?           @db.Decimal(15, 3)
+  initialNextDueDate DateTime?          @db.Date
+  acceptedSources    PlanReadingSources @default(TOUTES)
+  responsibleUserId  String?            @db.Uuid
+  active             Boolean            @default(true)
+  templateId         String?            @db.Uuid
+  // Valeurs matérialisées (recalculables)
+  baseKm             Decimal?           @db.Decimal(15, 3)
+  baseDate           DateTime?          @db.Date
+  baseTaskId         String?            @db.Uuid
+  nextDueKm          Decimal?           @db.Decimal(15, 3)
+  nextDueDate        DateTime?          @db.Date
+  computedStatus     PlanStatus         @default(INCOMPLET)
+  statusComputedAt   DateTime?          @db.Timestamptz(3)
+  deactivatedAt      DateTime?          @db.Timestamptz(3)
+  deactivationReason String?
+  createdAt          DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime           @updatedAt @db.Timestamptz(3)
+  createdById        String?            @db.Uuid
+  version            Int                @default(1)
+
+  vehicle         Vehicle            @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  maintenanceType MaintenanceType    @relation(fields: [maintenanceTypeId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  tasks           InterventionTask[]
+
+  @@unique([vehicleId, maintenanceTypeId], map: "maintenance_plan_one_active_per_type", where: raw("\"active\" = true"))
+  @@unique([id, organizationId])
+  @@index([organizationId, companyId, computedStatus])
+  @@index([vehicleId, active])
+}
+
+model Intervention {
+  id                 String                 @id @default(uuid(7)) @db.Uuid
+  organizationId     String                 @db.Uuid
+  /// Société historique.
+  companyId          String                 @db.Uuid
+  vehicleId          String                 @db.Uuid
+  reference          String
+  kind               InterventionKind
+  status             InterventionStatus     @default(BROUILLON)
+  supplierId         String?                @db.Uuid
+  plannedStartAt     DateTime?              @db.Timestamptz(3)
+  plannedEndAt       DateTime?              @db.Timestamptz(3)
+  startedAt          DateTime?              @db.Timestamptz(3)
+  completedAt        DateTime?              @db.Timestamptz(3)
+  /// Date effective de réalisation (6.4).
+  performedOn        DateTime?              @db.Date
+  performedReadingId String?                @db.Uuid
+  performedKm        Decimal?               @db.Decimal(15, 3)
+  diagnosis          String?
+  workDescription    String?
+  totalAmount        Decimal?               @db.Decimal(18, 3)
+  incidentId         String?                @db.Uuid
+  /// Opération historique saisie a posteriori (import/rattrapage) : ne simule pas de prestation facturée.
+  isHistorical       Boolean                @default(false)
+  cancelledAt        DateTime?              @db.Timestamptz(3)
+  cancelReason       String?
+  reopenedAt         DateTime?              @db.Timestamptz(3)
+  reopenReason       String?
+  createdAt          DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime               @updatedAt @db.Timestamptz(3)
+  createdById        String?                @db.Uuid
+  version            Int                    @default(1)
+
+  vehicle              Vehicle               @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  supplier             Supplier?             @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  performedReading     OdometerReading?      @relation(fields: [performedReadingId], references: [id], onDelete: Restrict)
+  incident             Incident?             @relation("IncidentInterventions", fields: [incidentId], references: [id], onDelete: Restrict)
+  tasks                InterventionTask[]
+  lines                InterventionLine[]
+  immobilizationCauses ImmobilizationCause[]
+
+  @@unique([organizationId, reference])
+  @@unique([id, organizationId])
+  @@index([organizationId, companyId, status])
+  @@index([vehicleId, status])
+  @@index([vehicleId, performedOn])
+}
+
+/// Ligne de travail : opération réalisée, liée au plan qu'elle met à jour (6.4).
+model InterventionTask {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  organizationId    String   @db.Uuid
+  interventionId    String   @db.Uuid
+  maintenanceTypeId String?  @db.Uuid
+  planId            String?  @db.Uuid
+  label             String
+  completed         Boolean  @default(false)
+  notes             String?
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(3)
+
+  intervention    Intervention            @relation(fields: [interventionId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  maintenanceType MaintenanceType?        @relation(fields: [maintenanceTypeId], references: [id], onDelete: Restrict)
+  plan            VehicleMaintenancePlan? @relation(fields: [planId], references: [id], onDelete: Restrict)
+  lines           InterventionLine[]
+
+  @@index([planId, completed])
+  @@index([interventionId])
+}
+
+/// Lignes pièces / main-d'œuvre (non recomptées dans les dépenses : 8.4).
+model InterventionLine {
+  id             String               @id @default(uuid(7)) @db.Uuid
+  organizationId String               @db.Uuid
+  interventionId String               @db.Uuid
+  taskId         String?              @db.Uuid
+  kind           InterventionLineKind
+  label          String
+  quantity       Decimal              @db.Decimal(18, 3)
+  unitPrice      Decimal              @db.Decimal(18, 3)
+  amount         Decimal              @db.Decimal(18, 3)
+  createdAt      DateTime             @default(now()) @db.Timestamptz(3)
+
+  intervention Intervention      @relation(fields: [interventionId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  task         InterventionTask? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([interventionId])
+}
+
+// -----------------------------------------------------------------------------
+// F02/F07 — Documents, incidents, immobilisations
+// -----------------------------------------------------------------------------
+
+model DocumentType {
+  id                 String            @id @default(uuid(7)) @db.Uuid
+  organizationId     String            @db.Uuid
+  code               String
+  label              String
+  ownerType          DocumentOwnerType
+  hasExpiry          Boolean           @default(true)
+  /// Absence ou expiration bloque un nouveau départ (7.1, 7.2).
+  blocksCheckout     Boolean           @default(false)
+  /// Document attendu pour chaque objet du type : absence = MANQUANT.
+  required           Boolean           @default(false)
+  /// Préavis en jours (défaut 30, 15, 7).
+  noticeDays         Int[]             @default([30, 15, 7])
+  status             RecordStatus      @default(ACTIF)
+  createdAt          DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime          @updatedAt @db.Timestamptz(3)
+  createdById        String?           @db.Uuid
+  version            Int               @default(1)
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  versions     DocumentVersion[]
+
+  @@unique([organizationId, code])
+  @@unique([id, organizationId])
+}
+
+/// Version de document (7.1). Un renouvellement crée une nouvelle version ; la
+/// version valable à une date est retenue. validTo : valable jusqu'à la fin du jour local.
+model DocumentVersion {
+  id                   String            @id @default(uuid(7)) @db.Uuid
+  organizationId       String            @db.Uuid
+  companyId            String            @db.Uuid
+  documentTypeId       String            @db.Uuid
+  ownerType            DocumentOwnerType
+  vehicleId            String?           @db.Uuid
+  driverId             String?           @db.Uuid
+  number               String?
+  issuer               String?
+  issuedOn             DateTime?         @db.Date
+  validFrom            DateTime?         @db.Date
+  validTo              DateTime?         @db.Date
+  attachmentId         String?           @db.Uuid
+  notes                String?
+  previousVersionId    String?           @db.Uuid
+  /// Sociétés destinataires d'un partage lors d'un transfert (2.4).
+  sharedWithCompanyIds String[]          @default([]) @db.Uuid
+  archivedAt           DateTime?         @db.Timestamptz(3)
+  createdAt            DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime          @updatedAt @db.Timestamptz(3)
+  createdById          String?           @db.Uuid
+  version              Int               @default(1)
+
+  documentType DocumentType @relation(fields: [documentTypeId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  vehicle      Vehicle?     @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  driver       Driver?      @relation(fields: [driverId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, companyId])
+  @@index([vehicleId, documentTypeId, validTo])
+  @@index([driverId, documentTypeId, validTo])
+}
+
+model Incident {
+  id             String           @id @default(uuid(7)) @db.Uuid
+  organizationId String           @db.Uuid
+  companyId      String           @db.Uuid
+  vehicleId      String           @db.Uuid
+  driverId       String?          @db.Uuid
+  usageId        String?          @db.Uuid
+  type           IncidentType
+  severity       IncidentSeverity
+  status         IncidentStatus   @default(OUVERT)
+  occurredAt     DateTime         @db.Timestamptz(3)
+  locationLabel  String?
+  siteId         String?          @db.Uuid
+  description    String
+  followUpUserId String?          @db.Uuid
+  expenseId        String?          @db.Uuid
+  resolvedAt     DateTime?        @db.Timestamptz(3)
+  resolvedById   String?          @db.Uuid
+  resolutionNote String?
+  closedAt       DateTime?        @db.Timestamptz(3)
+  closedById     String?          @db.Uuid
+  closureNote    String?
+  reportedById   String?          @db.Uuid
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @db.Timestamptz(3)
+  createdById    String?          @db.Uuid
+  version        Int              @default(1)
+
+  vehicle              Vehicle               @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  driver               Driver?               @relation(fields: [driverId], references: [id], onDelete: Restrict)
+  usage                VehicleUsage?         @relation(fields: [usageId], references: [id], onDelete: Restrict)
+  site                 Site?                 @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  comments             IncidentComment[]
+  interventions        Intervention[]        @relation("IncidentInterventions")
+  immobilizationCauses ImmobilizationCause[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, companyId, status])
+  @@index([vehicleId, occurredAt])
+  @@index([driverId])
+}
+
+/// Commentaires chronologiques (7.3), jamais modifiés.
+model IncidentComment {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  organizationId String            @db.Uuid
+  incidentId     String            @db.Uuid
+  authorId       String?           @db.Uuid
+  body           String
+  createdAt      DateTime          @default(now()) @db.Timestamptz(3)
+
+  incident Incident @relation(fields: [incidentId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@index([incidentId, createdAt])
+}
+
+/// Immobilisation (7.4) : une seule ACTIVE par véhicule, regroupant plusieurs causes.
+model Immobilization {
+  id               String               @id @default(uuid(7)) @db.Uuid
+  organizationId   String               @db.Uuid
+  companyId        String               @db.Uuid
+  vehicleId        String               @db.Uuid
+  status           ImmobilizationStatus @default(ACTIVE)
+  startedAt        DateTime             @db.Timestamptz(3)
+  expectedEndAt    DateTime?            @db.Timestamptz(3)
+  endedAt          DateTime?            @db.Timestamptz(3)
+  siteId           String?              @db.Uuid
+  garageSupplierId String?              @db.Uuid
+  locationLabel    String?
+  endedById        String?              @db.Uuid
+  createdAt        DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime             @updatedAt @db.Timestamptz(3)
+  createdById      String?              @db.Uuid
+  version          Int                  @default(1)
+
+  vehicle        Vehicle               @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  site           Site?                 @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  garageSupplier Supplier?             @relation("ImmobilizationGarage", fields: [garageSupplierId], references: [id], onDelete: Restrict)
+  causes         ImmobilizationCause[]
+
+  @@unique([vehicleId], map: "immobilization_one_active_per_vehicle", where: raw("\"status\" = 'ACTIVE'"))
+  @@unique([id, organizationId])
+  @@index([organizationId, companyId, status])
+  @@index([vehicleId, startedAt])
+}
+
+model ImmobilizationCause {
+  id               String                  @id @default(uuid(7)) @db.Uuid
+  organizationId   String                  @db.Uuid
+  immobilizationId String                  @db.Uuid
+  kind             ImmobilizationCauseKind
+  reason           String
+  incidentId       String?                 @db.Uuid
+  interventionId   String?                 @db.Uuid
+  startedAt        DateTime                @db.Timestamptz(3)
+  endedAt          DateTime?               @db.Timestamptz(3)
+  endedById        String?                 @db.Uuid
+  endReason        String?
+  createdAt        DateTime                @default(now()) @db.Timestamptz(3)
+  createdById      String?                 @db.Uuid
+
+  immobilization Immobilization @relation(fields: [immobilizationId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  incident       Incident?      @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+  intervention   Intervention?  @relation(fields: [interventionId], references: [id], onDelete: Restrict)
+
+  @@index([immobilizationId])
+  @@index([incidentId])
+  @@index([interventionId])
+}
+
+// -----------------------------------------------------------------------------
+// F06 — Fournisseurs, carburant, dépenses
+// -----------------------------------------------------------------------------
+
+model Supplier {
+  id             String           @id @default(uuid(7)) @db.Uuid
+  organizationId String           @db.Uuid
+  companyId      String           @db.Uuid
+  name           String
+  category       SupplierCategory
+  contactName    String?
+  phone          String?
+  email          String?
+  address        String?
+  notes          String?
+  status         RecordStatus     @default(ACTIF)
+  archivedAt     DateTime?        @db.Timestamptz(3)
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @db.Timestamptz(3)
+  createdById    String?          @db.Uuid
+  version        Int              @default(1)
+
+  company          Company          @relation(fields: [companyId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  contractVehicles Vehicle[]        @relation("VehicleContractSupplier")
+  interventions    Intervention[]
+  immobilizations  Immobilization[] @relation("ImmobilizationGarage")
+  fuelEntries      FuelEntry[]
+  expenses         Expense[]
+
+  @@unique([companyId, name])
+  @@index([organizationId, companyId, category, status])
+}
+
+/// Plein / achat de carburant (8.2). Une soumission conducteur (SOUMIS) ne
+/// produit ni dépense ni relevé accepté avant validation.
+model FuelEntry {
+  id                  String          @id @default(uuid(7)) @db.Uuid
+  organizationId      String          @db.Uuid
+  companyId           String          @db.Uuid
+  vehicleId           String          @db.Uuid
+  driverId            String?         @db.Uuid
+  supplierId          String?         @db.Uuid
+  filledAt            DateTime        @db.Timestamptz(3)
+  liters              Decimal         @db.Decimal(18, 3)
+  unitPrice           Decimal?        @db.Decimal(18, 3)
+  totalAmount         Decimal         @db.Decimal(18, 3)
+  energy              EnergyType
+  isFullTank          Boolean
+  /// Compteur saisi (proposition) et relevé lié une fois contrôlé.
+  declaredPhysicalKm  Decimal?        @db.Decimal(15, 3)
+  readingId           String?         @db.Uuid
+  ticketAttachmentId  String?         @db.Uuid
+  status              FuelEntryStatus
+  /// Écart litres x prix unitaire / total au-delà de la tolérance : signalé, jamais corrigé.
+  amountMismatch      Boolean         @default(false)
+  amountMismatchValue Decimal?        @db.Decimal(18, 3)
+  submittedById       String?         @db.Uuid
+  decidedAt           DateTime?       @db.Timestamptz(3)
+  decidedById         String?         @db.Uuid
+  decisionReason      String?
+  notes               String?
+  createdAt           DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime        @updatedAt @db.Timestamptz(3)
+  createdById         String?         @db.Uuid
+  version             Int             @default(1)
+
+  vehicle    Vehicle          @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  driver     Driver?          @relation(fields: [driverId], references: [id], onDelete: Restrict)
+  supplier   Supplier?        @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  reading    OdometerReading? @relation(fields: [readingId], references: [id], onDelete: Restrict)
+  fuelEvents FuelEvent[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, companyId, status])
+  @@index([vehicleId, filledAt])
+}
+
+/// Registre unique des dépenses (8.4). Une source (plein, intervention) génère
+/// exactement une dépense active (index unique partiel).
+model Expense {
+  id                        String             @id @default(uuid(7)) @db.Uuid
+  organizationId            String             @db.Uuid
+  /// Société au fait générateur (jamais réimputée après transfert).
+  companyId                 String             @db.Uuid
+  vehicleId                 String?            @db.Uuid
+  occurredOn                DateTime           @db.Date
+  category                  ExpenseCategory
+  kind                      ExpenseKind        @default(DEPENSE)
+  supplierId                String?            @db.Uuid
+  reference                 String?
+  /// Montant TTC positif ; un AVOIR réduit le coût.
+  amount                    Decimal            @db.Decimal(18, 3)
+  currency                  String             @default("TND") @db.Char(3)
+  attachmentId              String?            @db.Uuid
+  sourceType                ExpenseSourceType?
+  sourceId                  String?            @db.Uuid
+  status                    ExpenseStatus      @default(VALIDEE)
+  replacesExpenseId         String?            @unique @db.Uuid
+  cancelledAt               DateTime?          @db.Timestamptz(3)
+  cancelledById             String?            @db.Uuid
+  cancelReason              String?
+  /// Exclue du coût d'exploitation (achat de véhicule par défaut).
+  excludedFromOperatingCost Boolean            @default(false)
+  notes                     String?
+  createdAt                 DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt                 DateTime           @updatedAt @db.Timestamptz(3)
+  createdById               String?            @db.Uuid
+  version                   Int                @default(1)
+
+  vehicle    Vehicle?  @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  replaces   Expense?  @relation("ExpenseReplacement", fields: [replacesExpenseId], references: [id], onDelete: Restrict)
+  replacedBy Expense?  @relation("ExpenseReplacement")
+
+  @@unique([sourceType, sourceId], map: "expense_one_active_per_source", where: raw("\"sourceId\" IS NOT NULL AND \"status\" = 'VALIDEE'"))
+  @@index([organizationId, companyId, occurredOn])
+  @@index([organizationId, category, occurredOn])
+  @@index([vehicleId, occurredOn])
+  @@index([supplierId])
+}
+
+// -----------------------------------------------------------------------------
+// Pièces jointes privées (16.2)
+// -----------------------------------------------------------------------------
+
+model Attachment {
+  id             String               @id @default(uuid(7)) @db.Uuid
+  organizationId String               @db.Uuid
+  companyId      String?              @db.Uuid
+  /// Propriétaire métier explicite ; null tant que le fichier est temporaire.
+  ownerType      AttachmentOwnerType?
+  ownerId        String?              @db.Uuid
+  /// Clé interne aléatoire ; aucun chemin utilisateur.
+  storageKey     String               @unique
+  originalName   String
+  mimeType       String
+  sizeBytes      Int
+  sha256         String               @db.Char(64)
+  uploadedById   String?              @db.Uuid
+  attachedAt     DateTime?            @db.Timestamptz(3)
+  deletedAt      DateTime?            @db.Timestamptz(3)
+  deletedById    String?              @db.Uuid
+  createdAt      DateTime             @default(now()) @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, ownerType, ownerId])
+  @@index([attachedAt, createdAt])
+}
+
+// -----------------------------------------------------------------------------
+// F08 — Alertes, notifications, jobs
+// -----------------------------------------------------------------------------
+
+/// Alerte métier (9.1, 9.2). Déduplication par organisation, société, type,
+/// objet et occurrence : la gravité évolue sur la même alerte.
+model Alert {
+  id                    String         @id @default(uuid(7)) @db.Uuid
+  organizationId        String         @db.Uuid
+  companyId             String         @db.Uuid
+  type                  AlertType
+  severity              AlertSeverity
+  status                AlertStatus    @default(ACTIVE)
+  objectType            String
+  objectId              String         @db.Uuid
+  vehicleId             String?        @db.Uuid
+  occurrenceKey         String
+  title                 String
+  message               String
+  /// Condition de déclenchement (valeurs observées, seuils).
+  condition             Json
+  actionPath            String
+  responsibleUserId     String?        @db.Uuid
+  triggeredAt           DateTime       @db.Timestamptz(3)
+  lastEvaluatedAt       DateTime       @db.Timestamptz(3)
+  resolvedAt            DateTime?      @db.Timestamptz(3)
+  resolutionReason      String?
+  emailNotifiedSeverity AlertSeverity?
+  createdAt             DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime       @updatedAt @db.Timestamptz(3)
+  version               Int            @default(1)
+
+  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  recipientStates AlertRecipientState[]
+
+  @@unique([organizationId, companyId, type, objectType, objectId, occurrenceKey])
+  @@index([organizationId, companyId, status, severity])
+  @@index([vehicleId, status])
+}
+
+/// État propre à chaque utilisateur : lu, report motivé (9.2).
+model AlertRecipientState {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  organizationId String    @db.Uuid
+  alertId        String    @db.Uuid
+  userId         String    @db.Uuid
+  readAt         DateTime? @db.Timestamptz(3)
+  snoozedUntil   DateTime? @db.Date
+  snoozeReason   String?
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
+
+  alert Alert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([alertId, userId])
+}
+
+/// Outbox persistante des e-mails (9.4).
+model NotificationOutbox {
+  id                String       @id @default(uuid(7)) @db.Uuid
+  organizationId    String       @db.Uuid
+  companyId         String?      @db.Uuid
+  kind              OutboxKind
+  recipientUserId   String       @db.Uuid
+  recipientEmail    String
+  subject           String
+  bodyText          String
+  dedupeKey         String       @unique
+  status            OutboxStatus @default(EN_ATTENTE)
+  attempts          Int          @default(0)
+  maxAttempts       Int          @default(8)
+  nextAttemptAt     DateTime     @default(now()) @db.Timestamptz(3)
+  lockedBy          String?
+  lockedUntil       DateTime?    @db.Timestamptz(3)
+  /// Dernière erreur expurgée (aucun secret).
+  lastError         String?
+  sentAt            DateTime?    @db.Timestamptz(3)
+  providerMessageId String?
+  alertId           String?      @db.Uuid
+  createdAt         DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime     @updatedAt @db.Timestamptz(3)
+
+  @@index([status, nextAttemptAt])
+  @@index([organizationId, createdAt])
+}
+
+/// Jobs différés en PostgreSQL (sans Redis) : exports volumineux, recalculs.
+model Job {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  organizationId String?   @db.Uuid
+  type           String
+  payload        Json
+  dedupeKey      String?
+  status         JobStatus @default(EN_ATTENTE)
+  attempts       Int       @default(0)
+  maxAttempts    Int       @default(5)
+  runAt          DateTime  @default(now()) @db.Timestamptz(3)
+  lockedBy       String?
+  lockedUntil    DateTime? @db.Timestamptz(3)
+  progress       Int       @default(0)
+  result         Json?
+  lastError      String?
+  requestedById  String?   @db.Uuid
+  finishedAt     DateTime? @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
+
+  /// Un seul job non terminé par clé de déduplication (finishedAt renseigné à la fin, succès ou abandon).
+  @@unique([dedupeKey], map: "job_dedupe_active", where: raw("\"dedupeKey\" IS NOT NULL AND \"finishedAt\" IS NULL"))
+  @@index([status, runAt])
+  @@index([organizationId, requestedById])
+}
+
+/// Verrou d'exécution des traitements périodiques (table technique globale).
+model JobLease {
+  name        String   @id
+  holder      String
+  acquiredAt  DateTime @db.Timestamptz(3)
+  expiresAt   DateTime @db.Timestamptz(3)
+  heartbeatAt DateTime @db.Timestamptz(3)
+}
+
+/// Battement du worker (table technique globale) : santé « prêt » (16.3).
+model WorkerHeartbeat {
+  workerId   String   @id
+  hostname   String
+  startedAt  DateTime @db.Timestamptz(3)
+  lastBeatAt DateTime @db.Timestamptz(3)
+  appVersion String?
+}
+
+// -----------------------------------------------------------------------------
+// F11 — Connecteur télématique
+// -----------------------------------------------------------------------------
+
+model TelemetryProvider {
+  id                  String                  @id @default(uuid(7)) @db.Uuid
+  organizationId      String                  @db.Uuid
+  name                String
+  kind                TelemetryProviderKind
+  channel             TelemetryChannel
+  status              TelemetryProviderStatus @default(BROUILLON)
+  baseUrl             String?
+  /// Paramètres non secrets (unités, colonnes, dossiers, capteurs...).
+  settings            Json                    @default("{}")
+  syncIntervalMinutes Int                     @default(15)
+  backfillDays        Int                     @default(7)
+  consecutiveFailures Int                     @default(0)
+  circuitOpenUntil    DateTime?               @db.Timestamptz(3)
+  lastSyncAt          DateTime?               @db.Timestamptz(3)
+  lastSuccessAt       DateTime?               @db.Timestamptz(3)
+  lastErrorSummary    String?
+  createdAt           DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime                @updatedAt @db.Timestamptz(3)
+  createdById         String?                 @db.Uuid
+  version             Int                     @default(1)
+
+  organization Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  companies    TelemetryProviderCompany[]
+  credentials  TelemetryCredential[]
+  units        TelemetryUnit[]
+  mappings     TelemetryVehicleMapping[]
+  syncRuns     TelemetrySyncRun[]
+  reportFiles  TelemetryReportFile[]
+
+  @@unique([organizationId, name])
+  @@unique([id, organizationId])
+}
+
+/// Sociétés couvertes par un fournisseur.
+model TelemetryProviderCompany {
+  providerId     String   @db.Uuid
+  companyId      String   @db.Uuid
+  organizationId String   @db.Uuid
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  provider TelemetryProvider @relation(fields: [providerId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@id([providerId, companyId])
+}
+
+/// Secret chiffré au repos (AES-256-GCM, clé hors base) ; jamais renvoyé ni journalisé (14.6).
+model TelemetryCredential {
+  id             String                  @id @default(uuid(7)) @db.Uuid
+  organizationId String                  @db.Uuid
+  providerId     String                  @db.Uuid
+  kind           TelemetryCredentialKind
+  keyId          String
+  iv             Bytes
+  authTag        Bytes
+  ciphertext     Bytes
+  active         Boolean                 @default(true)
+  createdAt      DateTime                @default(now()) @db.Timestamptz(3)
+  rotatedAt      DateTime?               @db.Timestamptz(3)
+  createdById    String?                 @db.Uuid
+
+  provider TelemetryProvider @relation(fields: [providerId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@unique([providerId, kind], map: "telemetry_credential_one_active_per_kind", where: raw("\"active\" = true"))
+}
+
+/// Unité (boîtier) déclarée par le fournisseur.
+model TelemetryUnit {
+  id                     String   @id @default(uuid(7)) @db.Uuid
+  organizationId         String   @db.Uuid
+  providerId             String   @db.Uuid
+  externalId             String
+  label                  String
+  declaredRegistration   String?
+  registrationNormalized String?
+  firstSeenAt            DateTime @db.Timestamptz(3)
+  lastSeenAt             DateTime @db.Timestamptz(3)
+  presentAtProvider      Boolean  @default(true)
+  createdAt              DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime @updatedAt @db.Timestamptz(3)
+
+  provider TelemetryProvider         @relation(fields: [providerId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  mappings TelemetryVehicleMapping[]
+  state    TelemetryUnitState?
+
+  @@unique([providerId, externalId])
+  @@unique([id, organizationId])
+  @@index([organizationId, registrationNormalized])
+}
+
+/// Association unité ↔ véhicule (14.5). Aucun relevé n'est ingéré avant
+/// confirmation. Un seul mapping CONFIRME ouvert par unité et par véhicule.
+model TelemetryVehicleMapping {
+  id             String                 @id @default(uuid(7)) @db.Uuid
+  organizationId String                 @db.Uuid
+  companyId      String                 @db.Uuid
+  providerId     String                 @db.Uuid
+  unitId         String                 @db.Uuid
+  vehicleId      String                 @db.Uuid
+  status         TelemetryMappingStatus @default(PROPOSE)
+  odometerKind   TelemetryOdometerKind  @default(AUCUN)
+  fuelKinds      FuelMeasureKind[]      @default([])
+  validFrom      DateTime?              @db.Timestamptz(3)
+  validTo        DateTime?              @db.Timestamptz(3)
+  proposedAt     DateTime               @db.Timestamptz(3)
+  proposalReason String?
+  decidedAt      DateTime?              @db.Timestamptz(3)
+  decidedById    String?                @db.Uuid
+  closedReason   String?
+  createdAt      DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime               @updatedAt @db.Timestamptz(3)
+  version        Int                    @default(1)
+
+  provider     TelemetryProvider      @relation(fields: [providerId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  unit         TelemetryUnit          @relation(fields: [unitId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  vehicle      Vehicle                @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  calibrations TelemetryCalibration[]
+
+  @@unique([unitId], map: "telemetry_mapping_one_open_per_unit", where: raw("\"status\" = 'CONFIRME' AND \"validTo\" IS NULL"))
+  @@unique([vehicleId], map: "telemetry_mapping_one_open_per_vehicle", where: raw("\"status\" = 'CONFIRME' AND \"validTo\" IS NULL"))
+  @@unique([id, organizationId])
+  @@index([organizationId, companyId, status])
+}
+
+/// Dernier état reçu par unité, mis à jour à chaque synchronisation (5.6).
+model TelemetryUnitState {
+  unitId                 String                 @id @db.Uuid
+  organizationId         String                 @db.Uuid
+  providerId             String                 @db.Uuid
+  lastOdometerValueKm    Decimal?               @db.Decimal(15, 3)
+  lastOdometerKind       TelemetryOdometerKind?
+  lastOdometerObservedAt DateTime?              @db.Timestamptz(3)
+  lastFuelValue          Decimal?               @db.Decimal(18, 3)
+  lastFuelKind           FuelMeasureKind?
+  lastFuelObservedAt     DateTime?              @db.Timestamptz(3)
+  lastReceivedAt         DateTime?              @db.Timestamptz(3)
+  lastHistorizedAt       DateTime?              @db.Timestamptz(3)
+  lastHistorizedValueKm  Decimal?               @db.Decimal(15, 3)
+  lastError              String?
+  updatedAt              DateTime               @updatedAt @db.Timestamptz(3)
+
+  unit TelemetryUnit @relation(fields: [unitId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@unique([unitId, organizationId])
+}
+
+/// Exécutions de synchronisation : volumes, durée, résultat (14.4).
+model TelemetrySyncRun {
+  id                String        @id @default(uuid(7)) @db.Uuid
+  organizationId    String        @db.Uuid
+  providerId        String        @db.Uuid
+  companyId         String?       @db.Uuid
+  trigger           SyncTrigger
+  status            SyncRunStatus @default(EN_COURS)
+  startedAt         DateTime      @db.Timestamptz(3)
+  finishedAt        DateTime?     @db.Timestamptz(3)
+  durationMs        Int?
+  unitsSeen         Int           @default(0)
+  odometerSamples   Int           @default(0)
+  readingsCreated   Int           @default(0)
+  readingsPending   Int           @default(0)
+  duplicatesIgnored Int           @default(0)
+  fuelSamples       Int           @default(0)
+  fuelEventsCreated Int           @default(0)
+  errorCount        Int           @default(0)
+  /// Résumé expurgé : jamais de secret.
+  errorSummary      String?
+  requestedById     String?       @db.Uuid
+
+  provider TelemetryProvider @relation(fields: [providerId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@index([providerId, startedAt])
+  @@index([organizationId, companyId, startedAt])
+}
+
+/// Fichiers de rapports déjà traités (canal RAPPORT) : idempotence par empreinte.
+model TelemetryReportFile {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @db.Uuid
+  providerId     String   @db.Uuid
+  sourceName     String
+  sha256         String   @db.Char(64)
+  rowCount       Int      @default(0)
+  processedAt    DateTime @db.Timestamptz(3)
+  syncRunId      String?  @db.Uuid
+
+  provider TelemetryProvider @relation(fields: [providerId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([providerId, sha256])
+}
+
+/// Calibrage DISTANCE_GPS (5.6) : kmEstime = referenceKm + (distanceGps - referenceGpsDistanceKm).
+/// Chaque relevé manuel accepté devient une nouvelle référence ; l'écart est historisé.
+model TelemetryCalibration {
+  id                      String            @id @default(uuid(7)) @db.Uuid
+  organizationId          String            @db.Uuid
+  vehicleId               String            @db.Uuid
+  mappingId               String            @db.Uuid
+  status                  CalibrationStatus
+  referenceReadingId      String            @db.Uuid
+  referenceKm             Decimal           @db.Decimal(15, 3)
+  referenceGpsDistanceKm  Decimal?          @db.Decimal(15, 3)
+  referenceAt             DateTime          @db.Timestamptz(3)
+  previousCalibrationId   String?           @db.Uuid
+  /// Estimation GPS au moment de la référence (selon le calibrage précédent).
+  estimatedKmAtReference  Decimal?          @db.Decimal(15, 3)
+  distanceSincePreviousKm Decimal?          @db.Decimal(15, 3)
+  deviationKm             Decimal?          @db.Decimal(15, 3)
+  deviationPercent        Decimal?          @db.Decimal(9, 3)
+  driftAlertRaised        Boolean           @default(false)
+  statusReason            String?
+  createdAt               DateTime          @default(now()) @db.Timestamptz(3)
+
+  vehicle           Vehicle                 @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  mapping           TelemetryVehicleMapping @relation(fields: [mappingId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  referenceReading  OdometerReading         @relation("CalibrationReference", fields: [referenceReadingId], references: [id], onDelete: Restrict)
+  estimatedReadings OdometerReading[]       @relation("ReadingCalibration")
+
+  @@index([vehicleId, referenceAt])
+  @@index([mappingId, referenceAt])
+}
+
+/// Échantillons bruts d'odomètre (rétention bornée, partitionnement mensuel en SQL).
+/// Servent au calibrage GPS à l'instant d'un relevé manuel.
+model TelemetryOdometerSample {
+  id              String                @default(uuid(7)) @db.Uuid
+  organizationId  String                @db.Uuid
+  unitId          String                @db.Uuid
+  observedAt      DateTime              @db.Timestamptz(3)
+  kind            TelemetryOdometerKind
+  valueKm         Decimal               @db.Decimal(15, 3)
+  sourceReference String?
+  receivedAt      DateTime              @db.Timestamptz(3)
+
+  @@id([id, observedAt])
+  @@unique([unitId, kind, observedAt])
+}
+
+/// Échantillons de niveau/consommation carburant, pas de 5 min maximum,
+/// rétention configurable (90 j), partitionnement mensuel en SQL (17.2).
+model FuelLevelSample {
+  id             String          @default(uuid(7)) @db.Uuid
+  organizationId String          @db.Uuid
+  unitId         String          @db.Uuid
+  vehicleId      String          @db.Uuid
+  observedAt     DateTime        @db.Timestamptz(3)
+  kind           FuelMeasureKind
+  liters         Decimal?        @db.Decimal(18, 3)
+  percent        Decimal?        @db.Decimal(9, 3)
+  engineOn       Boolean?
+  speedKmh       Decimal?        @db.Decimal(9, 3)
+  receivedAt     DateTime        @db.Timestamptz(3)
+
+  @@id([id, observedAt])
+  @@unique([unitId, kind, observedAt])
+  @@index([vehicleId, observedAt])
+}
+
+/// Événement carburant dérivé (8.5) : anomalie à qualifier, jamais une dépense.
+model FuelEvent {
+  id                String                  @id @default(uuid(7)) @db.Uuid
+  organizationId    String                  @db.Uuid
+  companyId         String                  @db.Uuid
+  vehicleId         String                  @db.Uuid
+  unitId            String?                 @db.Uuid
+  type              FuelEventType
+  measureKind       FuelMeasureKind
+  detectedAt        DateTime                @db.Timestamptz(3)
+  windowStart       DateTime                @db.Timestamptz(3)
+  windowEnd         DateTime                @db.Timestamptz(3)
+  litersDelta       Decimal?                @db.Decimal(18, 3)
+  percentDelta      Decimal?                @db.Decimal(9, 3)
+  fuelEntryId       String?                 @db.Uuid
+  details           Json?
+  dedupeKey         String
+  status            FuelEventStatus         @default(A_QUALIFIER)
+  qualification     FuelEventQualification?
+  qualifiedAt       DateTime?               @db.Timestamptz(3)
+  qualifiedById     String?                 @db.Uuid
+  qualificationNote String?
+  createdAt         DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime                @updatedAt @db.Timestamptz(3)
+  version           Int                     @default(1)
+
+  vehicle   Vehicle    @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  fuelEntry FuelEntry? @relation(fields: [fuelEntryId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, dedupeKey])
+  @@index([organizationId, companyId, status])
+  @@index([vehicleId, detectedAt])
+}
+
+// -----------------------------------------------------------------------------
+// Audit, imports, paramètres, idempotence
+// -----------------------------------------------------------------------------
+
+/// Journal d'audit append-only (trigger SQL bloquant UPDATE/DELETE).
+model AuditEvent {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  organizationId String    @db.Uuid
+  companyId      String?   @db.Uuid
+  actorType      ActorType
+  actorUserId    String?   @db.Uuid
+  action         String
+  objectType     String
+  objectId       String?
+  reason         String?
+  /// Valeurs avant/après expurgées (jamais de mot de passe ni de jeton).
+  before         Json?
+  after          Json?
+  requestId      String?
+  ipAddress      String?
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, objectType, objectId])
+  @@index([organizationId, actorUserId, createdAt])
+  @@index([organizationId, companyId, createdAt])
+}
+
+model ImportBatch {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  organizationId String       @db.Uuid
+  kind           ImportKind
+  status         ImportStatus @default(TELEVERSE)
+  fileName       String
+  fileSha256     String       @db.Char(64)
+  attachmentId   String       @db.Uuid
+  columnMapping  Json?
+  rowCount       Int          @default(0)
+  errorCount     Int          @default(0)
+  /// Empreinte de confirmation : (lot, contenu) — confirmation idempotente (12.1).
+  commitKey      String?      @unique
+  report         Json?
+  validatedAt    DateTime?    @db.Timestamptz(3)
+  committedAt    DateTime?    @db.Timestamptz(3)
+  committedById  String?      @db.Uuid
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @db.Timestamptz(3)
+  createdById    String?      @db.Uuid
+  version        Int          @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  rows         ImportRow[]
+
+  @@index([organizationId, createdAt])
+}
+
+model ImportRow {
+  id              String          @id @default(uuid(7)) @db.Uuid
+  organizationId  String          @db.Uuid
+  batchId         String          @db.Uuid
+  rowNumber       Int
+  companyId       String?         @db.Uuid
+  data            Json
+  /// [{ column, message }]
+  errors          Json            @default("[]")
+  status          ImportRowStatus
+  createdObjectId String?         @db.Uuid
+
+  batch ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, rowNumber])
+}
+
+/// Paramètres versionnés (17.1) : chaque modification crée une nouvelle version
+/// auditée ; companyId null = valeur groupe, sinon surcharge explicite.
+model SettingValue {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @db.Uuid
+  companyId      String?  @db.Uuid
+  key            String
+  value          Json
+  settingVersion Int
+  isCurrent      Boolean  @default(true)
+  reason         String?
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  createdById    String?  @db.Uuid
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, companyId, key, settingVersion])
+  @@unique([organizationId, key], map: "setting_current_group", where: raw("\"isCurrent\" = true AND \"companyId\" IS NULL"))
+  @@unique([organizationId, companyId, key], map: "setting_current_company", where: raw("\"isCurrent\" = true AND \"companyId\" IS NOT NULL"))
+}
+
+/// Clés d'idempotence liées à l'utilisateur, l'organisation et l'opération (15.3).
+model IdempotencyRecord {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  organizationId String            @db.Uuid
+  userId         String            @db.Uuid
+  operation      String
+  key            String
+  requestHash    String            @db.Char(64)
+  status         IdempotencyStatus @default(EN_COURS)
+  responseStatus Int?
+  responseBody   Json?
+  resourceId     String?
+  createdAt      DateTime          @default(now()) @db.Timestamptz(3)
+  expiresAt      DateTime          @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, userId, operation, key])
+  @@index([expiresAt])
+}

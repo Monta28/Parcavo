@@ -1,0 +1,40 @@
+import { type INestApplication } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { DocumentBuilder, SwaggerModule, type OpenAPIObject } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import { AppModule, type AppModuleOptions } from './app.module.js';
+import { requestIdMiddleware } from './common/request-id.middleware.js';
+import { APP_ENV, type AppEnv } from './infra/env.js';
+
+export const API_PREFIX = 'api/v1';
+
+/** Crée l'application HTTP complète (utilisée par main.ts et par les tests d'intégration). */
+export async function createApp(options: AppModuleOptions = {}): Promise<NestExpressApplication> {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule.register(options), { bufferLogs: false, logger: options.env?.nodeEnv === 'test' ? ['error', 'warn'] : ['log', 'error', 'warn'] });
+  const env = app.get<AppEnv>(APP_ENV);
+  app.setGlobalPrefix(API_PREFIX);
+  app.set('trust proxy', env.trustProxy ? 1 : false);
+  app.disable('x-powered-by');
+  app.use(requestIdMiddleware);
+  app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'same-origin' } }));
+  app.use(cookieParser());
+  app.enableShutdownHooks();
+  return app;
+}
+
+export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
+  const config = new DocumentBuilder()
+    .setTitle('Parc Auto — API')
+    .setDescription('API REST de gestion de parc automobile multi-sociétés (CDC v1.1). Authentification par session (cookie HttpOnly) et jeton CSRF (en-tête X-CSRF-Token) sur les mutations.')
+    .setVersion('1.0.0')
+    .addCookieAuth('pa_session')
+    .build();
+  return SwaggerModule.createDocument(app, config);
+}
+
+export function mountOpenApi(app: INestApplication): void {
+  const document = buildOpenApiDocument(app);
+  SwaggerModule.setup('api/docs', app, document, { jsonDocumentUrl: 'api/docs.json', useGlobalPrefix: false });
+}

@@ -1,0 +1,17 @@
+packages:
+  - apps/*
+  - packages/*
+  - tests/e2e
+
+autoInstallPeers: true
+strictPeerDependencies: false
+
+# Scripts d'installation autorisés (pnpm 10) : moteurs Prisma (migrations), esbuild (vitest),
+# ssh2/cpu-features (SFTP, natif facultatif), unrs-resolver (eslint-config-next).
+onlyBuiltDependencies:
+  - '@prisma/engines'
+  - prisma
+  - esbuild
+  - ssh2
+  - cpu-features
+  - unrs-resolver

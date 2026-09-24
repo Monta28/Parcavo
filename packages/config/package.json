@@ -1,0 +1,19 @@
+{
+  "name": "@parc-auto/config",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Configurations TypeScript et ESLint partagées du monorepo Parc Auto",
+  "exports": {
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./tsconfig.node.json": "./tsconfig.node.json",
+    "./eslint.base.js": "./eslint.base.js"
+  },
+  "dependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.12.0",
+    "typescript-eslint": "8.70.1"
+  }
+}

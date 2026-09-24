@@ -1,0 +1,49 @@
+# Développement local : bases PostgreSQL de développement et de test.
+# Démarrage : `docker compose up -d` puis `pnpm dev`. Les applications tournent hors conteneur.
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    container_name: parc-auto-postgres
+    environment:
+      POSTGRES_DB: parc_auto
+      POSTGRES_USER: parc_auto
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-parc_auto_dev}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U parc_auto -d parc_auto']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  postgres-test:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    container_name: parc-auto-postgres-test
+    environment:
+      POSTGRES_DB: parc_auto_test
+      POSTGRES_USER: parc_auto
+      POSTGRES_PASSWORD: parc_auto_test
+    command: ['postgres', '-c', 'fsync=off', '-c', 'synchronous_commit=off', '-c', 'full_page_writes=off']
+    ports:
+      - '${POSTGRES_TEST_PORT:-5433}:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U parc_auto -d parc_auto_test']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    # Serveur SMTP de test (interface web sur http://localhost:8025) : jamais utilisé en production.
+    image: axllent/mailpit:v1.28@sha256:c6cf0b06eb516a0b80a8a5251f945c131e6beb8396112964404f62856487f5bd
+    container_name: parc-auto-mailpit
+    profiles: ['smtp']
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+
+volumes:
+  postgres-data:

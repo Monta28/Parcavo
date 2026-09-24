@@ -1,0 +1,1669 @@
+{
+ "R-1.2-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/organizations/organizations.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-1.2-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-1.4-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/organizations/organizations.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-1.4-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-1.4-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-1.4-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-1.4-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/organizations/organizations.controller.ts"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-2.1-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/organizations/organizations.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.1-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/organizations/organizations.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.1-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-2.1-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/organizations/organizations.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.1-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/organizations/organizations.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.1-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/organizations/organizations.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.1-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/organizations/organizations.controller.ts"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-2.2-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.2-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.2-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.2-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.2-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.2-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.2-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.2-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.2-09": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.2-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/users/users.service.ts",
+   "apps/api/src/modules/users/users.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts"
+  ]
+ },
+ "R-2.3-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.3-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.3-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-2.3-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.3-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-2.3-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/attachments/owner-authorization.service.ts",
+   "apps/api/src/infra/storage.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/attachments.int.spec.ts"
+  ]
+ },
+ "R-2.3-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/drivers/drivers.service.ts",
+   "apps/api/src/modules/drivers/drivers.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-3.1-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-3.1-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-3.1-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-3.1-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-3.1-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-3.1-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-3.1-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-3.1-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-3.1-09": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-3.2-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-3.2-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-3.3-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/drivers/drivers.service.ts",
+   "apps/api/src/modules/drivers/drivers.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-3.3-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/drivers/drivers.service.ts",
+   "apps/api/src/modules/drivers/drivers.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-3.3-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/drivers/drivers.service.ts",
+   "apps/api/src/modules/drivers/drivers.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-3.3-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/drivers/drivers.service.ts",
+   "apps/api/src/modules/drivers/drivers.controller.ts"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-3.3-08": {
+  "status": "partiel",
+  "files": [
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [],
+  "note": ""
+ },
+ "R-10.1-01": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/layout.tsx",
+   "apps/web/components/layout/app-shell.tsx",
+   "apps/web/components/states.tsx",
+   "apps/web/lib/api-client.ts",
+   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/connexion.spec.ts",
+   "tests/e2e/specs/vehicules.spec.ts"
+  ],
+  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+ },
+ "R-10.1-03": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/layout.tsx",
+   "apps/web/components/layout/app-shell.tsx",
+   "apps/web/components/states.tsx",
+   "apps/web/lib/api-client.ts",
+   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/connexion.spec.ts",
+   "tests/e2e/specs/vehicules.spec.ts"
+  ],
+  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+ },
+ "R-10.1-04": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/layout.tsx",
+   "apps/web/components/layout/app-shell.tsx",
+   "apps/web/components/states.tsx",
+   "apps/web/lib/api-client.ts",
+   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/connexion.spec.ts",
+   "tests/e2e/specs/vehicules.spec.ts"
+  ],
+  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+ },
+ "R-10.1-05": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/layout.tsx",
+   "apps/web/components/layout/app-shell.tsx",
+   "apps/web/components/states.tsx",
+   "apps/web/lib/api-client.ts",
+   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/connexion.spec.ts",
+   "tests/e2e/specs/vehicules.spec.ts"
+  ],
+  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+ },
+ "R-10.1-06": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/layout.tsx",
+   "apps/web/components/layout/app-shell.tsx",
+   "apps/web/components/states.tsx",
+   "apps/web/lib/api-client.ts",
+   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/connexion.spec.ts",
+   "tests/e2e/specs/vehicules.spec.ts"
+  ],
+  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+ },
+ "R-10.1-07": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/layout.tsx",
+   "apps/web/components/layout/app-shell.tsx",
+   "apps/web/components/states.tsx",
+   "apps/web/lib/api-client.ts",
+   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/connexion.spec.ts",
+   "tests/e2e/specs/vehicules.spec.ts"
+  ],
+  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+ },
+ "R-10.1-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-10.1-09": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/layout.tsx",
+   "apps/web/components/layout/app-shell.tsx",
+   "apps/web/components/states.tsx",
+   "apps/web/lib/api-client.ts",
+   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/connexion.spec.ts",
+   "tests/e2e/specs/vehicules.spec.ts"
+  ],
+  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+ },
+ "R-10.2-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-10.2-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-10.2-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/drivers/drivers.controller.ts",
+   "apps/api/src/modules/drivers/drivers.service.ts",
+   "apps/web/app/(app)/conducteurs/[id]/driver-detail.tsx",
+   "apps/web/app/(app)/conducteurs/drivers-list.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-10.2-15": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/organizations/organizations.controller.ts",
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/web/app/(app)/administration/admin-shell.tsx",
+   "apps/web/app/(app)/administration/utilisateurs/users-admin.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-13.1-01": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-13.1-02": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-13.1-03": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-13.1-04": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-13.1-05": {
+  "status": "à faire",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [],
+  "note": ""
+ },
+ "R-13.1-06": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-13.1-07": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-13.1-08": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-13.1-09": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-13.1-10": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-13.1-11": {
+  "status": "à faire",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [],
+  "note": ""
+ },
+ "R-13.2-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/organizations/organizations.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-13.2-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-13.2-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/drivers/drivers.service.ts",
+   "apps/api/src/modules/drivers/drivers.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-13.2-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-13.2-19": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/attachments/owner-authorization.service.ts",
+   "apps/api/src/infra/storage.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/attachments.int.spec.ts"
+  ]
+ },
+ "R-13.2-32": {
+  "status": "à faire",
+  "files": [
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [],
+  "note": ""
+ },
+ "R-13.2-33": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [],
+  "note": "Idempotence : service prêt, appliqué aux remises/retours au lot B"
+ },
+ "R-13.3-01": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-13.3-05": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-13.3-13": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-14.1-01": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/layout.tsx",
+   "apps/web/components/layout/app-shell.tsx",
+   "apps/web/components/states.tsx",
+   "apps/web/lib/api-client.ts",
+   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/connexion.spec.ts",
+   "tests/e2e/specs/vehicules.spec.ts"
+  ],
+  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+ },
+ "R-14.1-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts"
+  ]
+ },
+ "R-14.1-03": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-14.1-05": {
+  "status": "fait",
+  "files": [
+   "package.json",
+   "pnpm-workspace.yaml",
+   "pnpm-lock.yaml",
+   "docs/ARCHITECTURE.md"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-14.1-07": {
+  "status": "à faire",
+  "files": [
+   "docs/ARCHITECTURE.md",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [],
+  "note": ""
+ },
+ "R-14.1-08": {
+  "status": "fait",
+  "files": [
+   "package.json",
+   "pnpm-workspace.yaml",
+   "pnpm-lock.yaml",
+   "docs/ARCHITECTURE.md"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-14.2-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-14.2-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts"
+  ]
+ },
+ "R-14.2-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-15.1-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts"
+  ]
+ },
+ "R-15.1-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-15.1-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts"
+  ]
+ },
+ "R-15.1-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts"
+  ]
+ },
+ "R-15.1-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-15.1-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts"
+  ]
+ },
+ "R-15.1-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts"
+  ]
+ },
+ "R-15.1-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-15.2-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-15.2-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/organizations/organizations.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-15.2-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/users/users.service.ts",
+   "apps/api/src/modules/users/users.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts"
+  ]
+ },
+ "R-15.2-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/drivers/drivers.service.ts",
+   "apps/api/src/modules/drivers/drivers.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-15.2-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/domain/registration.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts",
+   "apps/api/src/domain/registration.spec.ts",
+   "apps/api/src/domain/vehicle-status.spec.ts"
+  ]
+ },
+ "R-15.2-16": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/attachments/owner-authorization.service.ts",
+   "apps/api/src/infra/storage.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/attachments.int.spec.ts"
+  ]
+ },
+ "R-15.2-26": {
+  "status": "à faire",
+  "files": [
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [],
+  "note": ""
+ },
+ "R-15.3-09": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [],
+  "note": "Idempotence : service prêt, appliqué aux remises/retours au lot B"
+ },
+ "R-15.3-10": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [],
+  "note": "Idempotence : service prêt, appliqué aux remises/retours au lot B"
+ },
+ "R-15.3-11": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts"
+  ]
+ },
+ "R-16.1-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/users/users.service.ts",
+   "apps/api/src/modules/users/users.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts"
+  ]
+ },
+ "R-16.1-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-16.1-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-16.1-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-16.1-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-16.1-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-16.1-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-16.1-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-16.1-09": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-16.1-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-16.1-11": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-16.1-12": {
+  "status": "à faire",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [],
+  "note": ""
+ },
+ "R-16.1-13": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/layout.tsx",
+   "apps/web/components/layout/app-shell.tsx",
+   "apps/web/components/states.tsx",
+   "apps/web/lib/api-client.ts",
+   "apps/web/app/(app)/vehicules/vehicles-list.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/connexion.spec.ts",
+   "tests/e2e/specs/vehicules.spec.ts"
+  ],
+  "note": "Pages véhicules livrées ; conducteurs, administration et tableau de bord en cours"
+ },
+ "R-16.1-14": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-16.2-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/attachments/owner-authorization.service.ts",
+   "apps/api/src/infra/storage.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/attachments.int.spec.ts"
+  ]
+ },
+ "R-16.2-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/attachments/owner-authorization.service.ts",
+   "apps/api/src/infra/storage.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/attachments.int.spec.ts"
+  ]
+ },
+ "R-16.2-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/attachments/owner-authorization.service.ts",
+   "apps/api/src/infra/storage.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/attachments.int.spec.ts"
+  ]
+ },
+ "R-16.2-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/attachments/owner-authorization.service.ts",
+   "apps/api/src/infra/storage.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/attachments.int.spec.ts"
+  ]
+ },
+ "R-16.2-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/attachments/owner-authorization.service.ts",
+   "apps/api/src/infra/storage.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/attachments.int.spec.ts"
+  ]
+ },
+ "R-16.2-07": {
+  "status": "à faire",
+  "files": [
+   "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/attachments/owner-authorization.service.ts",
+   "apps/api/src/infra/storage.service.ts"
+  ],
+  "tests": [],
+  "note": ""
+ },
+ "R-17.1-01": {
+  "status": "fait",
+  "files": [
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": []
+ },
+ "R-17.1-16": {
+  "status": "à faire",
+  "files": [
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [],
+  "note": ""
+ },
+ "R-17.1-17": {
+  "status": "à faire",
+  "files": [
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [],
+  "note": ""
+ },
+ "R-18-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-18-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/drivers/drivers.service.ts",
+   "apps/api/src/modules/drivers/drivers.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/scope.int.spec.ts"
+  ]
+ },
+ "R-18-28": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/attachments/owner-authorization.service.ts",
+   "apps/api/src/infra/storage.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/attachments.int.spec.ts"
+  ]
+ },
+ "R-18-32": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/api/src/modules/auth/auth.controller.ts",
+   "apps/api/src/modules/auth/session.service.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/modules/auth/auth.guard.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts",
+   "apps/api/test/integration/rate-limit.int.spec.ts"
+  ]
+ },
+ "R-18-33": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [],
+  "note": "Idempotence : service prêt, appliqué aux remises/retours au lot B"
+ },
+ "R-18-47": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/common/pagination.ts",
+   "apps/api/src/common/http-exception.filter.ts",
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/common/optimistic-lock.ts",
+   "apps/api/src/bootstrap.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts"
+  ]
+ },
+ "R-19.1-01": {
+  "status": "fait",
+  "files": [
+   "docs/TRACEABILITY.md"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "R-20-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/access-control/permissions.ts",
+   "apps/api/src/modules/auth/context-builder.service.ts"
+  ],
+  "tests": [],
+  "verification": "review"
+ },
+ "__tests__": {
+  "T01": {
+   "file": "apps/api/test/integration/scope.int.spec.ts",
+   "status": "réussi (2026-09-24, 27 tests d’intégration verts)"
+  },
+  "T02": {
+   "file": "apps/api/test/integration/scope.int.spec.ts",
+   "status": "réussi"
+  },
+  "T03": {
+   "file": "apps/api/test/integration/scope.int.spec.ts",
+   "status": "réussi"
+  },
+  "T28": {
+   "file": "apps/api/test/integration/attachments.int.spec.ts",
+   "status": "réussi"
+  },
+  "T32": {
+   "file": "apps/api/test/integration/auth.int.spec.ts",
+   "status": "réussi"
+  }
+ },
+ "R-16.1-X01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/users/users.service.ts",
+   "apps/api/src/modules/auth/auth.service.ts",
+   "apps/web/app/(app)/administration/utilisateurs/account-dialogs.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/auth.int.spec.ts"
+  ],
+  "verification": "integration",
+  "note": "Sans SMTP : aucune file d'envoi ; lien d'invitation (72 h) ou de réinitialisation (30 min) à usage unique généré par l'administrateur, affiché une fois (D-263)."
+ }
+}

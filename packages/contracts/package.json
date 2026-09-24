@@ -1,0 +1,32 @@
+{
+  "name": "@parc-auto/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Contrats partagés : énumérations, libellés français, types OpenAPI générés",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./openapi": {
+      "types": "./src/openapi.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint .",
+    "openapi:types": "openapi-typescript ../../docs/openapi.json -o src/openapi.d.ts",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@parc-auto/config": "workspace:*",
+    "@types/node": "24.13.6",
+    "eslint": "9.39.5",
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

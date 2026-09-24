@@ -1,0 +1,12 @@
+{
+  "extends": "@parc-auto/config/tsconfig.node.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist",
+    "declaration": false,
+    "incremental": true,
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts", "vitest.config.integration.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,44 @@
+{
+  "name": "@parc-auto/db",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Schéma Prisma, migrations SQL, client de base de données, seed de démonstration et CLI d'administration",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "create-admin": "tsx src/cli/create-admin.ts",
+    "generate": "prisma generate && tsc -p tsconfig.build.json",
+    "lint": "eslint .",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:diff": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script",
+    "migrate:status": "prisma migrate status",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "validate": "prisma validate"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "2.2.1",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "decimal.js": "10.6.0",
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "@parc-auto/config": "workspace:*",
+    "@types/node": "24.13.6",
+    "@types/pg": "8.23.1",
+    "eslint": "9.39.5",
+    "prisma": "7.10.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

@@ -25,6 +25,7 @@ import type { VehicleView } from '@/lib/vehicles-types';
 import { formatSlot, reservationStatusLabel, toneForReservation } from '../planning/planning-shared';
 import { MySubmissions } from './my-submissions';
 import { ReadingForm } from './reading-form';
+import { ReportIncident } from './report-incident';
 
 /**
  * Espace conducteur mobile (CDC 10.3, D-240, D-268) : utilisation en cours (GET /drivers/:id →
@@ -122,6 +123,7 @@ function DriverSpace({ driverId }: { driverId: string }) {
         )}
       </section>
 
+      <ReportIncident />
       <MySubmissions />
       <UpcomingReservations driverId={driverId} />
     </div>

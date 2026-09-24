@@ -18,15 +18,17 @@ import { isApiError } from '@/lib/api-error';
 import { formatDate, formatDateTime, formatKm } from '@/lib/format';
 import type { VehicleSynthesis } from '@/lib/vehicles-types';
 import { AssignmentsPanel } from './assignments-panel';
+import { VehicleDocumentsPanel } from './documents-panel';
 import { LifecycleDialog } from './lifecycle-dialog';
 import { LocationPanel } from './location-panel';
+import { MaintenancePanel } from './maintenance-panel';
 import { OdometerPanel } from './odometer-panel';
 import { PhotosPanel } from './photos-panel';
 import { QrPanel } from './qr-panel';
 import { ReservationsPanel } from './reservations-panel';
 
 /** Onglets atteignables par lien (?onglet=…, liens d'alerte) ; les onglets de gestion sont refusés au conducteur. */
-const STAFF_TABS = new Set(['synthese', 'localisation', 'kilometrage', 'photos', 'affectations', 'reservations']);
+const STAFF_TABS = new Set(['synthese', 'localisation', 'kilometrage', 'photos', 'affectations', 'reservations', 'entretien', 'documents']);
 const DRIVER_TABS = new Set(['synthese', 'localisation']);
 
 function initialTab(requested: string | null, driverOnly: boolean): string {
@@ -96,6 +98,8 @@ export function VehicleDetail({ id }: { id: string }) {
           {session.isDriverOnly ? null : <TabsTrigger value="photos">Photos et QR</TabsTrigger>}
           {session.isDriverOnly ? null : <TabsTrigger value="affectations">Affectations</TabsTrigger>}
           {session.isDriverOnly ? null : <TabsTrigger value="reservations">Réservations</TabsTrigger>}
+          {session.isDriverOnly ? null : <TabsTrigger value="entretien">Entretien</TabsTrigger>}
+          {session.isDriverOnly ? null : <TabsTrigger value="documents">Documents</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="synthese">
@@ -260,6 +264,18 @@ export function VehicleDetail({ id }: { id: string }) {
         {session.isDriverOnly ? null : (
           <TabsContent value="reservations">
             <ReservationsPanel vehicleId={id} />
+          </TabsContent>
+        )}
+
+        {session.isDriverOnly ? null : (
+          <TabsContent value="entretien">
+            <MaintenancePanel vehicleId={id} companyId={v.companyId} />
+          </TabsContent>
+        )}
+
+        {session.isDriverOnly ? null : (
+          <TabsContent value="documents">
+            <VehicleDocumentsPanel vehicleId={id} companyId={v.companyId} />
           </TabsContent>
         )}
       </Tabs>

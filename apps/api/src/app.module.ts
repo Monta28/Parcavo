@@ -12,12 +12,18 @@ import { AssignmentsModule } from './modules/assignments/assignments.module.js';
 import { AttachmentsModule } from './modules/attachments/attachments.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { CsrfGuard } from './modules/auth/csrf.guard.js';
+import { DocumentsModule } from './modules/documents/documents.module.js';
 import { DriversModule } from './modules/drivers/drivers.module.js';
 import { AlertsCoreModule } from './modules/alerts/alerts-core.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { ImmobilizationsModule } from './modules/immobilizations/immobilizations.module.js';
+import { IncidentsModule } from './modules/incidents/incidents.module.js';
+import { InterventionsModule } from './modules/interventions/interventions.module.js';
+import { MaintenanceModule } from './modules/maintenance/maintenance.module.js';
 import { OdometerModule } from './modules/odometer/odometer.module.js';
 import { ReservationsModule } from './modules/reservations/reservations.module.js';
 import { SettingsModule } from './modules/settings/settings.module.js';
+import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
 import { UsagesModule } from './modules/usages/usages.module.js';
 import { OrganizationsModule } from './modules/organizations/organizations.module.js';
 import { UsersModule } from './modules/users/users.module.js';
@@ -29,7 +35,7 @@ export interface AppModuleOptions {
 }
 
 /** Modules métier chargés dans l'API. Chaque lot ajoute ses modules ici. */
-export const FEATURE_MODULES = [HealthModule, SettingsModule, AlertsCoreModule, UsersModule, OrganizationsModule, AttachmentsModule, DriversModule, VehiclesModule, OdometerModule, UsagesModule, ReservationsModule, AssignmentsModule];
+export const FEATURE_MODULES = [HealthModule, SettingsModule, AlertsCoreModule, UsersModule, OrganizationsModule, AttachmentsModule, DriversModule, VehiclesModule, OdometerModule, UsagesModule, ReservationsModule, AssignmentsModule, MaintenanceModule, ImmobilizationsModule, SuppliersModule, InterventionsModule, DocumentsModule, IncidentsModule];
 
 @Module({})
 export class AppModule {

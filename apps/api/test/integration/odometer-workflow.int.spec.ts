@@ -186,6 +186,19 @@ describe('Kilométrage — initialisation, saisie rapide, décisions et périmè
     expect(current.reading).toMatchObject({ id: pending.id, physicalKm: '50000.000', cumulativeKm: '160000.000' });
   });
 
+  it('D-167 — un relevé d’exécution d’intervention du personnel initialise aussi le compteur (premier relevé accepté)', async () => {
+    const created = await chefA.post('/interventions', { vehicleId, kind: 'CORRECTIF', tasks: [{ label: 'Diagnostic bruit moteur' }] });
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    const done = await chefA
+      .post(`/interventions/${created.body.id}/complete`, { completedTaskIds: created.body.tasks.map((x: { id: string }) => x.id), expectedVersion: created.body.version, performedOn: '2026-09-24', newReading: { physicalKm: '61000', observedAt: '2026-09-24T09:00:00Z' } })
+      .set('Idempotency-Key', 'intervention-premier-releve-0001');
+    expect(done.status, JSON.stringify(done.body)).toBe(200);
+    const segments = (await chefA.get(`/vehicles/${vehicleId}/odometer-segments`)).body;
+    expect(segments).toHaveLength(1);
+    expect(segments[0]).toMatchObject({ sequence: 1, startPhysicalKm: '61000.000', startCumulativeKm: '61000.000', cumulativeKnown: true });
+    expect((await chefA.get(`/vehicles/${vehicleId}/odometer`)).body.reading).toMatchObject({ physicalKm: '61000.000', cumulativeKm: '61000.000', context: 'ENTRETIEN' });
+  });
+
   // ---------------------------------------------------------------------------
   // 2. Saisie rapide (D-265)
   // ---------------------------------------------------------------------------

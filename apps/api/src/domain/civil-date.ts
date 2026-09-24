@@ -50,6 +50,21 @@ export function compareCivil(a: CivilDate, b: CivilDate): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
+/** Bornes du mois civil contenant la date : premier et dernier jour (inclusifs), sans conversion de fuseau. */
+export function monthBounds(date: CivilDate): { from: CivilDate; to: CivilDate } {
+  const day = DateTime.fromISO(date, { zone: 'utc' });
+  return { from: day.startOf('month').toISODate() as string, to: day.endOf('month').toISODate() as string };
+}
+
+/**
+ * Date civile affichée au format français JJ/MM/AAAA : fonction unique des textes rédigés par l'API
+ * (détails de conformité, messages d'alerte). Aucune conversion de fuseau : la date est déjà civile.
+ */
+export function formatCivilDate(date: CivilDate): string {
+  const [year, month, day] = assertCivilDate(date).split('-');
+  return `${day}/${month}/${year}`;
+}
+
 /** Convertit une DATE PostgreSQL (Date à minuit UTC) en date civile. */
 export function fromDbDate(value: Date | null | undefined): CivilDate | null {
   return value ? value.toISOString().slice(0, 10) : null;

@@ -28,7 +28,9 @@ import { DRIVER_STATUS_LABELS, type DepartmentView, type DriverUsageView, type D
 import { formatDate, formatDateTime, fullName } from '@/lib/format';
 import type { SiteView } from '@/lib/vehicles-types';
 import { DeactivateDialog } from './deactivate-dialog';
+import { DriverActivityPanel } from './driver-activity-panel';
 import { DriverAssignmentsCard } from './driver-assignments-card';
+import { DriverDocumentsPanel } from './documents-panel';
 import { DriverUsagesPanel } from './driver-usages-panel';
 import { PermitPanel } from './permit-panel';
 
@@ -120,6 +122,8 @@ export function DriverDetail({ id }: { id: string }) {
         <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
           <TabsTrigger value="fiche">Fiche et permis</TabsTrigger>
           <TabsTrigger value="utilisations">Utilisations</TabsTrigger>
+          <TabsTrigger value="incidents-soumissions">Incidents et soumissions</TabsTrigger>
+          {session.isDriverOnly ? null : <TabsTrigger value="documents">Documents</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="fiche">
@@ -141,6 +145,16 @@ export function DriverDetail({ id }: { id: string }) {
         <TabsContent value="utilisations">
           <DriverUsagesPanel driverId={id} />
         </TabsContent>
+
+        <TabsContent value="incidents-soumissions">
+          <DriverActivityPanel driverId={id} hasAccount={Boolean(d.userId)} />
+        </TabsContent>
+
+        {session.isDriverOnly ? null : (
+          <TabsContent value="documents">
+            <DriverDocumentsPanel driverId={id} companyId={d.companyId} />
+          </TabsContent>
+        )}
       </Tabs>
 
       {isManager ? <DeactivateDialog key={deactivateKey} open={deactivateOpen} onOpenChange={setDeactivateOpen} driverName={name} pending={deactivate.isPending} error={deactivate.error} onSubmit={(input) => deactivate.mutate(input)} /> : null}

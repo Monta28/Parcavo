@@ -6,6 +6,11 @@ import { login, resetDatabase, startTestApp, type Agent, type TestApp } from '..
 
 const NOW = '2026-09-24T10:00:00.000Z';
 
+interface PlanningBody {
+  items: Array<{ kind: string; id: string; companyId: string; vehicleId: string; startAt: string; endAt: string | null; status: string; isLate: boolean; label: string }>;
+  warnings: Array<{ code: string; interventionId: string; reservationId: string; vehicleId: string; companyId: string; message: string }>;
+}
+
 describe('Réservations et planning (CDC 4.2, 4.5, 10.2 — D-137, D-140, D-141, D-205)', () => {
   let t: TestApp;
   let f: Fixture;
@@ -326,5 +331,48 @@ describe('Réservations et planning (CDC 4.2, 4.5, 10.2 — D-137, D-140, D-141,
     const r5 = await chefA.post('/reservations', body({ startAt: '2026-09-24T10:50:00Z', endAt: '2026-09-24T18:00:00Z' }));
     t.clock.set('2026-09-24T12:00:00Z');
     expectOneWinner(await Promise.all([chefA.post(`/reservations/${r5.body.id}/no-show`, { reason: 'absent A', expectedVersion: 1 }), operateurA.post(`/reservations/${r5.body.id}/no-show`, { reason: 'absent B', expectedVersion: 1 })]));
+  });
+
+  it('planning (10.2, D-205) : interventions planifiées et en cours du périmètre, société sur chaque élément, avertissement de chevauchement sans blocage', async () => {
+    const r = await chefA.post('/reservations', body());
+    const elsewhere = await chefA.post('/reservations', body({ vehicleId: vA2, driverId: f.drivers.a2, startAt: '2026-10-02T08:00:00Z', endAt: '2026-10-02T12:00:00Z' }));
+    const planned = await chefA.post('/interventions', { vehicleId: vA1, kind: 'PREVENTIF', plannedStartAt: '2026-10-01T11:00:00Z', plannedEndAt: '2026-10-01T17:00:00Z', tasks: [{ label: 'Vidange' }] });
+    expect(planned.status).toBe(201);
+    const running = await chefA.post('/interventions', { vehicleId: vA2, kind: 'CORRECTIF', plannedStartAt: '2026-09-24T09:00:00Z', plannedEndAt: '2026-09-25T09:00:00Z', tasks: [{ label: 'Freins' }] });
+    const started = await chefA.post(`/interventions/${running.body.id}/start`, { startedAt: '2026-09-24T09:30:00Z', expectedVersion: running.body.version });
+    expect(started.status).toBe(200);
+    const draft = await chefA.post('/interventions', { vehicleId: vA1, kind: 'CORRECTIF', tasks: [{ label: 'À planifier' }] });
+    expect(draft.status).toBe(201);
+    const inB = await chefB.post('/interventions', { vehicleId: vB1, kind: 'PREVENTIF', plannedStartAt: '2026-10-01T08:00:00Z', plannedEndAt: '2026-10-01T10:00:00Z', tasks: [{ label: 'Contrôle' }] });
+    expect(inB.status).toBe(201);
+
+    const window = '?from=2026-09-24T00:00:00Z&to=2026-10-08T00:00:00Z';
+    const res = await chefA.get(`/planning${window}`);
+    expect(res.status).toBe(200);
+    const plan = res.body as PlanningBody;
+    const interventions = plan.items.filter((i) => i.kind === 'INTERVENTION');
+    expect(interventions.map((i) => i.id).sort()).toEqual([planned.body.id, running.body.id].sort());
+    expect(interventions.find((i) => i.id === planned.body.id)).toMatchObject({ companyId: f.companies.A, vehicleId: vA1, startAt: '2026-10-01T11:00:00.000Z', endAt: '2026-10-01T17:00:00.000Z', status: 'PLANIFIEE', isLate: false });
+    expect(interventions.find((i) => i.id === running.body.id)).toMatchObject({ status: 'EN_COURS', startAt: '2026-09-24T09:30:00.000Z', endAt: '2026-09-25T09:00:00.000Z' });
+    expect(plan.items.every((i) => i.companyId === f.companies.A)).toBe(true);
+    expect(plan.items.filter((i) => i.kind === 'RESERVATION').map((i) => i.id).sort()).toEqual([r.body.id, elsewhere.body.id].sort());
+    expect(plan.warnings).toHaveLength(1);
+    expect(plan.warnings[0]).toMatchObject({ code: 'INTERVENTION_CHEVAUCHE_RESERVATION', interventionId: planned.body.id, reservationId: r.body.id, vehicleId: vA1, companyId: f.companies.A });
+    expect(plan.warnings[0]?.message).toContain('chevauche la réservation confirmée');
+    // Avertissement sans blocage : la réservation reste modifiable, et l'avertissement disparaît quand les créneaux se séparent.
+    const shortened = await chefA.patch(`/reservations/${r.body.id}`, { endAt: '2026-10-01T11:00:00Z', reason: 'libérer le véhicule pour l’entretien', expectedVersion: 1 });
+    expect(shortened.status).toBe(200);
+    expect(((await chefA.get(`/planning${window}`)).body as PlanningBody).warnings).toHaveLength(0);
+    // L'administrateur voit aussi la société B, chaque élément portant sa société.
+    const all = (await admin.get(`/planning${window}`)).body as PlanningBody;
+    expect(all.items.find((i) => i.id === inB.body.id)?.companyId).toBe(f.companies.B);
+    // Le chef B ne voit que sa société.
+    const onlyB = (await chefB.get(`/planning${window}`)).body as PlanningBody;
+    expect(onlyB.items.map((i) => i.id)).toEqual([inB.body.id]);
+    // Fin prévue dépassée d'une intervention en cours : signalée, et toujours affichée.
+    t.clock.set('2026-09-26T10:00:00Z');
+    chefA = await login(t.server, f.emails.chefA, DEFAULT_PASSWORD);
+    const late = (await chefA.get('/planning?from=2026-09-26T00:00:00Z&to=2026-09-27T00:00:00Z')).body as PlanningBody;
+    expect(late.items.find((i) => i.id === running.body.id)).toMatchObject({ kind: 'INTERVENTION', isLate: true });
   });
 });

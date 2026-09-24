@@ -310,6 +310,7 @@ export const SETTING_DEFAULTS = {
   'usage.checklistItems': ['Clés', 'Carte grise', 'Attestation d’assurance', 'Gilet de sécurité', 'Triangle', 'Roue de secours', 'Cric'],
   'telemetry.calibrationMaxGapMinutes': 60,
   'expenses.vehiclePurchaseExcludedByDefault': true,
+  'incidents.driverLateDeclarationHours': 24,
   'reservations.noShowGraceMinutes': 60,
   'reservations.conversionEarlyMinutes': 120,
   /** D-268 : ouvre les soumissions du conducteur sur le véhicule dont il est responsable habituel en cours. */
@@ -368,6 +369,7 @@ export const SETTING_DESCRIPTORS: Record<SettingKey, SettingDescriptor> = {
   'session.ttlHours': { label: 'Durée de session (appliquée aux nouvelles connexions)', kind: 'integer', min: 1, max: 72, unit: 'heures', companyOverride: false },
   'usage.checklistItems': { label: 'Checklist de remise et de restitution', kind: 'string-list', companyOverride: true },
   'expenses.vehiclePurchaseExcludedByDefault': { label: 'Achats de véhicules exclus du coût d’exploitation', kind: 'boolean', companyOverride: false },
+  'incidents.driverLateDeclarationHours': { label: 'Déclaration d’incident par le conducteur après restitution', kind: 'integer', min: 0, max: 168, unit: 'heures', companyOverride: true },
   'reservations.noShowGraceMinutes': { label: 'Délai avant constat manuel de non-présentation (après le début prévu)', kind: 'integer', min: 0, max: 1440, unit: 'minutes', companyOverride: true },
   'reservations.conversionEarlyMinutes': { label: 'Avance maximale d’une remise convertissant une réservation (avant le début prévu)', kind: 'integer', min: 0, max: 1440, unit: 'minutes', companyOverride: true },
   'drivers.allowHabitualVehicleSubmissions': { label: 'Soumissions du conducteur sur le véhicule dont il est responsable habituel (sans utilisation en cours)', kind: 'boolean', companyOverride: false },

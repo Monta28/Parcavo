@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { Prisma } from '@parc-auto/db';
 import { PrismaService, type Tx } from '../infra/prisma.service.js';
 import { Clock } from './clock.js';
-import { ConflictError, ErrorCodes } from './errors.js';
+import { BusinessRuleError, ConflictError, ErrorCodes } from './errors.js';
 
 export interface IdempotencyScope {
   organizationId: string;
@@ -34,6 +34,18 @@ export class IdempotencyService {
 
   hashBody(body: unknown): string {
     return createHash('sha256').update(stableStringify(body)).digest('hex');
+  }
+
+  /**
+   * Idempotence facultative (D-308) : sans clé, l'opération s'exécute normalement ; avec une clé (8 à 128
+   * caractères), elle est protégée comme par run() et la réponse initiale est rejouée.
+   */
+  async runOptional<T>(scope: Omit<IdempotencyScope, 'key'>, key: string | undefined, body: unknown, work: () => Promise<{ status: number; body: T; resourceId?: string }>): Promise<T> {
+    if (key === undefined) return (await work()).body;
+    if (key.length < 8 || key.length > 128) {
+      throw new BusinessRuleError('IDEMPOTENCE_CLE_INVALIDE', 'La clé d’idempotence doit compter de 8 à 128 caractères.', { fieldErrors: { idempotencyKey: ['Clé de 8 à 128 caractères.'] } });
+    }
+    return (await this.run({ ...scope, key }, body, work)).body;
   }
 
   /**

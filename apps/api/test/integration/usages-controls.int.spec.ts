@@ -171,6 +171,68 @@ describe('Remise, réservation et cycle de vie — contrôles serveur (CDC 2.4, 
     expect((await chefA.post('/reservations', { vehicleId, driverId: f.drivers.a2, startAt: '2026-10-01T08:00:00Z', endAt: '2026-10-01T12:00:00Z', purpose: 'Mission' })).status).toBe(201);
   });
 
+  it('R-3.2-06 — archivage et cession refusés tant qu’une réservation future, une immobilisation active ou une intervention ouverte existe ; cession possible ensuite', async () => {
+    const withReservation = vehicleId;
+    expect((await chefA.post('/reservations', { vehicleId: withReservation, driverId: f.drivers.a1, startAt: '2026-10-01T08:00:00Z', endAt: '2026-10-01T12:00:00Z', purpose: 'Mission' })).status).toBe(201);
+    const withImmobilization = await createVehicle(t.prisma, f, 'A', { code: 'VA-2' });
+    expect((await chefA.post('/immobilizations', { vehicleId: withImmobilization, reason: 'Accident en attente d’expertise' })).status).toBe(201);
+    const withIntervention = await createVehicle(t.prisma, f, 'A', { code: 'VA-3' });
+    const intervention = await chefA.post('/interventions', { vehicleId: withIntervention, kind: 'CORRECTIF', tasks: [{ label: 'Remplacement des plaquettes' }] });
+    expect(intervention.status, JSON.stringify(intervention.body)).toBe(201);
+    const expected: Record<string, Record<string, number>> = {
+      [withReservation]: { reservations: 1 },
+      [withImmobilization]: { immobilizations: 1 },
+      [withIntervention]: { interventions: 1 },
+    };
+    for (const [id, blocker] of Object.entries(expected)) {
+      for (const target of ['CEDE', 'ARCHIVE']) {
+        const res = await setLifecycle(id, target, 'Sortie du parc demandée');
+        expect(res.status, `${target} ${JSON.stringify(res.body)}`).toBe(422);
+        expect(res.body.code).toBe('OPERATIONS_OUVERTES');
+        expect(res.body.details).toMatchObject(blocker);
+      }
+      expect((await t.prisma.client.vehicle.findUniqueOrThrow({ where: { id } })).lifecycleStatus).toBe('ACTIF');
+    }
+    // Opération résolue (réservation annulée) : la cession aboutit et est journalisée.
+    const reservation = await t.prisma.client.reservation.findFirstOrThrow({ where: { vehicleId: withReservation } });
+    expect((await chefA.post(`/reservations/${reservation.id}/cancel`, { reason: 'Véhicule vendu', expectedVersion: reservation.version })).status).toBe(200);
+    const sold = await setLifecycle(withReservation, 'CEDE', 'Vente à un particulier');
+    expect(sold.status, JSON.stringify(sold.body)).toBe(200);
+    expect(sold.body.lifecycleStatus).toBe('CEDE');
+    expect(await t.prisma.client.auditEvent.count({ where: { action: 'vehicule.cycle_de_vie', objectId: withReservation } })).toBe(1);
+  });
+
+  it('R-3.3-05 — fiche conducteur : ses incidents et ses soumissions de relevés, dans le périmètre (404 hors périmètre)', async () => {
+    // Le conducteur A1 (compte lié) soumet un relevé sur le véhicule de son utilisation en cours.
+    const out = await chefA.post('/usages/checkout', checkoutBody(f.drivers.a1)).set('Idempotency-Key', key());
+    expect(out.status).toBe(201);
+    const conducteur = await login(t.server, f.emails.conducteurA, DEFAULT_PASSWORD);
+    const submitted = await conducteur.post(`/vehicles/${vehicleId}/readings`, { physicalKm: '10150', observedAt: '2026-09-24T09:30:00Z' });
+    expect(submitted.status, JSON.stringify(submitted.body)).toBe(201);
+    expect(submitted.body.outcome).toBe('EN_ATTENTE');
+    const incident = await conducteur.post('/incidents', { type: 'PANNE', description: 'Voyant moteur allumé', locationLabel: 'Autoroute A1' });
+    expect(incident.status, JSON.stringify(incident.body)).toBe(201);
+    // Relevé du personnel sur le même véhicule : ce n'est pas une soumission du conducteur.
+    await operateurA.post(`/vehicles/${vehicleId}/readings`, { physicalKm: '10160', observedAt: '2026-09-24T09:40:00Z' });
+
+    const readings = await chefA.get(`/readings?driverId=${f.drivers.a1}`);
+    expect(readings.status).toBe(200);
+    expect(readings.body.items.map((r: { id: string }) => r.id)).toEqual([submitted.body.reading.id]);
+    expect(readings.body.items[0]).toMatchObject({ status: 'EN_ATTENTE', authorName: 'Karim Conducteur-A' });
+    const incidents = await chefA.get(`/incidents?driverId=${f.drivers.a1}`);
+    expect(incidents.status).toBe(200);
+    expect(incidents.body.items.map((i: { id: string }) => i.id)).toEqual([incident.body.id]);
+    // Conducteur sans compte : aucune soumission possible, liste vide.
+    expect((await chefA.get(`/readings?driverId=${f.drivers.a2}`)).body.total).toBe(0);
+    // Conducteur d'une autre société : 404 pour le chef A ; le chef B ne voit pas les relevés de la société A.
+    expect((await chefA.get(`/readings?driverId=${f.drivers.b1}`)).status).toBe(404);
+    const chefB = await login(t.server, f.emails.chefB, DEFAULT_PASSWORD);
+    expect((await chefB.get(`/readings?driverId=${f.drivers.a1}`)).status).toBe(404);
+    // Un compte conducteur ne consulte que ses propres soumissions.
+    expect((await conducteur.get(`/readings?driverId=${f.drivers.a1}`)).body.total).toBe(1);
+    expect((await conducteur.get(`/readings?driverId=${f.drivers.a2}`)).status).toBe(404);
+  });
+
   it('R-13.3-03 / R-18-05 — remise saisie après coup : refusée (409) si elle précède la dernière restitution du véhicule ou du conducteur, acceptée à l’instant même de la restitution', async () => {
     const out = await chefA.post('/usages/checkout', checkoutBody(f.drivers.a1, { checkedOutAt: '2026-09-24T07:00:00Z' })).set('Idempotency-Key', key());
     expect(out.status, JSON.stringify(out.body)).toBe(201);

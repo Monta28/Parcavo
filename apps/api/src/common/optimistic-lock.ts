@@ -8,7 +8,7 @@ export function assertExpectedVersion(current: { version: number }, expectedVers
   if (current.version !== expectedVersion) {
     throw new ConflictError(
       ErrorCodes.VERSION_OBSOLETE,
-      `L'${objectLabel} a été modifié entre-temps (version ${current.version}, attendue ${expectedVersion}). Rechargez puis réessayez.`,
+      `Modification concurrente (${objectLabel}) : version ${current.version} enregistrée, version ${expectedVersion} attendue. Rechargez puis réessayez.`,
       { currentVersion: current.version, expectedVersion },
     );
   }

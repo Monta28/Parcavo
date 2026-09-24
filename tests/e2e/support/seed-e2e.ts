@@ -9,6 +9,8 @@ export const E2E = {
   conducteur: 'conducteur.e2e@parc-auto.test',
   /** Conducteur dédié aux parcours relevés (lot B), avec une utilisation en cours sur E2E-KM1 (relevé de remise 20 000 km). */
   conducteurReleves: 'conducteur.releves.e2e@parc-auto.test',
+  /** Conductrice dédiée aux signalements (lot C), avec une utilisation en cours sur E2E-INC1 (relevé de remise 30 000 km). */
+  conducteurIncidents: 'conducteur.incidents.e2e@parc-auto.test',
   companyA: 'E2E-A',
   companyB: 'E2E-B',
 };
@@ -128,6 +130,60 @@ export async function seedE2E(databaseUrl: string): Promise<void> {
         expectedReturnAt: new Date(lotBAt + 2 * 24 * 3600_000),
         checkoutWithoutReading: true,
         checkoutExceptionReason: 'Données de démonstration du parcours responsable habituel',
+        checkedOutById: chefUser.id,
+        createdById: chefUser.id,
+      },
+    });
+    // Lot C (specs/entretien.spec.ts, specs/documents-incidents.spec.ts) : données dédiées de la société A.
+    // Catalogue et modèle de plan paramétrés par l'administrateur (aucun plan copié : le parcours applique le
+    // modèle) et garage de la société A. E2E-ENT1 relevé à 89 500 km il y a 2 jours (segment 1 d'initialisation
+    // ordinaire, état produit par l'API). E2E-DOC1 est le seul véhicule de la catégorie « Fourgon », à laquelle
+    // est restreinte l'attestation d'assurance requise et bloquante : la conformité des autres véhicules et leurs
+    // départs ne changent pas. E2E-INC1 remis il y a 3 h (relevé de remise 30 000 km) à la conductrice des
+    // signalements.
+    const lotCAt = Date.now();
+    const adminUser = await prisma.user.findFirstOrThrow({ where: { organizationId: org.id, email: E2E.admin } });
+    const oilChange = await prisma.maintenanceType.create({ data: { organizationId: org.id, code: 'E2E-VIDANGE', label: 'Vidange moteur', createdById: adminUser.id } });
+    const battery = await prisma.maintenanceType.create({ data: { organizationId: org.id, code: 'E2E-BATTERIE', label: 'Remplacement batterie', createdById: adminUser.id } });
+    const maintenanceTemplate = await prisma.maintenancePlanTemplate.create({ data: { organizationId: org.id, name: 'Entretien courant E2E', description: 'Vidange et batterie des véhicules légers', createdById: adminUser.id } });
+    await prisma.maintenancePlanTemplateItem.createMany({
+      data: [
+        { organizationId: org.id, templateId: maintenanceTemplate.id, maintenanceTypeId: oilChange.id, intervalKm: '10000', intervalMonths: 12 },
+        { organizationId: org.id, templateId: maintenanceTemplate.id, maintenanceTypeId: battery.id, intervalMonths: 48 },
+      ],
+    });
+    await prisma.supplier.create({ data: { organizationId: org.id, companyId: a.id, name: 'Lafayette Auto Services E2E', category: 'GARAGE', phone: '+216 71 000 111', createdById: adminUser.id } });
+    const mkFirstAcceptedReading = async (vehicleId: string, physicalKm: string, observedAt: Date, context: 'RELEVE_LIBRE' | 'REMISE') => {
+      const segment = await prisma.odometerSegment.create({
+        data: { organizationId: org.id, vehicleId, sequence: 1, startedAt: observedAt, startPhysicalKm: physicalKm, startCumulativeKm: physicalKm, cumulativeKnown: true, replacementReason: 'Initialisation ordinaire au premier relevé (cumul égal au compteur physique).', lastPhysicalKm: physicalKm, createdById: chefUser.id },
+      });
+      return prisma.odometerReading.create({
+        data: { organizationId: org.id, companyId: a.id, vehicleId, segmentId: segment.id, source: 'MANUAL', context, measurementKind: 'COMPTEUR_AFFICHE', status: 'ACCEPTE', physicalKm, cumulativeKm: physicalKm, observedAt, enteredAt: observedAt, decidedAt: observedAt, decidedById: chefUser.id, createdById: chefUser.id },
+      });
+    };
+    const maintenanceVehicle = await mkVehicle(a.id, 'E2E-ENT1', '601 TU 2026');
+    await mkFirstAcceptedReading(maintenanceVehicle.id, '89500', new Date(lotCAt - 2 * 24 * 3600_000), 'RELEVE_LIBRE');
+    const vanCategory = await prisma.vehicleCategory.create({ data: { organizationId: org.id, code: 'FG', label: 'Fourgon', requiredPermitCategories: ['B'] } });
+    await prisma.vehicle.create({ data: { organizationId: org.id, companyId: a.id, code: 'E2E-DOC1', registration: '602 TU 2026', registrationNormalized: '602TU2026', make: 'Renault', model: 'Trafic', categoryId: vanCategory.id, qrToken: 'qr-E2E-DOC1' } });
+    await prisma.documentType.create({
+      data: { organizationId: org.id, code: 'E2E-ASSURANCE', label: 'Attestation d’assurance', ownerType: 'VEHICULE', hasExpiry: true, required: true, blocksCheckout: true, noticeDays: [30, 15, 7], vehicleCategoryIds: [vanCategory.id], createdById: adminUser.id },
+    });
+    const incidentVehicle = await mkVehicle(a.id, 'E2E-INC1', '603 TU 2026');
+    const incidentUser = await prisma.user.create({ data: { organizationId: org.id, email: E2E.conducteurIncidents, firstName: 'Nadia', lastName: 'Signalement', passwordHash, memberships: { create: [{ companyId: a.id, role: 'CONDUCTEUR' }] } } });
+    const incidentDriver = await mkDriverWithPermit('D-E2E-INC', 'Nadia', 'Signalement', incidentUser.id);
+    const incidentCheckoutAt = new Date(lotCAt - 3 * 3600_000);
+    const incidentCheckoutReading = await mkFirstAcceptedReading(incidentVehicle.id, '30000', incidentCheckoutAt, 'REMISE');
+    await prisma.vehicleUsage.create({
+      data: {
+        organizationId: org.id,
+        companyId: a.id,
+        vehicleId: incidentVehicle.id,
+        driverId: incidentDriver.id,
+        purpose: 'Tournée des agences de l’Ariana',
+        checkedOutAt: incidentCheckoutAt,
+        expectedReturnAt: new Date(lotCAt + 2 * 24 * 3600_000),
+        checkoutReadingId: incidentCheckoutReading.id,
+        distanceStatus: 'NON_VALIDEE',
         checkedOutById: chefUser.id,
         createdById: chefUser.id,
       },

@@ -14,7 +14,7 @@ import { formatDateTime, formatKm } from '@/lib/format';
 import type { ReservationView } from '@/lib/reservations-types';
 import type { UsageChecklistEntry, UsageDetailView, UsageReadingRef } from '@/lib/usages-types';
 import { parseChecklist } from '../../usage-helpers';
-import { UsageSheetHandSignatures } from './usage-sheet-extras';
+import { UsageSheetAnomalies, UsageSheetHandSignatures } from './usage-sheet-extras';
 
 /** Fiche de remise et de restitution imprimable (CDC 4.4) : noms, dates, relevés, accessoires et réserves. */
 export function UsageSheet({ id }: { id: string }) {
@@ -166,6 +166,8 @@ export function UsageSheet({ id }: { id: string }) {
             </table>
           )}
         </section>
+
+        <UsageSheetAnomalies usageId={u.id} timezone={tz} />
 
         <section aria-labelledby="sheet-confirm" className="space-y-3 border-t pt-4">
           <h2 id="sheet-confirm" className="text-base font-semibold">

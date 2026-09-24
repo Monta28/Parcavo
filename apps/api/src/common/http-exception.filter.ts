@@ -1,6 +1,7 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { AppError, type ErrorBody } from './errors.js';
+import { Prisma } from '@parc-auto/db';
+import { AppError, ErrorCodes, type ErrorBody } from './errors.js';
 
 interface RequestWithId extends Request {
   requestId?: string;
@@ -31,6 +32,10 @@ export class GlobalHttpExceptionFilter implements ExceptionFilter {
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       body = mapNestException(exception, status);
+    } else if (isVersionedUpdateMiss(exception)) {
+      // Mise à jour conditionnelle where { id, version } sans ligne : modification concurrente (15.3).
+      status = HttpStatus.CONFLICT;
+      body = { code: ErrorCodes.VERSION_OBSOLETE, message: 'L’objet a été modifié ou supprimé entre-temps. Rechargez puis réessayez.' };
     } else {
       this.logger.error(`requestId=${requestId} ${describe(exception)}`, exception instanceof Error ? exception.stack : undefined);
     }
@@ -65,4 +70,9 @@ function mapNestException(exception: HttpException, status: number): ErrorBody {
   }
   void status;
   return base;
+}
+
+/** Prisma P2025 : enregistrement à mettre à jour introuvable (clause de version non satisfaite). */
+function isVersionedUpdateMiss(exception: unknown): boolean {
+  return exception instanceof Prisma.PrismaClientKnownRequestError && exception.code === 'P2025';
 }

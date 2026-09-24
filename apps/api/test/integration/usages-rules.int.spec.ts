@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { UsagesService } from '../../src/modules/usages/usages.service.js';
 import { DEFAULT_PASSWORD, createVehicle, seedFixture, type Fixture } from '../support/factories.js';
-import { login, resetDatabase, startTestApp, type Agent, type TestApp } from '../support/test-app.js';
+import { login, resetDatabase, startTestApp, uploadPdf, type Agent, type TestApp } from '../support/test-app.js';
 
 const NOW = '2026-09-24T10:00:00.000Z';
 
@@ -139,6 +139,76 @@ describe('Utilisations — lieu, dommage, retard, prolongation, conversion (CDC 
   // ---------------------------------------------------------------------------
   // 2. Dommage constaté au retour (4.4)
   // ---------------------------------------------------------------------------
+
+  it('4.4 — dommage au retour : DTO validé, incident ouvert renvoyé (id, référence), GET /incidents?usageId= recoupé avec le périmètre', async () => {
+    const out = await checkout(chefA, checkoutBody(vehicleId, f.drivers.a1));
+    const other = await checkout(chefA, checkoutBody(vehicle2, f.drivers.a2));
+    expect([out.status, other.status]).toEqual([201, 201]);
+    const otherIncident = await chefA.post('/incidents', { vehicleId: vehicle2, type: 'DOMMAGE', description: 'Rétroviseur gauche cassé', usageId: other.body.id });
+    expect(otherIncident.status).toBe(201);
+
+    const back = { returnedAt: '2026-09-24T09:40:00Z', reading: { physicalKm: '10150' }, location: { placeLabel: 'Parking siège' }, expectedVersion: out.body.version };
+    const invalid: Array<[Record<string, unknown>, string]> = [
+      [{ description: '   ' }, 'damageIncident.description'],
+      [{ severity: 'MOYENNE' }, 'damageIncident.description'],
+      [{ description: 'Rayure', severity: 'GRAVE' }, 'damageIncident.severity'],
+      [{ description: 'Rayure', inconnu: true }, 'damageIncident.inconnu'],
+      [{ description: 'Rayure', photoAttachmentIds: ['pas-un-uuid'] }, 'damageIncident.photoAttachmentIds'],
+    ];
+    for (const [damageIncident, field] of invalid) {
+      const res = await giveBack(chefA, out.body.id, { ...back, damageIncident });
+      expect(res.status, JSON.stringify(damageIncident)).toBe(422);
+      expect(res.body.fieldErrors[field], JSON.stringify(res.body)).toBeDefined();
+    }
+    expect((await chefA.get(`/usages/${out.body.id}`)).body.status).toBe('EN_COURS');
+    expect(await t.prisma.client.incident.count()).toBe(1);
+
+    const photo = await uploadPdf(chefA, t.server, f.companies.A, 'dommage.pdf');
+    const res = await giveBack(chefA, out.body.id, { ...back, damageIncident: { description: '  Rayure profonde sur la portière avant droite  ', severity: 'CRITIQUE', photoAttachmentIds: [photo] } });
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('TERMINEE');
+    expect(res.body.damageIncident).toEqual({ id: expect.any(String), reference: expect.stringMatching(/^INC-2026-\d+$/) });
+    const incidentId = res.body.damageIncident.id as string;
+
+    const detail = await chefA.get(`/usages/${out.body.id}`);
+    expect(detail.body.damageIncident).toEqual(res.body.damageIncident);
+    expect((await chefA.get(`/usages/${other.body.id}`)).body.damageIncident).toBeNull();
+
+    const incident = await chefA.get(`/incidents/${incidentId}`);
+    expect(incident.status).toBe(200);
+    expect(incident.body).toMatchObject({
+      reference: res.body.damageIncident.reference,
+      type: 'DOMMAGE',
+      status: 'OUVERT',
+      severity: 'CRITIQUE',
+      usageId: out.body.id,
+      driverId: f.drivers.a1,
+      description: 'Rayure profonde sur la portière avant droite',
+      locationLabel: 'Parking siège',
+      occurredAt: '2026-09-24T09:40:00.000Z',
+      photoAttachmentIds: [photo],
+    });
+    const critical = await t.prisma.client.alert.findFirst({ where: { type: 'INCIDENT_CRITIQUE', objectId: incidentId } });
+    expect(critical?.status).toBe('ACTIVE');
+    expect(await t.prisma.client.auditEvent.count({ where: { action: 'incident.declaration', objectId: incidentId } })).toBe(1);
+
+    const byUsage = await chefA.get(`/incidents?usageId=${out.body.id}`);
+    expect(byUsage.status).toBe(200);
+    expect(byUsage.body.items.map((i: { id: string }) => i.id)).toEqual([incidentId]);
+    expect((await chefA.get(`/incidents?usageId=${other.body.id}`)).body.items.map((i: { id: string }) => i.id)).toEqual([otherIncident.body.id]);
+    // Recoupement avec le périmètre : le conducteur voit l'incident de son utilisation, pas celui d'autrui ; le chef B ne voit rien.
+    expect((await conducteurA.get(`/incidents?usageId=${out.body.id}`)).body.total).toBe(1);
+    expect((await conducteurA.get(`/incidents?usageId=${other.body.id}`)).body.total).toBe(0);
+    expect((await chefB.get(`/incidents?usageId=${out.body.id}`)).body.total).toBe(0);
+    expect((await chefA.get('/incidents?usageId=pas-un-uuid')).status).toBe(422);
+
+    // Requalification du dossier (DOMMAGE → ACCIDENT) : l'incident ouvert au retour reste celui de la fiche d'utilisation.
+    const reclassified = await chefA.patch(`/incidents/${incidentId}`, { type: 'ACCIDENT', expectedVersion: incident.body.version });
+    expect(reclassified.status).toBe(200);
+    expect(reclassified.body.type).toBe('ACCIDENT');
+    expect((await chefA.get(`/usages/${out.body.id}`)).body.damageIncident).toEqual(res.body.damageIncident);
+    expect((await chefA.get(`/usages?vehicleId=${vehicleId}`)).body.items[0].damageIncident).toEqual(res.body.damageIncident);
+  });
 
   // ---------------------------------------------------------------------------
   // 3. Retard : règle unique (tolérance)

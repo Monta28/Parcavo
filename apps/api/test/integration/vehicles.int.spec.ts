@@ -115,6 +115,18 @@ describe('Dossiers véhicules (CDC 3.1, 3.2, 3.4)', () => {
     expect(audit[1]?.reason).toBe('fin de vie');
   });
 
+  it('D-129 — un incident ouvert bloque l’archivage mais pas la cession', async () => {
+    const created = await chefA.post('/vehicles', base());
+    const incident = await chefA.post('/incidents', { vehicleId: created.body.id, type: 'PANNE', description: 'Voyant moteur allumé', occurredAt: '2026-09-24T08:00:00Z' });
+    expect(incident.status).toBe(201);
+    const archive = await chefA.post(`/vehicles/${created.body.id}/lifecycle`, { lifecycleStatus: 'ARCHIVE', reason: 'fin', expectedVersion: created.body.version });
+    expect(archive.status).toBe(422);
+    expect(archive.body.code).toBe('OPERATIONS_OUVERTES');
+    expect(archive.body.details).toMatchObject({ incidents: 1, usages: 0 });
+    const cede = await chefA.post(`/vehicles/${created.body.id}/lifecycle`, { lifecycleStatus: 'CEDE', reason: 'vendu', expectedVersion: created.body.version });
+    expect(cede.status).toBe(200);
+  });
+
   it('D-129 — archivage et remise simultanés : jamais d’utilisation EN_COURS sur un véhicule archivé', async () => {
     await t.prisma.client.driverPermit.create({ data: { organizationId: f.organizationId, driverId: f.drivers.a1, number: 'P-A1', categories: ['B'], expiresOn: new Date('2030-01-01T00:00:00Z') } });
     for (let i = 0; i < 4; i += 1) {

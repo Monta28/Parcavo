@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Calendar, Car, ClipboardList, Gauge, LayoutDashboard, Settings, Smartphone, Users, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, Calendar, Car, CircleSlash, ClipboardList, FileText, Gauge, Hammer, LayoutDashboard, Settings, Smartphone, Truck, Users, Wrench, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCan, useSession } from './session-context';
 
@@ -23,6 +23,12 @@ const STAFF_ITEMS: NavItem[] = [
   { href: '/planning', label: 'Planning', icon: Calendar, audience: 'staff' },
   { href: '/utilisations', label: 'Utilisations', icon: ClipboardList, audience: 'staff' },
   { href: '/kilometrage', label: 'Kilométrage', icon: Gauge, audience: 'staff' },
+  { href: '/entretiens', label: 'Entretiens', icon: Wrench, audience: 'staff' },
+  { href: '/interventions', label: 'Interventions', icon: Hammer, audience: 'staff' },
+  { href: '/documents', label: 'Documents', icon: FileText, audience: 'staff' },
+  { href: '/incidents', label: 'Incidents', icon: AlertTriangle, audience: 'staff' },
+  { href: '/immobilisations', label: 'Immobilisations', icon: CircleSlash, audience: 'staff' },
+  { href: '/fournisseurs', label: 'Fournisseurs', icon: Truck, audience: 'staff' },
   { href: '/administration', label: 'Administration', icon: Settings, audience: 'admin' },
 ];
 

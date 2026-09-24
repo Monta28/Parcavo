@@ -7,6 +7,7 @@ import { assertExpectedVersion } from '../../common/optimistic-lock.js';
 import { type Page, pageOf, resolveSort, skipTake } from '../../common/pagination.js';
 import type { RequestContext } from '../../common/request-context.js';
 import { fromDbDate, localDate, toDbDate } from '../../domain/civil-date.js';
+import { isDocumentTypeApplicable } from '../../domain/document-applicability.js';
 import { computeDocumentStatus } from '../../domain/document-status.js';
 import { computeFreshness } from '../../domain/freshness.js';
 import { normalizeRegistration, normalizeVin } from '../../domain/registration.js';
@@ -113,7 +114,7 @@ export class VehiclesService {
       this.prisma.client.odometerSegment.findFirst({ where: { vehicleId: id, endedAt: null } }),
       this.prisma.client.vehicleMaintenancePlan.findMany({ where: { vehicleId: id, active: true }, include: { maintenanceType: { select: { label: true } } } }),
       this.prisma.client.documentVersion.findMany({ where: { vehicleId: id, archivedAt: null }, select: { id: true, documentTypeId: true, validTo: true, validFrom: true } }),
-      this.prisma.client.documentType.findMany({ where: { organizationId: ctx.organizationId, ownerType: 'VEHICULE', status: 'ACTIF' }, select: { id: true, required: true, blocksCheckout: true, hasExpiry: true, noticeDays: true } }),
+      this.prisma.client.documentType.findMany({ where: { organizationId: ctx.organizationId, ownerType: 'VEHICULE', status: 'ACTIF' }, select: { id: true, ownerType: true, required: true, blocksCheckout: true, hasExpiry: true, noticeDays: true, vehicleCategoryIds: true, companyIds: true } }),
       this.prisma.client.incident.count({ where: { vehicleId: id, status: { in: ['OUVERT', 'EN_TRAITEMENT'] } } }),
       this.prisma.client.odometerReading.count({ where: { vehicleId: id, status: 'EN_ATTENTE' } }),
       this.prisma.client.attachment.findMany({ where: { ownerType: 'VEHICULE', ownerId: id, deletedAt: null }, select: { id: true } }),
@@ -127,6 +128,7 @@ export class VehiclesService {
     const today = localDate(now, org.timezone);
     const compliance = { blocking: 0, missing: 0, expired: 0, expiringSoon: 0 };
     for (const type of docTypes) {
+      if (!isDocumentTypeApplicable(type, { ownerType: 'VEHICULE', companyId: v.companyId, categoryId: v.categoryId })) continue;
       const versions = docsVersions.filter((d) => d.documentTypeId === type.id).map((d) => ({ id: d.id, validFrom: fromDbDate(d.validFrom), validTo: fromDbDate(d.validTo) }));
       const result = computeDocumentStatus(type, versions, today);
       if (result.status === 'MANQUANT') compliance.missing += 1;

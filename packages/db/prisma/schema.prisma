@@ -289,6 +289,19 @@ enum InterventionStatus {
   ANNULEE
 }
 
+/// État du coût d'une intervention (D-206) : à saisir, saisi (dépense unique créée) ou sans coût.
+enum InterventionCostStatus {
+  A_SAISIR
+  SAISI
+  SANS_COUT
+}
+
+/// Visibilité d'un commentaire d'incident (D-216).
+enum CommentVisibility {
+  INTERNE
+  PARTAGE_CONDUCTEUR
+}
+
 enum InterventionLineKind {
   PIECE
   MAIN_OEUVRE
@@ -1265,6 +1278,7 @@ model Intervention {
   diagnosis          String?
   workDescription    String?
   totalAmount        Decimal?               @db.Decimal(18, 3)
+  costStatus         InterventionCostStatus @default(A_SAISIR)
   incidentId         String?                @db.Uuid
   /// Opération historique saisie a posteriori (import/rattrapage) : ne simule pas de prestation facturée.
   isHistorical       Boolean                @default(false)
@@ -1360,6 +1374,11 @@ model DocumentType {
   required           Boolean           @default(false)
   /// Préavis en jours (défaut 30, 15, 7).
   noticeDays         Int[]             @default([30, 15, 7])
+  /// Consultable par le conducteur pour le véhicule de son utilisation en cours (D-209).
+  visibleToDriver    Boolean           @default(false)
+  /// Portée facultative de l'exigence (D-210) : vide = toutes les catégories / sociétés.
+  vehicleCategoryIds String[]          @default([]) @db.Uuid
+  companyIds         String[]          @default([]) @db.Uuid
   status             RecordStatus      @default(ACTIF)
   createdAt          DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime          @updatedAt @db.Timestamptz(3)
@@ -1425,7 +1444,6 @@ model Incident {
   siteId         String?          @db.Uuid
   description    String
   followUpUserId String?          @db.Uuid
-  expenseId        String?          @db.Uuid
   resolvedAt     DateTime?        @db.Timestamptz(3)
   resolvedById   String?          @db.Uuid
   resolutionNote String?
@@ -1460,6 +1478,7 @@ model IncidentComment {
   incidentId     String            @db.Uuid
   authorId       String?           @db.Uuid
   body           String
+  visibility     CommentVisibility @default(INTERNE)
   createdAt      DateTime          @default(now()) @db.Timestamptz(3)
 
   incident Incident @relation(fields: [incidentId, organizationId], references: [id, organizationId], onDelete: Restrict)
@@ -1516,6 +1535,8 @@ model ImmobilizationCause {
   incident       Incident?      @relation(fields: [incidentId], references: [id], onDelete: Restrict)
   intervention   Intervention?  @relation(fields: [interventionId], references: [id], onDelete: Restrict)
 
+  @@unique([incidentId], map: "immobilization_cause_one_open_per_incident", where: raw("\"endedAt\" IS NULL AND \"incidentId\" IS NOT NULL"))
+  @@unique([interventionId], map: "immobilization_cause_one_open_per_intervention", where: raw("\"endedAt\" IS NULL AND \"interventionId\" IS NOT NULL"))
   @@index([immobilizationId])
   @@index([incidentId])
   @@index([interventionId])
@@ -1530,6 +1551,9 @@ model Supplier {
   organizationId String           @db.Uuid
   companyId      String           @db.Uuid
   name           String
+  /// Nom normalisé (D-221) : minuscules, sans accents, espaces compactés. Colonne GENERATED ALWAYS
+  /// calculée par PostgreSQL (migration 20260924190000_lot_c_supplier_uniqueness) : jamais écrite.
+  normalizedName String           @default(dbgenerated())
   category       SupplierCategory
   contactName    String?
   phone          String?
@@ -1550,7 +1574,8 @@ model Supplier {
   fuelEntries      FuelEntry[]
   expenses         Expense[]
 
-  @@unique([companyId, name])
+  /// Unicité du nom normalisé par société, parmi les fournisseurs ACTIF seulement (D-221).
+  @@unique([companyId, normalizedName], map: "supplier_active_normalized_name", where: raw("\"status\" = 'ACTIF'"))
   @@index([organizationId, companyId, category, status])
 }
 
@@ -1615,6 +1640,8 @@ model Expense {
   amount                    Decimal            @db.Decimal(18, 3)
   currency                  String             @default("TND") @db.Char(3)
   attachmentId              String?            @db.Uuid
+  /// Incident auquel la dépense se rattache (0..n dépenses par incident, D-217).
+  relatedIncidentId         String?            @db.Uuid
   sourceType                ExpenseSourceType?
   sourceId                  String?            @db.Uuid
   status                    ExpenseStatus      @default(VALIDEE)
@@ -1640,6 +1667,7 @@ model Expense {
   @@index([organizationId, category, occurredOn])
   @@index([vehicleId, occurredOn])
   @@index([supplierId])
+  @@index([relatedIncidentId])
 }
 
 // -----------------------------------------------------------------------------

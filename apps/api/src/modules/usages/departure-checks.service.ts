@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Driver, Vehicle } from '@parc-auto/db';
 import { Clock } from '../../common/clock.js';
 import { formatLocalDateTime, fromDbDate, localDate } from '../../domain/civil-date.js';
+import { isDocumentTypeApplicable } from '../../domain/document-applicability.js';
 import { computeDocumentStatus } from '../../domain/document-status.js';
 import { canStartUsage } from '../../domain/vehicle-status.js';
 import type { Tx } from '../../infra/prisma.service.js';
@@ -78,6 +79,9 @@ export class DepartureChecksService {
         select: { id: true, documentTypeId: true, vehicleId: true, driverId: true, validFrom: true, validTo: true },
       });
       for (const type of types) {
+        // Portée du type (catégorie de véhicule, sociétés) : un type non applicable ne bloque pas (D-210).
+        const owner = type.ownerType === 'VEHICULE' ? { ownerType: 'VEHICULE' as const, companyId: vehicle.companyId, categoryId: vehicle.categoryId } : { ownerType: 'CONDUCTEUR' as const, companyId: driver.companyId };
+        if (!isDocumentTypeApplicable(type, owner)) continue;
         const own = versions.filter((v) => v.documentTypeId === type.id && (type.ownerType === 'VEHICULE' ? v.vehicleId === vehicle.id : v.driverId === driver.id));
         const result = computeDocumentStatus(type, own.map((v) => ({ id: v.id, validFrom: fromDbDate(v.validFrom), validTo: fromDbDate(v.validTo) })), today);
         if (result.blocksCheckout) {

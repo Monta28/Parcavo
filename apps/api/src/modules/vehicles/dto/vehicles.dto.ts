@@ -88,6 +88,54 @@ export class LocationReportViewDto {
   @ApiProperty() createdAt!: string;
 }
 
+/** Utilisation EN_COURS du véhicule. */
+export class VehicleCurrentUsageDto {
+  @ApiProperty({ type: String }) id!: string;
+  @ApiProperty({ type: String }) driverId!: string;
+  @ApiProperty({ type: String }) driverName!: string;
+  @ApiProperty({ type: String, format: 'date-time' }) checkedOutAt!: string;
+  @ApiProperty({ type: String, format: 'date-time' }) expectedReturnAt!: string;
+}
+
+/** Responsable habituel en cours. */
+export class VehicleResponsibleDto {
+  @ApiProperty({ type: String }) assignmentId!: string;
+  @ApiProperty({ type: String }) driverId!: string;
+  @ApiProperty({ type: String }) driverName!: string;
+  @ApiProperty({ type: String, format: 'date-time' }) since!: string;
+}
+
+/** Dernier relevé accepté (toutes sources) et fraîcheur calculée par l'API. */
+export class VehicleOdometerSummaryDto {
+  @ApiProperty({ type: String }) readingId!: string;
+  @ApiProperty({ type: String, nullable: true, description: 'Compteur affiché à 3 décimales (chaîne décimale).' }) physicalKm!: string | null;
+  @ApiProperty({ type: String, nullable: true, description: 'Kilométrage cumulé à 3 décimales (chaîne décimale).' }) cumulativeKm!: string | null;
+  @ApiProperty({ type: Boolean }) cumulativeKnown!: boolean;
+  @ApiProperty({ type: Boolean }) isEstimate!: boolean;
+  @ApiProperty({ type: String }) measurementKind!: string;
+  @ApiProperty({ type: String }) source!: string;
+  @ApiProperty({ type: String, format: 'date-time' }) observedAt!: string;
+  @ApiProperty({ type: String, enum: ['INCONNU', 'A_ACTUALISER', 'A_JOUR'] }) freshness!: string;
+  @ApiProperty({ type: Number, nullable: true }) ageDays!: number | null;
+}
+
+/** Échéance d'entretien d'un plan actif. */
+export class VehicleUpcomingMaintenanceDto {
+  @ApiProperty({ type: String }) planId!: string;
+  @ApiProperty({ type: String }) maintenanceTypeLabel!: string;
+  @ApiProperty({ type: String }) status!: string;
+  @ApiProperty({ type: String, nullable: true, description: 'Kilométrage d’échéance à 3 décimales (chaîne décimale).' }) nextDueKm!: string | null;
+  @ApiProperty({ type: String, format: 'date', nullable: true, description: 'Date civile AAAA-MM-JJ.' }) nextDueDate!: string | null;
+}
+
+/** Compteurs de conformité documentaire du véhicule. */
+export class VehicleDocumentComplianceDto {
+  @ApiProperty({ type: Number, description: 'Documents manquants ou expirés bloquant la remise.' }) blocking!: number;
+  @ApiProperty({ type: Number }) missing!: number;
+  @ApiProperty({ type: Number }) expired!: number;
+  @ApiProperty({ type: Number }) expiringSoon!: number;
+}
+
 export class VehicleViewDto {
   @ApiProperty() id!: string;
   @ApiProperty() companyId!: string;
@@ -112,34 +160,23 @@ export class VehicleViewDto {
   @ApiProperty({ nullable: true, type: String }) contractSupplierId!: string | null;
   @ApiProperty({ nullable: true, type: String }) contractEndDate!: string | null;
   @ApiProperty({ nullable: true, type: String }) notes!: string | null;
-  @ApiProperty({ description: 'Utilisation EN_COURS, si elle existe.', nullable: true }) currentUsage!: { id: string; driverId: string; driverName: string; checkedOutAt: string; expectedReturnAt: string } | null;
+  @ApiProperty({ type: VehicleCurrentUsageDto, description: 'Utilisation EN_COURS, si elle existe.', nullable: true }) currentUsage!: VehicleCurrentUsageDto | null;
   @ApiProperty({ nullable: true, type: String }) activeImmobilizationId!: string | null;
   @ApiProperty() createdAt!: string;
   @ApiProperty() version!: number;
 }
 
 export class VehicleSynthesisDto extends VehicleViewDto {
-  @ApiProperty({ nullable: true }) responsible!: { assignmentId: string; driverId: string; driverName: string; since: string } | null;
-  @ApiProperty({ nullable: true }) lastLocation!: LocationReportViewDto | null;
-  @ApiProperty({ nullable: true, description: 'Dernier relevé accepté (toutes sources) et fraîcheur.' }) odometer!: {
-    readingId: string;
-    physicalKm: string | null;
-    cumulativeKm: string | null;
-    cumulativeKnown: boolean;
-    isEstimate: boolean;
-    measurementKind: string;
-    source: string;
-    observedAt: string;
-    freshness: string;
-    ageDays: number | null;
-  } | null;
+  @ApiProperty({ type: VehicleResponsibleDto, nullable: true }) responsible!: VehicleResponsibleDto | null;
+  @ApiProperty({ type: LocationReportViewDto, nullable: true }) lastLocation!: LocationReportViewDto | null;
+  @ApiProperty({ type: VehicleOdometerSummaryDto, nullable: true, description: 'Dernier relevé accepté (toutes sources) et fraîcheur.' }) odometer!: VehicleOdometerSummaryDto | null;
   @ApiProperty({ enum: ['INCONNU', 'A_ACTUALISER', 'A_JOUR'] }) freshness!: string;
-  @ApiProperty({ description: 'Prochaines échéances d’entretien (plans actifs, les plus urgentes d’abord).' }) upcomingMaintenance!: Array<{ planId: string; maintenanceTypeLabel: string; status: string; nextDueKm: string | null; nextDueDate: string | null }>;
-  @ApiProperty() documentCompliance!: { blocking: number; missing: number; expired: number; expiringSoon: number };
-  @ApiProperty() openIncidents!: number;
-  @ApiProperty() pendingReadings!: number;
+  @ApiProperty({ type: [VehicleUpcomingMaintenanceDto], description: 'Prochaines échéances d’entretien (plans actifs, les plus urgentes d’abord).' }) upcomingMaintenance!: VehicleUpcomingMaintenanceDto[];
+  @ApiProperty({ type: VehicleDocumentComplianceDto, nullable: true, description: 'Absent (null) pour un compte conducteur (D-116).' }) documentCompliance!: VehicleDocumentComplianceDto | null;
+  @ApiProperty({ nullable: true, type: Number, description: 'Absent (null) pour un compte conducteur.' }) openIncidents!: number | null;
+  @ApiProperty({ nullable: true, type: Number, description: 'Absent (null) pour un compte conducteur.' }) pendingReadings!: number | null;
   @ApiProperty({ type: [String] }) photoAttachmentIds!: string[];
-  @ApiProperty() qrToken!: string;
+  @ApiProperty({ nullable: true, type: String, description: 'Absent (null) pour un compte conducteur.' }) qrToken!: string | null;
 }
 
 export class QrResolveDto {

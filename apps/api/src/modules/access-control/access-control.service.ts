@@ -26,8 +26,9 @@ export class AccessControlService {
     return { organizationId: ctx.organizationId, companyId: { in: [...ctx.visibleCompanyIds] } };
   }
 
+  /** Lecture de la société dans le périmètre (les habilitations CONDUCTEUR d'un compte mixte n'en donnent pas). */
   canReadCompany(ctx: RequestContext, companyId: string): boolean {
-    return ctx.isAdmin || ctx.grants.has(companyId);
+    return ctx.isAdmin || ctx.visibleCompanyIds.includes(companyId);
   }
 
   /** Lève 404 si la société n'est pas dans le périmètre (ne révèle pas son existence). */

@@ -7,6 +7,8 @@ export const E2E = {
   admin: 'admin.e2e@parc-auto.test',
   chefA: 'chef.a.e2e@parc-auto.test',
   conducteur: 'conducteur.e2e@parc-auto.test',
+  /** Conducteur dédié aux parcours relevés (lot B), avec une utilisation en cours sur E2E-KM1 (relevé de remise 20 000 km). */
+  conducteurReleves: 'conducteur.releves.e2e@parc-auto.test',
   companyA: 'E2E-A',
   companyB: 'E2E-B',
 };
@@ -34,6 +36,102 @@ export async function seedE2E(databaseUrl: string): Promise<void> {
     await mkVehicle(a.id, 'E2E-VA1', '101 TU 2026');
     await mkVehicle(a.id, 'E2E-VA2', '102 TU 2026');
     await mkVehicle(b.id, 'E2E-VB1', '201 TU 2026');
+    // Lot B (specs/utilisations.spec.ts, specs/releves.spec.ts, specs/reservations.spec.ts) : véhicules et
+    // conducteurs dédiés de la société A, conducteurs titulaires d'un permis B valide (aucun blocage ni
+    // dérogation au départ ou à la réservation), pour ne dépendre d'aucune autre spec ni la gêner.
+    const mkDriverWithPermit = async (code: string, firstName: string, lastName: string, userId: string | null = null) => {
+      const driver = await prisma.driver.create({ data: { organizationId: org.id, companyId: a.id, code, firstName, lastName, userId } });
+      await prisma.driverPermit.create({ data: { organizationId: org.id, driverId: driver.id, number: `P-${code}`, categories: ['B'], issuedOn: new Date('2015-03-01'), expiresOn: new Date('2035-02-28') } });
+      return driver;
+    };
+    const lotBAt = Date.now();
+    const chefUser = await prisma.user.findFirstOrThrow({ where: { organizationId: org.id, email: E2E.chefA } });
+    // Remise et retour (utilisations.spec.ts) : véhicule jamais relevé, deux conducteurs pour la double remise.
+    await mkVehicle(a.id, 'E2E-UT1', '501 TU 2026');
+    await mkDriverWithPermit('D-E2E-UT1', 'Ines', 'Remise');
+    await mkDriverWithPermit('D-E2E-UT2', 'Omar', 'Relais');
+    // Localisation déclarative (utilisations.spec.ts) : véhicule sans localisation.
+    await mkVehicle(a.id, 'E2E-LOC1', '506 TU 2026');
+    // Relevés (releves.spec.ts) : utilisation en cours de la conductrice sur E2E-KM1, remise il y a 2 h avec un
+    // relevé accepté de 20 000 km, dans l'état exact produit par l'API (segment 1 d'initialisation ordinaire) ;
+    // E2E-KM2 sans relevé pour la saisie et la correction par le chef.
+    const readingVehicle = await mkVehicle(a.id, 'E2E-KM1', '502 TU 2026');
+    await mkVehicle(a.id, 'E2E-KM2', '503 TU 2026');
+    const readingUser = await prisma.user.create({ data: { organizationId: org.id, email: E2E.conducteurReleves, firstName: 'Rania', lastName: 'Releve', passwordHash, memberships: { create: [{ companyId: a.id, role: 'CONDUCTEUR' }] } } });
+    const readingDriver = await mkDriverWithPermit('D-E2E-KM', 'Rania', 'Releve', readingUser.id);
+    const readingCheckoutAt = new Date(lotBAt - 2 * 3600_000);
+    const readingSegment = await prisma.odometerSegment.create({
+      data: {
+        organizationId: org.id,
+        vehicleId: readingVehicle.id,
+        sequence: 1,
+        startedAt: readingCheckoutAt,
+        startPhysicalKm: '20000',
+        startCumulativeKm: '20000',
+        cumulativeKnown: true,
+        replacementReason: 'Initialisation ordinaire au premier relevé (cumul égal au compteur physique).',
+        lastPhysicalKm: '20000',
+        createdById: chefUser.id,
+      },
+    });
+    const checkoutReading = await prisma.odometerReading.create({
+      data: {
+        organizationId: org.id,
+        companyId: a.id,
+        vehicleId: readingVehicle.id,
+        segmentId: readingSegment.id,
+        source: 'MANUAL',
+        context: 'REMISE',
+        measurementKind: 'COMPTEUR_AFFICHE',
+        status: 'ACCEPTE',
+        physicalKm: '20000',
+        cumulativeKm: '20000',
+        observedAt: readingCheckoutAt,
+        enteredAt: readingCheckoutAt,
+        decidedAt: readingCheckoutAt,
+        decidedById: chefUser.id,
+        createdById: chefUser.id,
+      },
+    });
+    await prisma.vehicleUsage.create({
+      data: {
+        organizationId: org.id,
+        companyId: a.id,
+        vehicleId: readingVehicle.id,
+        driverId: readingDriver.id,
+        purpose: 'Tournée commerciale Cap Bon',
+        checkedOutAt: readingCheckoutAt,
+        expectedReturnAt: new Date(lotBAt + 3 * 24 * 3600_000),
+        checkoutReadingId: checkoutReading.id,
+        distanceStatus: 'NON_VALIDEE',
+        checkedOutById: chefUser.id,
+        createdById: chefUser.id,
+      },
+    });
+    // Réservations (reservations.spec.ts) : véhicule libre et deux conducteurs.
+    await mkVehicle(a.id, 'E2E-RS1', '504 TU 2026');
+    await mkDriverWithPermit('D-E2E-RS1', 'Walid', 'Reserve');
+    await mkDriverWithPermit('D-E2E-RS2', 'Leila', 'Creneau');
+    // Responsable habituel (reservations.spec.ts, T08) : utilisation ponctuelle en cours d'une autre conductrice.
+    const responsibleVehicle = await mkVehicle(a.id, 'E2E-RH1', '505 TU 2026');
+    await mkDriverWithPermit('D-E2E-RH1', 'Hedi', 'Habituel');
+    await mkDriverWithPermit('D-E2E-RH3', 'Slim', 'Suppleant');
+    const occasionalDriver = await mkDriverWithPermit('D-E2E-RH2', 'Mouna', 'Ponctuelle');
+    await prisma.vehicleUsage.create({
+      data: {
+        organizationId: org.id,
+        companyId: a.id,
+        vehicleId: responsibleVehicle.id,
+        driverId: occasionalDriver.id,
+        purpose: 'Livraison ponctuelle à Sousse',
+        checkedOutAt: new Date(lotBAt - 3600_000),
+        expectedReturnAt: new Date(lotBAt + 2 * 24 * 3600_000),
+        checkoutWithoutReading: true,
+        checkoutExceptionReason: 'Données de démonstration du parcours responsable habituel',
+        checkedOutById: chefUser.id,
+        createdById: chefUser.id,
+      },
+    });
   } finally {
     await prisma.$disconnect();
   }

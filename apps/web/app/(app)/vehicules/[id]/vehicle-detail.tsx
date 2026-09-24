@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { FRESHNESS_LABELS, MEASUREMENT_KIND_LABELS, PLAN_STATUS_LABELS, READING_SOURCE_LABELS, VEHICLE_LIFECYCLE_LABELS, VEHICLE_OPERATIONAL_STATUS_LABELS } from '@parc-auto/contracts';
@@ -16,13 +17,25 @@ import { api } from '@/lib/api-client';
 import { isApiError } from '@/lib/api-error';
 import { formatDate, formatDateTime, formatKm } from '@/lib/format';
 import type { VehicleSynthesis } from '@/lib/vehicles-types';
+import { AssignmentsPanel } from './assignments-panel';
 import { LifecycleDialog } from './lifecycle-dialog';
 import { LocationPanel } from './location-panel';
+import { OdometerPanel } from './odometer-panel';
 import { PhotosPanel } from './photos-panel';
 import { QrPanel } from './qr-panel';
+import { ReservationsPanel } from './reservations-panel';
+
+/** Onglets atteignables par lien (?onglet=…, liens d'alerte) ; les onglets de gestion sont refusés au conducteur. */
+const STAFF_TABS = new Set(['synthese', 'localisation', 'kilometrage', 'photos', 'affectations', 'reservations']);
+const DRIVER_TABS = new Set(['synthese', 'localisation']);
+
+function initialTab(requested: string | null, driverOnly: boolean): string {
+  return requested && (driverOnly ? DRIVER_TABS : STAFF_TABS).has(requested) ? requested : 'synthese';
+}
 
 export function VehicleDetail({ id }: { id: string }) {
   const { session } = useAppScope();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const synthesis = useQuery({ queryKey: ['vehicle', id, 'synthesis'], queryFn: () => api<VehicleSynthesis>(`/vehicles/${id}/synthesis`) });
   const role = useRoleIn(synthesis.data?.companyId ?? null);
@@ -71,15 +84,18 @@ export function VehicleDetail({ id }: { id: string }) {
         <StatusBadge label={VEHICLE_LIFECYCLE_LABELS[v.lifecycleStatus]} tone={v.lifecycleStatus === 'ACTIF' ? 'success' : 'neutral'} />
         {v.operationalStatus ? <StatusBadge label={VEHICLE_OPERATIONAL_STATUS_LABELS[v.operationalStatus]} tone={toneForOperational(v.operationalStatus)} /> : null}
         <StatusBadge label={`Kilométrage : ${FRESHNESS_LABELS[v.freshness]}`} tone={toneForFreshness(v.freshness)} />
-        {v.documentCompliance.blocking > 0 ? <StatusBadge label={`${v.documentCompliance.blocking} document(s) bloquant(s)`} tone="danger" /> : null}
+        {v.documentCompliance && v.documentCompliance.blocking > 0 ? <StatusBadge label={`${v.documentCompliance.blocking} document(s) bloquant(s)`} tone="danger" /> : null}
         {v.currentUsage && v.lifecycleStatus !== 'ACTIF' ? <StatusBadge label="Utilisation ouverte malgré le statut" tone="warning" /> : null}
       </div>
 
-      <Tabs defaultValue="synthese">
+      <Tabs defaultValue={initialTab(searchParams.get('onglet'), session.isDriverOnly)}>
         <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
           <TabsTrigger value="synthese">Synthèse</TabsTrigger>
           <TabsTrigger value="localisation">Localisation</TabsTrigger>
-          <TabsTrigger value="photos">Photos et QR</TabsTrigger>
+          {session.isDriverOnly ? null : <TabsTrigger value="kilometrage">Kilométrage</TabsTrigger>}
+          {session.isDriverOnly ? null : <TabsTrigger value="photos">Photos et QR</TabsTrigger>}
+          {session.isDriverOnly ? null : <TabsTrigger value="affectations">Affectations</TabsTrigger>}
+          {session.isDriverOnly ? null : <TabsTrigger value="reservations">Réservations</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="synthese">
@@ -153,7 +169,7 @@ export function VehicleDetail({ id }: { id: string }) {
                 ) : (
                   <p className="text-muted-foreground">Kilométrage inconnu : aucun relevé accepté.</p>
                 )}
-                {v.pendingReadings > 0 ? <p className="mt-2 text-warning-foreground">{v.pendingReadings} relevé(s) en attente de validation.</p> : null}
+                {v.pendingReadings !== null && v.pendingReadings > 0 ? <p className="mt-2 text-warning-foreground">{v.pendingReadings} relevé(s) en attente de validation.</p> : null}
               </CardContent>
             </Card>
             <Card>
@@ -179,17 +195,19 @@ export function VehicleDetail({ id }: { id: string }) {
                 )}
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Conformité et suivi</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1 text-sm">
-                <p>Documents manquants : {v.documentCompliance.missing}</p>
-                <p>Documents expirés : {v.documentCompliance.expired}</p>
-                <p>Documents à renouveler : {v.documentCompliance.expiringSoon}</p>
-                <p>Incidents ouverts : {v.openIncidents}</p>
-              </CardContent>
-            </Card>
+            {v.documentCompliance ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Conformité et suivi</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1 text-sm">
+                  <p>Documents manquants : {v.documentCompliance.missing}</p>
+                  <p>Documents expirés : {v.documentCompliance.expired}</p>
+                  <p>Documents à renouveler : {v.documentCompliance.expiringSoon}</p>
+                  {v.openIncidents !== null ? <p>Incidents ouverts : {v.openIncidents}</p> : null}
+                </CardContent>
+              </Card>
+            ) : null}
             <Card className="md:col-span-2 xl:col-span-3">
               <CardHeader>
                 <CardTitle className="text-base">Fiche</CardTitle>
@@ -218,12 +236,32 @@ export function VehicleDetail({ id }: { id: string }) {
           <LocationPanel vehicleId={id} companyId={v.companyId} canDeclare={isOperational} />
         </TabsContent>
 
-        <TabsContent value="photos">
-          <div className="grid gap-4 md:grid-cols-2">
-            <PhotosPanel vehicleId={id} companyId={v.companyId} photoIds={v.photoAttachmentIds} canEdit={isOperational} />
-            <QrPanel vehicleId={id} qrToken={v.qrToken} canRegenerate={isManager} />
-          </div>
-        </TabsContent>
+        {session.isDriverOnly ? null : (
+          <TabsContent value="kilometrage">
+            <OdometerPanel vehicleId={id} companyId={v.companyId} canEnter={isOperational} />
+          </TabsContent>
+        )}
+
+        {session.isDriverOnly || v.qrToken === null ? null : (
+          <TabsContent value="photos">
+            <div className="grid gap-4 md:grid-cols-2">
+              <PhotosPanel vehicleId={id} companyId={v.companyId} photoIds={v.photoAttachmentIds} canEdit={isOperational} />
+              <QrPanel vehicleId={id} qrToken={v.qrToken} canRegenerate={isManager} />
+            </div>
+          </TabsContent>
+        )}
+
+        {session.isDriverOnly ? null : (
+          <TabsContent value="affectations">
+            <AssignmentsPanel vehicleId={id} companyId={v.companyId} canManage={isOperational || role === 'ADMIN'} />
+          </TabsContent>
+        )}
+
+        {session.isDriverOnly ? null : (
+          <TabsContent value="reservations">
+            <ReservationsPanel vehicleId={id} />
+          </TabsContent>
+        )}
       </Tabs>
 
       <LifecycleDialog open={lifecycleOpen} onOpenChange={setLifecycleOpen} current={v.lifecycleStatus} pending={lifecycle.isPending} onSubmit={(input) => lifecycle.mutate(input)} />

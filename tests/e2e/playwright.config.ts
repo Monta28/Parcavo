@@ -5,12 +5,12 @@ import { resolve } from 'node:path';
  * Parcours navigateur (CDC 14.1) contre une pile réelle : API compilée + web compilé + PostgreSQL de test.
  * Prérequis : `pnpm build` à la racine et `docker compose up -d postgres-test`.
  */
-const WEB_PORT = 3900;
-const API_PORT = 3901;
+const WEB_PORT = Number(process.env['E2E_WEB_PORT'] ?? 3900);
+const API_PORT = Number(process.env['E2E_API_PORT'] ?? 3901);
 const WEB_ORIGIN = `http://localhost:${WEB_PORT}`;
 const DATABASE_URL = process.env['TEST_DATABASE_URL'] ?? 'postgresql://parc_auto:parc_auto_test@localhost:5433/parc_auto_test';
 const repoRoot = resolve(import.meta.dirname, '../..');
-const storageDir = resolve(repoRoot, 'tests/e2e/.storage');
+const storageDir = resolve(repoRoot, process.env['E2E_STORAGE_DIR'] ?? 'tests/e2e/.storage');
 
 export default defineConfig({
   testDir: './specs',

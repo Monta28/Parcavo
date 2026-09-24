@@ -5,13 +5,26 @@ import { BusinessRuleError } from './errors.js';
 
 export const IDEMPOTENCY_HEADER = 'idempotency-key';
 
-/** Documente l'en-tête Idempotency-Key dans OpenAPI. */
-export function ApiIdempotent(): MethodDecorator & ClassDecorator {
+/**
+ * Nom documenté de l'en-tête. Les routes qui le lisent avec @Headers() passent ce nom (Nest le met en
+ * minuscules pour la lecture) : le paramètre déduit par OpenAPI fusionne alors avec celui d'ApiIdempotent
+ * au lieu d'apparaître en double comme obligatoire.
+ */
+export const IDEMPOTENCY_HEADER_NAME = 'Idempotency-Key';
+
+/**
+ * Documente l'en-tête Idempotency-Key dans OpenAPI : obligatoire par défaut (routes qui lisent la clé avec
+ * @IdempotencyKey(), 422 sans clé), facultatif pour les routes qui l'acceptent sans l'exiger.
+ */
+export function ApiIdempotent(options: { required?: boolean } = {}): MethodDecorator & ClassDecorator {
+  const required = options.required ?? true;
   return applyDecorators(
     ApiHeader({
-      name: 'Idempotency-Key',
-      required: false,
-      description: 'Clé d’idempotence (UUID recommandé) ; peut aussi être fournie dans le corps (idempotencyKey).',
+      name: IDEMPOTENCY_HEADER_NAME,
+      required,
+      description: required
+        ? 'Clé d’idempotence obligatoire (8 à 128 caractères, UUID recommandé) ; peut aussi être fournie dans le corps (idempotencyKey).'
+        : 'Clé d’idempotence facultative (8 à 128 caractères, UUID recommandé) : un nouvel envoi avec la même clé rejoue la réponse initiale.',
     }),
   );
 }

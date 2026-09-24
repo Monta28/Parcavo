@@ -117,6 +117,9 @@ export const RESERVATION_STATUS_LABELS = {
 
 export const USAGE_STATUS_LABELS = { EN_COURS: 'En cours', TERMINEE: 'Terminée' } as const;
 
+/** État d'une affectation habituelle (responsable habituel, CDC 4.1), calculé par l'API. */
+export const ASSIGNMENT_STATUS_LABELS = { A_VENIR: 'À venir', EN_COURS: 'En cours', TERMINEE: 'Terminée' } as const;
+
 export const DISTANCE_STATUS_LABELS = {
   VALIDEE: 'Distance validée',
   NON_VALIDEE: 'Distance non validée',
@@ -185,6 +188,15 @@ export const FUEL_ENTRY_STATUS_LABELS = {
   VALIDE: 'Validé',
   REJETE: 'Rejeté',
   ANNULE: 'Annulé',
+} as const;
+
+/** Contexte d'une déclaration de localisation (CDC 3.4 ; déclarative, sans suivi en direct). */
+export const LOCATION_CONTEXT_LABELS = {
+  DECLARATION: 'Déclaration',
+  REMISE: 'Remise',
+  RESTITUTION: 'Restitution',
+  GARAGE: 'Garage',
+  TRANSFERT: 'Transfert',
 } as const;
 
 export const EXPENSE_CATEGORY_LABELS = {
@@ -298,6 +310,10 @@ export const SETTING_DEFAULTS = {
   'usage.checklistItems': ['Clés', 'Carte grise', 'Attestation d’assurance', 'Gilet de sécurité', 'Triangle', 'Roue de secours', 'Cric'],
   'telemetry.calibrationMaxGapMinutes': 60,
   'expenses.vehiclePurchaseExcludedByDefault': true,
+  'reservations.noShowGraceMinutes': 60,
+  'reservations.conversionEarlyMinutes': 120,
+  /** D-268 : ouvre les soumissions du conducteur sur le véhicule dont il est responsable habituel en cours. */
+  'drivers.allowHabitualVehicleSubmissions': false,
 } as const;
 export type SettingKey = keyof typeof SETTING_DEFAULTS;
 
@@ -314,8 +330,8 @@ export interface SettingDescriptor {
 
 export const SETTING_DESCRIPTORS: Record<SettingKey, SettingDescriptor> = {
   'odometer.staleAfterDays': { label: 'Kilométrage ancien après', kind: 'integer', min: 1, max: 365, unit: 'jours', companyOverride: true },
-  'odometer.plausibilityMaxKmPerDay': { label: 'Seuil de plausibilité (distance par 24 h)', kind: 'integer', min: 100, max: 5000, unit: 'km', companyOverride: true },
-  'odometer.plausibilityMinKm': { label: 'Tolérance minimale entre deux relevés rapprochés', kind: 'integer', min: 10, max: 5000, unit: 'km', companyOverride: true },
+  'odometer.plausibilityMaxKmPerDay': { label: 'Seuil de plausibilité par 24 h (filtre administratif, pas une limite physique)', kind: 'integer', min: 100, max: 5000, unit: 'km', companyOverride: true },
+  'odometer.plausibilityMinKm': { label: 'Tolérance minimale de plausibilité entre deux relevés rapprochés (filtre administratif, pas une limite physique)', kind: 'integer', min: 10, max: 5000, unit: 'km', companyOverride: true },
   'maintenance.noticeKm': { label: 'Préavis entretien par défaut (distance)', kind: 'integer', min: 0, max: 50000, unit: 'km', companyOverride: true },
   'maintenance.noticeDays': { label: 'Préavis entretien par défaut (durée)', kind: 'integer', min: 0, max: 365, unit: 'jours', companyOverride: true },
   'documents.noticeDays': { label: 'Préavis documents', kind: 'integer-list', min: 0, max: 365, unit: 'jours', companyOverride: true },
@@ -344,6 +360,9 @@ export const SETTING_DESCRIPTORS: Record<SettingKey, SettingDescriptor> = {
   'session.ttlHours': { label: 'Durée de session', kind: 'integer', min: 1, max: 72, unit: 'heures', companyOverride: false },
   'usage.checklistItems': { label: 'Checklist de remise et de restitution', kind: 'string-list', companyOverride: true },
   'expenses.vehiclePurchaseExcludedByDefault': { label: 'Achats de véhicules exclus du coût d’exploitation', kind: 'boolean', companyOverride: false },
+  'reservations.noShowGraceMinutes': { label: 'Délai avant constat manuel de non-présentation (après le début prévu)', kind: 'integer', min: 0, max: 1440, unit: 'minutes', companyOverride: true },
+  'reservations.conversionEarlyMinutes': { label: 'Avance maximale d’une remise convertissant une réservation (avant le début prévu)', kind: 'integer', min: 0, max: 1440, unit: 'minutes', companyOverride: true },
+  'drivers.allowHabitualVehicleSubmissions': { label: 'Soumissions du conducteur sur le véhicule dont il est responsable habituel (sans utilisation en cours)', kind: 'boolean', companyOverride: false },
 };
 
 export const PAGINATION = { defaultPageSize: 25, maxPageSize: 100 } as const;

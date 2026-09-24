@@ -24,10 +24,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api, toQuery } from '@/lib/api-client';
 import { isApiError } from '@/lib/api-error';
 import type { Page } from '@/lib/api-types';
-import { DRIVER_STATUS_LABELS, type DepartmentView, type DriverView, type LinkedUserView } from '@/lib/drivers-types';
+import { DRIVER_STATUS_LABELS, type DepartmentView, type DriverUsageView, type DriverView, type LinkedUserView } from '@/lib/drivers-types';
 import { formatDate, formatDateTime, fullName } from '@/lib/format';
 import type { SiteView } from '@/lib/vehicles-types';
 import { DeactivateDialog } from './deactivate-dialog';
+import { DriverAssignmentsCard } from './driver-assignments-card';
+import { DriverUsagesPanel } from './driver-usages-panel';
 import { PermitPanel } from './permit-panel';
 
 export function DriverDetail({ id }: { id: string }) {
@@ -54,7 +56,7 @@ export function DriverDetail({ id }: { id: string }) {
   };
 
   const deactivate = useMutation({
-    mutationFn: (reason: string) => api<DriverView>(`/drivers/${id}/deactivate`, { method: 'POST', body: { reason, expectedVersion: driver.data?.version } }),
+    mutationFn: (input: { reason: string; cancelFutureReservations: boolean }) => api<DriverView>(`/drivers/${id}/deactivate`, { method: 'POST', body: { ...input, expectedVersion: driver.data?.version } }),
     onSuccess: (updated) => {
       setDeactivateOpen(false);
       onSaved(updated, 'Conducteur désactivé.');
@@ -117,21 +119,31 @@ export function DriverDetail({ id }: { id: string }) {
       <Tabs defaultValue="fiche">
         <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
           <TabsTrigger value="fiche">Fiche et permis</TabsTrigger>
+          <TabsTrigger value="utilisations">Utilisations</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fiche">
           <div className="grid gap-4 md:grid-cols-2">
             <IdentityCard driver={d} companyLabel={company ? `${company.code} · ${company.name}` : null} timezone={session.timezone} />
+            <CurrentUsageCard usageId={d.currentUsageId} timezone={session.timezone} />
             <LinkedAccountCard userId={d.userId} />
             <div className="md:col-span-2">
               <PermitPanel driverId={id} companyId={d.companyId} permit={permit} canEdit={isOperational} />
             </div>
+            {session.isDriverOnly ? null : (
+              <div className="md:col-span-2">
+                <DriverAssignmentsCard driverId={id} />
+              </div>
+            )}
           </div>
         </TabsContent>
 
+        <TabsContent value="utilisations">
+          <DriverUsagesPanel driverId={id} />
+        </TabsContent>
       </Tabs>
 
-      {isManager ? <DeactivateDialog key={deactivateKey} open={deactivateOpen} onOpenChange={setDeactivateOpen} driverName={name} pending={deactivate.isPending} error={deactivate.error} onSubmit={(reason) => deactivate.mutate(reason)} /> : null}
+      {isManager ? <DeactivateDialog key={deactivateKey} open={deactivateOpen} onOpenChange={setDeactivateOpen} driverName={name} pending={deactivate.isPending} error={deactivate.error} onSubmit={(input) => deactivate.mutate(input)} /> : null}
 
       <AlertDialog open={reactivateOpen} onOpenChange={setReactivateOpen}>
         <AlertDialogContent>
@@ -185,6 +197,47 @@ function IdentityCard({ driver: d, companyLabel, timezone }: { driver: DriverVie
             <dd className="whitespace-pre-wrap">{d.notes ?? '—'}</dd>
           </div>
         </dl>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CurrentUsageCard({ usageId, timezone }: { usageId: string | null; timezone: string }) {
+  const usage = useQuery({ queryKey: ['usage', usageId], queryFn: () => api<DriverUsageView>(`/usages/${usageId}`), enabled: Boolean(usageId) });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Utilisation en cours</CardTitle>
+      </CardHeader>
+      <CardContent className="text-sm">
+        {!usageId ? (
+          <p className="text-muted-foreground">Aucune utilisation en cours.</p>
+        ) : usage.isPending ? (
+          <LoadingState />
+        ) : usage.isError ? (
+          <div className="space-y-1">
+            <p className="text-muted-foreground">{isApiError(usage.error) ? usage.error.message : 'Détail de l’utilisation indisponible.'}</p>
+            <Link href={`/utilisations/${usageId}`} className="underline underline-offset-4">
+              Ouvrir l’utilisation
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <p>
+              <Link href={`/vehicules/${usage.data.vehicleId}`} className="font-medium underline-offset-4 hover:underline">
+                {usage.data.vehicleCode} · {usage.data.vehicleRegistration}
+              </Link>
+            </p>
+            <p className="text-muted-foreground">Remis le {formatDateTime(usage.data.checkedOutAt, timezone)}</p>
+            <p className="text-muted-foreground">Retour prévu le {formatDateTime(usage.data.expectedReturnAt, timezone)}</p>
+            {usage.data.isLate ? <StatusBadge label="En retard" tone="danger" /> : null}
+            <p>
+              <Link href={`/utilisations/${usageId}`} className="underline underline-offset-4">
+                Ouvrir l’utilisation
+              </Link>
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -10,11 +10,15 @@ import { fromDbDate, localDate, toDbDate } from '../../domain/civil-date.js';
 import { computeDocumentStatus } from '../../domain/document-status.js';
 import { computeFreshness } from '../../domain/freshness.js';
 import { normalizeRegistration, normalizeVin } from '../../domain/registration.js';
+import { currentAssignmentWhere } from '../../domain/responsible-assignment.js';
 import { operationalStatus } from '../../domain/vehicle-status.js';
 import { AuditService } from '../../infra/audit.service.js';
 import { PrismaService, isUniqueViolation, type Tx } from '../../infra/prisma.service.js';
 import { AccessControlService } from '../access-control/access-control.service.js';
+import { closeAssignmentsOnVehicleExit } from '../assignments/assignment-exit.js';
 import { AttachmentsService } from '../attachments/attachments.service.js';
+import { eventCompany } from './event-company.js';
+import { lockVehicle } from '../odometer/odometer-ingestion.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import type { ChangeLifecycleDto, CreateLocationReportDto, CreateVehicleDto, LocationReportViewDto, QrResolveDto, UpdateVehicleDto, VehicleSynthesisDto, VehicleViewDto, VehiclesQueryDto } from './dto/vehicles.dto.js';
 
@@ -76,14 +80,34 @@ export class VehiclesService {
   }
 
   async get(ctx: RequestContext, id: string): Promise<VehicleViewDto> {
-    return this.view(await this.load(ctx, id));
+    return this.forViewer(ctx, this.view(await this.load(ctx, id)));
+  }
+
+  /**
+   * Projection conducteur (CDC 2.3, D-116) : pour un compte uniquement conducteur, seules les informations
+   * utiles à son utilisation restent (identité du véhicule, état, dernier relevé, dernière localisation sans
+   * auteur) ; jamais le nom d'un autre conducteur, contrat, notes internes, coûts ni données de gestion.
+   */
+  private forViewer<T extends VehicleViewDto>(ctx: RequestContext, dto: T): T {
+    if (!ctx.isDriverOnly) return dto;
+    return {
+      ...dto,
+      vin: null,
+      commissioningDate: null,
+      departmentId: null,
+      ownershipMode: null,
+      contractSupplierId: null,
+      contractEndDate: null,
+      notes: null,
+      currentUsage: dto.currentUsage && dto.currentUsage.driverId === ctx.driverId ? dto.currentUsage : null,
+    };
   }
 
   async synthesis(ctx: RequestContext, id: string): Promise<VehicleSynthesisDto> {
     const v = await this.load(ctx, id);
     const now = this.clock.now();
     const [assignment, lastLocation, lastReading, segment, plans, docsVersions, docTypes, openIncidents, pendingReadings, photos] = await Promise.all([
-      this.prisma.client.vehicleResponsibleAssignment.findFirst({ where: { vehicleId: id, startsAt: { lte: now }, OR: [{ endsAt: null }, { endsAt: { gt: now } }] }, include: { driver: { select: { firstName: true, lastName: true } } }, orderBy: { startsAt: 'desc' } }),
+      this.prisma.client.vehicleResponsibleAssignment.findFirst({ where: { vehicleId: id, ...currentAssignmentWhere(now) }, include: { driver: { select: { firstName: true, lastName: true } } }, orderBy: { startsAt: 'desc' } }),
       this.prisma.client.vehicleLocationReport.findFirst({ where: { vehicleId: id }, orderBy: [{ observedAt: 'desc' }, { createdAt: 'desc' }], include: { site: { select: { name: true } } } }),
       this.prisma.client.odometerReading.findFirst({ where: { vehicleId: id, status: 'ACCEPTE' }, orderBy: [{ observedAt: 'desc' }, { enteredAt: 'desc' }] }),
       this.prisma.client.odometerSegment.findFirst({ where: { vehicleId: id, endedAt: null } }),
@@ -110,7 +134,7 @@ export class VehiclesService {
       if (result.status === 'A_RENOUVELER') compliance.expiringSoon += 1;
       if (result.blocksCheckout && (result.status === 'MANQUANT' || result.status === 'EXPIRE')) compliance.blocking += 1;
     }
-    return {
+    const synthesis: VehicleSynthesisDto = {
       ...this.view(v),
       responsible: assignment ? { assignmentId: assignment.id, driverId: assignment.driverId, driverName: `${assignment.driver.firstName} ${assignment.driver.lastName}`, since: assignment.startsAt.toISOString() } : null,
       lastLocation: lastLocation ? this.locationView(lastLocation, authors) : null,
@@ -138,6 +162,20 @@ export class VehiclesService {
       pendingReadings,
       photoAttachmentIds: photos.map((p) => p.id),
       qrToken: v.qrToken,
+    };
+    if (!ctx.isDriverOnly) return synthesis;
+    // Conducteur (D-116) : ni responsable habituel d'autrui, ni plans, ni conformité interne, ni incidents
+    // ou relevés d'autrui, ni photos de gestion, ni jeton QR ; localisation sans auteur ni commentaire.
+    return {
+      ...this.forViewer(ctx, synthesis),
+      responsible: synthesis.responsible && synthesis.responsible.driverId === ctx.driverId ? synthesis.responsible : null,
+      lastLocation: synthesis.lastLocation ? { ...synthesis.lastLocation, createdById: null, createdByName: null, comment: null } : null,
+      upcomingMaintenance: [],
+      documentCompliance: null,
+      openIncidents: null,
+      pendingReadings: null,
+      photoAttachmentIds: [],
+      qrToken: null,
     };
   }
 
@@ -235,13 +273,17 @@ export class VehiclesService {
     const target = dto.lifecycleStatus;
     if (current.lifecycleStatus === target) throw new BusinessRuleError('STATUT_INCHANGE', 'Le véhicule est déjà dans ce statut.');
     if (current.lifecycleStatus === 'ARCHIVE') throw new BusinessRuleError('VEHICULE_ARCHIVE', 'Un véhicule archivé ne change plus de statut.');
-    if (target === 'CEDE' || target === 'ARCHIVE') {
-      await this.assertNoOpenOperations(id);
-    }
     const now = this.clock.now();
-    const updated = await this.prisma.client.$transaction(async (tx) => {
+    const updated = await this.prisma.serializable(async (tx) => {
+      // Verrou du véhicule, puis version et statut contrôlés sur l'état verrouillé (CDC 13.3).
+      await lockVehicle(tx, id);
+      const locked = await tx.vehicle.findUniqueOrThrow({ where: { id }, select: { version: true, lifecycleStatus: true } });
+      assertExpectedVersion(locked, dto.expectedVersion, 'véhicule');
+      if (locked.lifecycleStatus === target) throw new BusinessRuleError('STATUT_INCHANGE', 'Le véhicule est déjà dans ce statut.');
+      if (locked.lifecycleStatus === 'ARCHIVE') throw new BusinessRuleError('VEHICULE_ARCHIVE', 'Un véhicule archivé ne change plus de statut.');
+      if (target === 'CEDE' || target === 'ARCHIVE') await this.assertNoOpenOperations(tx, id, target);
       const v = await tx.vehicle.update({
-        where: { id, version: dto.expectedVersion },
+        where: { id, version: locked.version },
         data: {
           lifecycleStatus: target,
           ...(target === 'ARCHIVE' ? { archivedAt: now } : {}),
@@ -252,10 +294,18 @@ export class VehiclesService {
         include: vehicleInclude,
       });
       if (target === 'CEDE' || target === 'ARCHIVE') {
-        await tx.vehicleResponsibleAssignment.updateMany({ where: { vehicleId: id, endsAt: null }, data: { endsAt: now, endReason: `véhicule ${target === 'CEDE' ? 'cédé' : 'archivé'}`, endedById: ctx.userId } });
+        // Affectation habituelle : clôture de l'affectation en cours (même avec une fin future) et retrait des affectations à venir.
+        const exitLabel = target === 'CEDE' ? 'cédé' : 'archivé';
+        const assignments = await closeAssignmentsOnVehicleExit(tx, id, now, `véhicule ${exitLabel}`, ctx.userId);
+        for (const a of assignments.closed) {
+          await this.audit.record(ctx, { action: 'responsable_habituel.fin', objectType: 'VehicleResponsibleAssignment', objectId: a.id, companyId: a.companyId, reason: `véhicule ${exitLabel} : ${dto.reason}`, before: { endsAt: a.endsAt }, after: { endsAt: now } }, tx);
+        }
+        for (const a of assignments.withdrawn) {
+          await this.audit.record(ctx, { action: 'responsable_habituel.retrait', objectType: 'VehicleResponsibleAssignment', objectId: a.id, companyId: a.companyId, reason: `véhicule ${exitLabel} : ${dto.reason}`, before: { driverId: a.driverId, startsAt: a.startsAt, endsAt: a.endsAt } }, tx);
+        }
         await tx.vehicleMaintenancePlan.updateMany({ where: { vehicleId: id, active: true }, data: { active: false, deactivatedAt: now, deactivationReason: 'véhicule sorti du parc' } });
       }
-      await this.audit.record(ctx, { action: 'vehicule.cycle_de_vie', objectType: 'Vehicle', objectId: id, companyId: v.companyId, reason: dto.reason, before: { lifecycleStatus: current.lifecycleStatus }, after: { lifecycleStatus: target } }, tx);
+      await this.audit.record(ctx, { action: 'vehicule.cycle_de_vie', objectType: 'Vehicle', objectId: id, companyId: v.companyId, reason: dto.reason, before: { lifecycleStatus: locked.lifecycleStatus }, after: { lifecycleStatus: target } }, tx);
       return v;
     });
     return this.view(updated);
@@ -276,11 +326,13 @@ export class VehiclesService {
       if (!site) throw new NotFoundOrOutOfScopeError('Site');
     }
     const report = await this.prisma.client.$transaction(async (tx) => {
+      // Société à la date d'observation (D-121).
+      const companyId = await eventCompany(tx, this.access, ctx, v, observedAt, 'une localisation');
       const r = await tx.vehicleLocationReport.create({
-        data: { organizationId: ctx.organizationId, companyId: v.companyId, vehicleId, siteId: dto.siteId ?? null, placeLabel: dto.placeLabel?.trim() ?? null, observedAt, comment: dto.comment ?? null, context: 'DECLARATION', createdById: ctx.userId },
+        data: { organizationId: ctx.organizationId, companyId, vehicleId, siteId: dto.siteId ?? null, placeLabel: dto.placeLabel?.trim() ?? null, observedAt, comment: dto.comment ?? null, context: 'DECLARATION', createdById: ctx.userId },
         include: { site: { select: { name: true } } },
       });
-      await this.audit.record(ctx, { action: 'vehicule.localisation_declaree', objectType: 'VehicleLocationReport', objectId: r.id, companyId: v.companyId, after: { vehicleId, siteId: r.siteId, placeLabel: r.placeLabel, observedAt } }, tx);
+      await this.audit.record(ctx, { action: 'vehicule.localisation_declaree', objectType: 'VehicleLocationReport', objectId: r.id, companyId, after: { vehicleId, siteId: r.siteId, placeLabel: r.placeLabel, observedAt } }, tx);
       return r;
     });
     return this.locationView(report, [{ id: ctx.userId, firstName: ctx.displayName, lastName: '' }]);
@@ -298,11 +350,31 @@ export class VehiclesService {
     return pageOf(items.map((r) => this.locationView(r, authors)), total, query);
   }
 
-  /** Enregistre une localisation issue d'une remise, restitution ou entrée au garage (appel interne). */
+  /**
+   * Enregistre une localisation issue d'une remise, restitution ou entrée au garage (appel interne, dans la
+   * transaction de l'opération). D-134 : soit un site ACTIF de la société du véhicule, soit un lieu libre de
+   * 1 à 200 caractères, exclusivement. Rien n'est ignoré silencieusement : un lieu absent, double ou
+   * invalide lève une erreur 422 et annule l'opération.
+   */
   async recordLocation(tx: Tx, ctx: RequestContext, vehicle: { id: string; companyId: string }, input: { siteId?: string | null; placeLabel?: string | null; observedAt: Date; context: 'REMISE' | 'RESTITUTION' | 'GARAGE' | 'TRANSFERT'; usageId?: string | null; comment?: string | null }): Promise<void> {
-    if (!input.siteId && !input.placeLabel) return;
+    const siteId = input.siteId ?? null;
+    const placeLabel = input.placeLabel === undefined || input.placeLabel === null ? null : input.placeLabel.trim();
+    if (!siteId && !placeLabel) {
+      throw new BusinessRuleError('LIEU_REQUIS', 'Le lieu est obligatoire : indiquez un site ou un lieu libre.', { fieldErrors: { 'location.placeLabel': ['Site ou lieu requis.'] } });
+    }
+    if (siteId && placeLabel !== null) {
+      throw new BusinessRuleError('LIEU_EXCLUSIF', 'Indiquez soit un site, soit un lieu libre, pas les deux.', { fieldErrors: { 'location.siteId': ['Site ou lieu libre, pas les deux.'] } });
+    }
+    if (placeLabel !== null && (placeLabel.length === 0 || placeLabel.length > 200)) {
+      throw new BusinessRuleError('LIEU_INVALIDE', 'Le lieu libre doit comporter de 1 à 200 caractères.', { fieldErrors: { 'location.placeLabel': ['De 1 à 200 caractères.'] } });
+    }
+    if (siteId) {
+      const site = await tx.site.findFirst({ where: { id: siteId, organizationId: ctx.organizationId, companyId: vehicle.companyId }, select: { status: true } });
+      if (!site) throw new BusinessRuleError('SITE_INVALIDE', 'Site introuvable pour la société du véhicule.', { fieldErrors: { 'location.siteId': ['Site introuvable pour la société du véhicule.'] } });
+      if (site.status !== 'ACTIF') throw new BusinessRuleError('SITE_INVALIDE', 'Ce site est archivé : choisissez un site actif ou saisissez un lieu libre.', { fieldErrors: { 'location.siteId': ['Site archivé.'] } });
+    }
     await tx.vehicleLocationReport.create({
-      data: { organizationId: ctx.organizationId, companyId: vehicle.companyId, vehicleId: vehicle.id, siteId: input.siteId ?? null, placeLabel: input.placeLabel ?? null, observedAt: input.observedAt, comment: input.comment ?? null, context: input.context, usageId: input.usageId ?? null, createdById: ctx.userId },
+      data: { organizationId: ctx.organizationId, companyId: vehicle.companyId, vehicleId: vehicle.id, siteId, placeLabel, observedAt: input.observedAt, comment: input.comment ?? null, context: input.context, usageId: input.usageId ?? null, createdById: ctx.userId },
     });
   }
 
@@ -348,26 +420,34 @@ export class VehiclesService {
     if (ctx.isDriverOnly) {
       if (!ctx.driverId) throw new NotFoundOrOutOfScopeError('Véhicule');
       if (v.usages.some((u) => u.driverId === ctx.driverId)) return;
-      const responsible = await this.prisma.client.vehicleResponsibleAssignment.findFirst({ where: { vehicleId: v.id, driverId: ctx.driverId, endsAt: null } });
+      // Responsable habituel EN_COURS uniquement (jamais une affectation à venir ou terminée).
+      const responsible = await this.prisma.client.vehicleResponsibleAssignment.findFirst({ where: { vehicleId: v.id, driverId: ctx.driverId, ...currentAssignmentWhere(this.clock.now()) }, select: { id: true } });
       if (!responsible) throw new NotFoundOrOutOfScopeError('Véhicule');
       return;
     }
     this.access.assertCompanyReadable(ctx, v.companyId);
   }
 
-  async assertNoOpenOperations(vehicleId: string): Promise<void> {
+  /**
+   * Opérations ouvertes qui bloquent la cession ou l'archivage (CDC 3.2, D-129), lues dans la transaction
+   * de l'appelant APRÈS le verrou du véhicule : une remise concurrente ne peut pas s'intercaler.
+   * Pour l'archivage, un incident OUVERT ou EN_TRAITEMENT bloque aussi.
+   */
+  async assertNoOpenOperations(tx: Tx, vehicleId: string, target: 'CEDE' | 'ARCHIVE'): Promise<void> {
     const now = this.clock.now();
-    const [usages, immobilizations, interventions, reservations] = await Promise.all([
-      this.prisma.client.vehicleUsage.count({ where: { vehicleId, status: 'EN_COURS' } }),
-      this.prisma.client.immobilization.count({ where: { vehicleId, status: 'ACTIVE' } }),
-      this.prisma.client.intervention.count({ where: { vehicleId, status: { in: ['BROUILLON', 'PLANIFIEE', 'EN_COURS'] } } }),
-      this.prisma.client.reservation.count({ where: { vehicleId, status: 'CONFIRMEE', endAt: { gt: now } } }),
+    const [usages, immobilizations, interventions, reservations, incidents] = await Promise.all([
+      tx.vehicleUsage.count({ where: { vehicleId, status: 'EN_COURS' } }),
+      tx.immobilization.count({ where: { vehicleId, status: 'ACTIVE' } }),
+      tx.intervention.count({ where: { vehicleId, status: { in: ['BROUILLON', 'PLANIFIEE', 'EN_COURS'] } } }),
+      tx.reservation.count({ where: { vehicleId, status: 'CONFIRMEE', endAt: { gt: now } } }),
+      target === 'ARCHIVE' ? tx.incident.count({ where: { vehicleId, status: { in: ['OUVERT', 'EN_TRAITEMENT'] } } }) : Promise.resolve(0),
     ]);
-    const blockers = { usages, immobilizations, interventions, reservations };
-    if (usages + immobilizations + interventions + reservations > 0) {
-      throw new BusinessRuleError('OPERATIONS_OUVERTES', 'Opération refusée : des utilisations, immobilisations, interventions ou réservations futures sont encore ouvertes.', { details: blockers });
+    const blockers = { usages, immobilizations, interventions, reservations, incidents };
+    if (usages + immobilizations + interventions + reservations + incidents > 0) {
+      throw new BusinessRuleError('OPERATIONS_OUVERTES', 'Opération refusée : des utilisations, immobilisations, interventions, réservations futures ou incidents sont encore ouverts.', { details: blockers });
     }
   }
+
 
   private async assertReferences(ctx: RequestContext, companyId: string, categoryId: string, siteId: string | null, departmentId: string | null, supplierId: string | null): Promise<void> {
     const category = await this.prisma.client.vehicleCategory.findFirst({ where: { id: categoryId, organizationId: ctx.organizationId, status: 'ACTIF' } });

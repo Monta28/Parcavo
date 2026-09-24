@@ -1651,6 +1651,50 @@
   "T32": {
    "file": "apps/api/test/integration/auth.int.spec.ts",
    "status": "réussi"
+  },
+  "T04": {
+   "file": "apps/api/test/integration/usages.int.spec.ts",
+   "status": "réussi"
+  },
+  "T05": {
+   "file": "apps/api/test/integration/usages.int.spec.ts",
+   "status": "réussi"
+  },
+  "T06": {
+   "file": "apps/api/test/integration/usages.int.spec.ts ; apps/api/src/domain/reservation-rules.spec.ts",
+   "status": "réussi"
+  },
+  "T07": {
+   "file": "apps/api/test/integration/usages.int.spec.ts",
+   "status": "réussi"
+  },
+  "T08": {
+   "file": "apps/api/test/integration/usages.int.spec.ts",
+   "status": "réussi"
+  },
+  "T09": {
+   "file": "apps/api/test/integration/odometer.int.spec.ts ; apps/api/src/domain/odometer-rules.spec.ts",
+   "status": "réussi"
+  },
+  "T10": {
+   "file": "apps/api/test/integration/odometer.int.spec.ts ; apps/api/src/domain/odometer-rules.spec.ts",
+   "status": "réussi"
+  },
+  "T11": {
+   "file": "apps/api/test/integration/odometer.int.spec.ts",
+   "status": "réussi"
+  },
+  "T12": {
+   "file": "apps/api/test/integration/odometer.int.spec.ts ; apps/api/src/domain/freshness.spec.ts",
+   "status": "réussi"
+  },
+  "T13": {
+   "file": "apps/api/test/integration/odometer.int.spec.ts",
+   "status": "réussi"
+  },
+  "T14": {
+   "file": "apps/api/test/integration/odometer.int.spec.ts ; apps/api/src/domain/odometer-rules.spec.ts ; tests/e2e/specs/compteur.spec.ts",
+   "status": "réussi"
   }
  },
  "R-16.1-X01": {
@@ -1665,5 +1709,1819 @@
   ],
   "verification": "integration",
   "note": "Sans SMTP : aucune file d'envoi ; lien d'invitation (72 h) ou de réinitialisation (30 min) à usage unique généré par l'administrateur, affiché une fois (D-263)."
+ },
+ "R-1.1-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/api/src/modules/odometer/usage-distance.ts",
+   "apps/api/src/domain/period-distance.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › distance null si une borne manque ou si elle serait négative",
+   "apps/api/src/domain/period-distance.spec.ts › N/D (jamais 0) avec moins de deux relevés, ou deux relevés au même instant",
+   "apps/api/test/integration/usages.int.spec.ts › refuse un départ sans relevé pour l’opérateur ; exception motivée du chef avec alerte persistante et distance indéterminée"
+  ],
+  "note": "Aucune interpolation : distance null/N-D dès qu’une borne manque, utilisation sans relevé de départ en distance INDETERMINEE."
+ },
+ "R-1.2-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/assignments/assignments.service.ts",
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/web/app/(app)/planning/planning-view.tsx",
+   "apps/web/app/(app)/utilisations/usages-list.tsx",
+   "apps/web/app/(app)/utilisations/[id]/usage-detail.tsx",
+   "apps/api/src/modules/assignments/assignments.controller.ts",
+   "apps/web/app/(app)/vehicules/[id]/edit-assignment-dialog.tsx",
+   "apps/web/app/(app)/utilisations/[id]/regularize-dialog.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées",
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée",
+   "apps/api/test/integration/usages.int.spec.ts › T08 — responsable habituel A et utilisation ponctuelle B restent distincts, historique conservé",
+   "apps/api/test/integration/reservations.int.spec.ts › modification avant le début (D-137) : véhicule et conducteur changés avec les contrôles de la création, motif et audit, société du véhicule",
+   "apps/api/test/integration/assignments.int.spec.ts › remplacement explicite d’un responsable EN_COURS avec fin prévue ; une affectation à venir n’est jamais remplacée",
+   "apps/api/test/integration/assignments-update.int.spec.ts › affectation à venir : responsable, début, fin et notes modifiés avec motif, version incrémentée et audit avant/après",
+   "apps/api/test/integration/usages-regularization.int.spec.ts › R-4.4-06 — régularisation par un nouveau relevé : distance validée, alerte résolue, audit ; idempotente et versionnée",
+   "tests/e2e/specs/utilisations.spec.ts › Utilisations : remise et restitution (T04) › remise avec relevé, seconde remise concurrente du même véhicule refusée par l’API, retour avec relevé, fiche imprimable et localisation",
+   "tests/e2e/specs/reservations.spec.ts › Réservations et responsable habituel › réservation créée au planning, créneau chevauchant refusé avec le message de l’API, créneau consécutif accepté (T06)",
+   "tests/e2e/specs/reservations.spec.ts › Réservations et responsable habituel › responsable habituel nommé sans remplacer l’utilisation ponctuelle en cours ; chevauchement refusé puis remplacement explicite, historique conservé (T08)"
+  ],
+  "note": "F03 livré : responsable habituel (nomination, remplacement explicite, modification PATCH, fin), réservations, remise, restitution et régularisation d’un retour sans relevé, testés en intégration ; parcours navigateur /utilisations (remise, concurrence, retour, fiche) et /planning + onglet Affectations (T06, T08) couverts par les e2e existants, verts le 2026-09-24 (pile compilée, base parc_auto_test_b2)."
+ },
+ "R-1.2-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/web/app/(app)/kilometrage/odometer-workspace.tsx",
+   "apps/web/app/(app)/vehicules/[id]/odometer-panel.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T09 — refuse 89 000 après 89 500 dans le même segment",
+   "apps/api/test/integration/odometer.int.spec.ts › T10 — un relevé rétroactif entre deux voisins est contrôlé et ne fait pas reculer le compteur courant",
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées",
+   "apps/api/test/integration/odometer.int.spec.ts › T14 — remplacement à 120 000 par un compteur à 0 puis lecture 500 : physique 500, cumul 120 500",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › validation et rejet simultanés du même relevé : un seul gagnant, l’autre reçoit 409 avec la version courante",
+   "tests/e2e/specs/releves.spec.ts › Relevés kilométriques › le conducteur déclare depuis Mon véhicule un kilométrage au-delà du seuil : soumission en attente sans effet sur le compteur, validée par le chef (T11)",
+   "tests/e2e/specs/releves.spec.ts › Relevés kilométriques › le chef corrige un relevé accepté avec motif : original conservé « Remplacé », remplacement accepté et chronologie recalculée ; une diminution est refusée (T09, T13)",
+   "tests/e2e/specs/compteur.spec.ts › Compteur kilométrique : remplacement et cumul (T14) › remplacement à 120 000 km par un compteur à 0 : lecture 500 = 120 500 km cumulés, compteur courant daté, sourcé et frais ; la base du nouveau compteur ne se corrige pas",
+   "tests/e2e/specs/compteur.spec.ts › Compteur kilométrique : remplacement et cumul (T14) › compteur initialisé sans historique connu : « cumul incomplet » signalé, jamais une distance fabriquée"
+  ],
+  "note": "F04 livré : saisie, contrôles, soumission conducteur et validation, correction (T09, T11, T13) couverts par les e2e releves.spec.ts verts ; recalcul des échéances et alertes dans la transaction de correction et remplacement de compteur (T14) vérifiés en intégration. Revue : le changement de compteur (justificatif obligatoire, compteur n° 2, lecture 500 = 120 500 km cumulés, base protégée) et le cumul incomplet sont désormais exercés dans le navigateur (compteur.spec.ts, vert). Revue (2026-09-24, relance) : l’e2e T11 de releves.spec.ts est actuellement rouge dans le dépôt : le sélecteur getByRole('button', { name: 'Fermer' }) devient ambigu depuis l’ajout du bouton « Fermer la notification » au Toaster (components/ui/sonner.tsx, autre mission) ; le parcours est vert avec le sélecteur exact (copie temporaire) — correctif du test à apporter par la mission e2e (exact: true). Découpage lot B : recalcul des échéances d’entretien après correction testé avec le lot C (odometer-dependents.int.spec.ts)."
+ },
+ "R-1.3-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "packages/db/prisma/schema.prisma",
+   "apps/web/app/(app)/vehicules/[id]/vehicle-detail.tsx",
+   "apps/web/lib/no-live-position.spec.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts › déclare une localisation « dernière localisation déclarée » avec date et auteur, jamais une position",
+   "apps/web/lib/no-live-position.spec.ts › aucun écran ni composant n’affiche « Position actuelle », des coordonnées, une carte ou un géofencing",
+   "apps/web/lib/no-live-position.spec.ts › aucune dépendance cartographique dans le web"
+  ],
+  "note": "Revue confirmée par un test automatisé : aucune carte, coordonnée, suivi temps réel ni géofencing dans les sources et dépendances du web ; l’API n’expose aucune position (test d’intégration de la synthèse) ; le schéma ne comporte aucune colonne de coordonnées. Revue : l’analyse statique couvre aussi les libellés partagés affichés par le web (packages/contracts/src)."
+ },
+ "R-2.3-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/driver-vehicle-view.int.spec.ts › véhicule dont il est responsable habituel mais utilisé par un autre : jamais le nom de l’autre conducteur",
+   "apps/api/test/integration/usages.int.spec.ts › T03 — un conducteur voit ses utilisations et pas celles des autres"
+  ]
+ },
+ "R-2.3-09": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/assignments/driver-submission.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel",
+   "apps/api/test/integration/usages.int.spec.ts › T03 — un conducteur voit ses utilisations et pas celles des autres",
+   "apps/api/test/integration/driver-vehicle-view.int.spec.ts › utilisation en cours du conducteur : identité, relevé et localisation sans auteur ; aucune donnée de gestion",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › pendingCount d’un conducteur : ses seules soumissions, comme la liste du véhicule"
+  ]
+ },
+ "R-2.4-09": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/departure-checks.service.ts",
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/reservations.int.spec.ts › modification avant le début (D-137) : véhicule et conducteur changés avec les contrôles de la création, motif et audit, société du véhicule",
+   "apps/api/test/integration/usages-controls.int.spec.ts › R-2.4-09 — remise d’un véhicule de la société A à un conducteur de la société B : refusée (SOCIETE_DIFFERENTE), rien n’est créé"
+  ],
+  "note": "SOCIETE_DIFFERENTE refusé à la remise (422 DEPART_BLOQUE, rien n’est créé) comme à la confirmation d’une réservation ; conducteur d’une autre société invisible pour le chef (404)."
+ },
+ "R-3.1-10": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/web/app/(app)/vehicules/[id]/vehicle-detail.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T08 — responsable habituel A et utilisation ponctuelle B restent distincts, historique conservé",
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées",
+   "apps/api/test/integration/odometer.int.spec.ts › T12 — fraîcheur INCONNU sans relevé puis A_ACTUALISER au-delà de sept jours",
+   "apps/api/test/integration/assignments.int.spec.ts › statut A_VENIR / EN_COURS / TERMINEE et canEnd calculés par le serveur, bornes comprises"
+  ],
+  "note": "Responsable, utilisateur actuel, statut, dernière localisation, dernier relevé validé et prochaines échéances (upcomingMaintenance triées par urgence, sur le cumul) vérifiés par les tests d’intégration. Découpage lot B : prochaines échéances d’entretien (plans) livrées et testées avec le lot C ; au lot B la liste est vide."
+ },
+ "R-3.2-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/vehicle-status.ts",
+   "apps/api/src/modules/vehicles/vehicles.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/vehicle-status.spec.ts › applique la priorité IMMOBILISE > EN_UTILISATION > DISPONIBLE",
+   "apps/api/test/integration/usages.int.spec.ts › T23 — immobilisation pendant une utilisation : utilisation conservée, retour possible, véhicule toujours immobilisé"
+  ]
+ },
+ "R-3.2-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/vehicle-status.ts",
+   "apps/api/src/modules/reservations/reservations.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages-controls.int.spec.ts › R-3.2-03 — une réservation future apparaît au planning sans rendre le véhicule « en utilisation »"
+  ],
+  "note": "Réservation future visible au planning ; le véhicule reste DISPONIBLE, sans utilisation courante (fiche, synthèse, liste EN_COURS)."
+ },
+ "R-3.2-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/domain/vehicle-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts › refuse l’archivage tant que des opérations sont ouvertes et conserve les dossiers"
+  ],
+  "note": "D-010 : passage HORS_SERVICE autorisé pendant une utilisation, qui reste visible."
+ },
+ "R-3.2-06": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts › refuse l’archivage tant que des opérations sont ouvertes et conserve les dossiers",
+   "apps/api/test/integration/vehicles.int.spec.ts › D-129 — archivage et remise simultanés : jamais d’utilisation EN_COURS sur un véhicule archivé"
+  ],
+  "note": "Cession et archivage refusés (422 OPERATIONS_OUVERTES, détail par type) pour une réservation future, une immobilisation active ou une intervention ouverte (et l’utilisation ouverte, testée par ailleurs) ; cession acceptée et auditée une fois l’opération résolue. Découpage lot B : utilisation ouverte et réservation future testées ; immobilisation active, intervention ouverte et incident ouvert : test livré avec le lot C (usages-controls.int.spec.ts, vehicles.int.spec.ts)."
+ },
+ "R-3.3-05": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/conducteurs/[id]/driver-detail.tsx",
+   "apps/web/app/(app)/conducteurs/[id]/driver-usages-panel.tsx",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/odometer/dto/odometer.dto.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T03 — un conducteur voit ses utilisations et pas celles des autres"
+  ],
+  "note": "Fiche conducteur : utilisations, incidents (GET /incidents?driverId=) et relevés soumis depuis son compte (GET /readings?driverId=, recoupé avec le périmètre, 404 hors périmètre, liste vide sans compte) dans l’onglet « Incidents et soumissions ». Pas d’e2e dédié (vérification attendue : intégration). Découpage lot B : utilisations du conducteur livrées et testées ; incidents et soumissions (onglet « Incidents et soumissions », driver-activity-panel.tsx) et leur test livrés avec le lot C."
+ },
+ "R-3.3-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/departure-checks.service.ts",
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages-controls.int.spec.ts › R-3.3-06 / R-4.2-04 — conducteur inactif : remise et confirmation de réservation refusées ; document bloquant : réservation refusée sauf dérogation motivée du chef",
+   "apps/api/test/integration/assignments.int.spec.ts › création refusée sur un véhicule cédé ou archivé (422) et pour un conducteur inactif"
+  ],
+  "note": "Conducteur inactif : remise refusée (CONDUCTEUR_INACTIF), confirmation de réservation refusée (RESERVATION_BLOQUEE, non levable par dérogation) et affectation habituelle refusée."
+ },
+ "R-3.3-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/drivers/drivers.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/driver-deactivation.int.spec.ts › refuse avec une utilisation en cours, puis exige l’annulation explicite des réservations futures et clôt l’affectation habituelle"
+  ],
+  "note": "D-131 : désactivation refusée (409 UTILISATION_OUVERTE) tant qu’une utilisation est ouverte."
+ },
+ "R-3.4-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts › déclare une localisation « dernière localisation déclarée » avec date et auteur, jamais une position"
+  ]
+ },
+ "R-3.4-02": {
+  "status": "fait",
+  "files": [
+   "apps/web/app/(app)/vehicules/[id]/vehicle-detail.tsx",
+   "apps/web/app/(app)/vehicules/[id]/location-panel.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/utilisations.spec.ts › Utilisations : remise et restitution (T04) › remise avec relevé, seconde remise concurrente du même véhicule refusée par l’API, retour avec relevé, fiche imprimable et localisation",
+   "tests/e2e/specs/utilisations.spec.ts › Localisation déclarative › une localisation déclarée depuis un navigateur d’un autre fuseau est datée à l’heure saisie, dans le fuseau du groupe"
+  ],
+  "note": "E2e utilisations.spec.ts (vert, relancé en revue) : carte « Dernière localisation déclarée » de la fiche véhicule avec lieu, date « observée le … 10:00 » et auteur « par Chaima Chef », et ligne de l’onglet Localisation (lieu, date, commentaire, auteur). La note précédente (« auteur non asserté ») était inexacte."
+ },
+ "R-3.4-03": {
+  "status": "fait",
+  "files": [
+   "apps/web/app/(app)/vehicules/[id]/vehicle-detail.tsx",
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/web/lib/no-live-position.spec.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts › déclare une localisation « dernière localisation déclarée » avec date et auteur, jamais une position",
+   "apps/web/lib/no-live-position.spec.ts › aucun écran ni composant n’affiche « Position actuelle », des coordonnées, une carte ou un géofencing",
+   "apps/web/lib/no-live-position.spec.ts › aucune dépendance cartographique dans le web",
+   "apps/web/lib/no-live-position.spec.ts › la localisation est présentée comme « Dernière localisation déclarée » (fiche véhicule et Mon véhicule)"
+  ],
+  "note": "Test automatisé sur toutes les sources de l’interface (app, components, lib) : aucun libellé « Position actuelle », aucune coordonnée, carte, marqueur ni géofencing, aucune dépendance cartographique ; la localisation est présentée comme « Dernière localisation déclarée ». Côté API, la synthèse n’expose aucune position (test d’intégration). Pas d’e2e dédié : la vérification statique couvre tous les écrans. Revue : l’analyse statique couvre aussi les libellés partagés affichés par le web (packages/contracts/src)."
+ },
+ "R-3.4-04": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages-rules.int.spec.ts › D-134 — remise : lieu absent, double, vide, trop long ou site invalide refusé (422) sans rien créer ; site actif accepté",
+   "apps/api/test/integration/usages-rules.int.spec.ts › D-134 — restitution : lieu obligatoire, site d’une autre société refusé sans clore l’utilisation"
+  ],
+  "note": "Découpage lot B : déclarations issues de la remise et de la restitution testées ; entrée au garage (immobilisation) livrée et testée avec le lot C."
+ },
+ "R-4.1-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/assignments/assignments.service.ts",
+   "apps/api/src/domain/responsible-assignment.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T08 — responsable habituel A et utilisation ponctuelle B restent distincts, historique conservé",
+   "apps/api/test/integration/assignments.int.spec.ts › statut A_VENIR / EN_COURS / TERMINEE et canEnd calculés par le serveur, bornes comprises",
+   "apps/api/src/domain/responsible-assignment.spec.ts › EN_COURS dès le début (borne incluse), sans fin ou avec une fin future"
+  ]
+ },
+ "R-4.1-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée",
+   "apps/api/test/integration/reservations.int.spec.ts › création (D-137) : début au plus 15 min dans le passé, fin après le début, bornes tronquées à la minute, société déduite du véhicule"
+  ]
+ },
+ "R-4.1-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T08 — responsable habituel A et utilisation ponctuelle B restent distincts, historique conservé",
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées"
+  ]
+ },
+ "R-4.1-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/assignments/assignments.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T08 — responsable habituel A et utilisation ponctuelle B restent distincts, historique conservé"
+  ]
+ },
+ "R-4.2-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "apps/api/src/modules/reservations/dto/reservations.dto.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/reservations.int.spec.ts › création (D-137) : début au plus 15 min dans le passé, fin après le début, bornes tronquées à la minute, société déduite du véhicule",
+   "apps/api/test/integration/reservations.int.spec.ts › saisie (4.2, 15.1) : null refusé sur un champ non effaçable, motif ou dérogation blancs refusés (422, jamais 500), textes facultatifs blancs retirés"
+  ],
+  "note": "Site de destination et créateur présents mais non assertés par les tests."
+ },
+ "R-4.2-02": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › convertit une réservation lors de la remise",
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée",
+   "apps/api/test/integration/reservations.int.spec.ts › non-présentation (D-137) : à partir du début + reservations.noShowGraceMinutes, motif, auteur, audit et alerte résolue",
+   "apps/api/test/integration/reservations.int.spec.ts › rattrapage : NON_HONOREE à la fin prévue sans conversion, idempotent, alerte résolue ; annulation résout aussi l’alerte"
+  ]
+ },
+ "R-4.2-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée",
+   "apps/api/test/integration/reservations.int.spec.ts › modification : dérogation motivée transmise aux contrôles (exceptions.override), chevauchement et version contrôlés"
+  ]
+ },
+ "R-4.2-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "apps/api/src/modules/usages/departure-checks.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/reservations.int.spec.ts › modification : dérogation motivée transmise aux contrôles (exceptions.override), chevauchement et version contrôlés",
+   "apps/api/test/integration/reservations.int.spec.ts › immobilisation active (D-141) : refus seulement si elle chevauche le créneau ; sans fin prévue, tout créneau est refusé",
+   "apps/api/test/integration/usages-controls.int.spec.ts › R-3.3-06 / R-4.2-04 — conducteur inactif : remise et confirmation de réservation refusées ; document bloquant : réservation refusée sauf dérogation motivée du chef"
+  ],
+  "note": "Confirmation : conducteur inactif (bloquant), document bloquant (dérogation motivée avec exceptions.override seulement : 403 opérateur, 201 chef), immobilisation et habilitations contrôlés et testés."
+ },
+ "R-4.2-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/usages/departure-checks.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T22 — document bloquant expiré : départ refusé sauf dérogation autorisée, retour toujours possible",
+   "apps/api/test/integration/usages.int.spec.ts › T23 — immobilisation pendant une utilisation : utilisation conservée, retour possible, véhicule toujours immobilisé",
+   "apps/api/test/integration/usages.int.spec.ts › T07 — retour dépassé avec réservation suivante : alerte, utilisation ouverte, départ suivant bloqué"
+  ]
+ },
+ "R-4.2-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/reservations/reservations.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée",
+   "apps/api/test/integration/reservations.int.spec.ts › modification avant le début (D-137) : véhicule et conducteur changés avec les contrôles de la création, motif et audit, société du véhicule",
+   "apps/api/test/integration/reservations.int.spec.ts › non-présentation (D-137) : à partir du début + reservations.noShowGraceMinutes, motif, auteur, audit et alerte résolue"
+  ]
+ },
+ "R-4.3-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/dto/usages.dto.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › refuse un départ sans relevé pour l’opérateur ; exception motivée du chef avec alerte persistante et distance indéterminée",
+   "apps/api/test/integration/usages-rules.int.spec.ts › D-134 — remise : lieu absent, double, vide, trop long ou site invalide refusé (422) sans rien créer ; site actif accepté",
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées"
+  ]
+ },
+ "R-4.3-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/dto/usages.dto.ts",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/web/app/(app)/utilisations/nouvelle/checkout-form.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages-controls.int.spec.ts › R-4.3-02 / R-4.4-01 — carburant, checklist, observations, confirmation nominative et photos enregistrés à la remise et à la restitution"
+  ],
+  "note": "Carburant, checklist, observations, confirmation nominative et photos enregistrés à la remise et renvoyés par GET /usages/:id ; photos rattachées à l’utilisation et téléchargeables dans le périmètre."
+ },
+ "R-4.3-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › refuse un relevé de remise incohérent sans inventer de compteur",
+   "apps/api/test/integration/usages.int.spec.ts › refuse un départ sans relevé pour l’opérateur ; exception motivée du chef avec alerte persistante et distance indéterminée",
+   "apps/api/test/integration/usages-controls.int.spec.ts › R-4.3-03 — relevé de départ mis en attente (hausse implausible) : départ refusé RELEVE_NON_ACCEPTE, ni utilisation ni relevé enregistrés"
+  ],
+  "note": "Relevé de départ évalué par le service d’ingestion unique : absent (RELEVE_REQUIS), diminution (DIMINUTION) ou mis en attente (RELEVE_NON_ACCEPTE) → départ refusé, transaction annulée, ni utilisation ni relevé en attente enregistrés."
+ },
+ "R-4.3-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/domain/odometer-rules.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › refuse un relevé de remise incohérent sans inventer de compteur",
+   "apps/api/src/domain/odometer-rules.spec.ts › T09 — 89 000 après 89 500 dans le même segment : diminution refusée pour un relevé manuel"
+  ]
+ },
+ "R-4.3-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › refuse un départ sans relevé pour l’opérateur ; exception motivée du chef avec alerte persistante et distance indéterminée"
+  ]
+ },
+ "R-4.3-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/odometer/usage-distance.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › refuse un départ sans relevé pour l’opérateur ; exception motivée du chef avec alerte persistante et distance indéterminée"
+  ]
+ },
+ "R-4.3-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › convertit une réservation lors de la remise",
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées"
+  ]
+ },
+ "R-4.3-08": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T05 — même conducteur, deux véhicules au même instant : une seule utilisation en cours"
+  ]
+ },
+ "R-4.3-09": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T04 — deux remises simultanées du même véhicule à deux conducteurs : une seule réussite",
+   "apps/api/test/integration/usages.int.spec.ts › T04 — dix remises concurrentes du même véhicule ne créent qu’une utilisation ouverte"
+  ]
+ },
+ "R-4.3-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/idempotency.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T33 — même clé et même corps : réponse initiale rejouée ; même clé et corps différent : 409"
+  ]
+ },
+ "R-4.4-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/dto/usages.dto.ts",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/web/app/(app)/utilisations/[id]/return-form.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées",
+   "apps/api/test/integration/usages-rules.int.spec.ts › D-134 — restitution : lieu obligatoire, site d’une autre société refusé sans clore l’utilisation",
+   "apps/api/test/integration/usages-regularization.int.spec.ts › R-4.4-05 / R-15.3-02 — constat de retour sans relevé : réservé au chef, motif ≥ 5 caractères, checklist et observations conservées, distance non validée avec alerte",
+   "apps/api/test/integration/usages-controls.int.spec.ts › R-4.3-02 / R-4.4-01 — carburant, checklist, observations, confirmation nominative et photos enregistrés à la remise et à la restitution"
+  ],
+  "note": "Date réelle, compteur, lieu, carburant, checklist de retour, observations, confirmation nominative et photos enregistrés et restitués par l’API (vérifiés par les tests)."
+ },
+ "R-4.4-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/usage-distance.ts",
+   "apps/api/src/domain/odometer-rules.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › distance null si une borne manque ou si elle serait négative",
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées",
+   "apps/api/test/integration/usages.int.spec.ts › retour contesté : relevé en attente, distance non validée jusqu’à la validation, puis régularisée"
+  ]
+ },
+ "R-4.4-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/usages/dto/usages.dto.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages-regularization.int.spec.ts › R-4.4-05 / R-15.3-02 — constat de retour sans relevé : réservé au chef, motif ≥ 5 caractères, checklist et observations conservées, distance non validée avec alerte"
+  ],
+  "note": "Constat de retour sans relevé (readingException) réservé à exceptions.override (403 opérateur), motif ≥ 5 caractères, exclusif d’un relevé ; utilisation TERMINEE, distance NON_VALIDEE, alerte DISTANCE_NON_VALIDEE, audit avec motif ; régularisation ultérieure possible (R-4.4-06)."
+ },
+ "R-4.4-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/usage-distance.ts",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/usages/usages.controller.ts",
+   "apps/api/src/modules/usages/dto/usages.dto.ts",
+   "apps/api/src/domain/usage-rules.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/web/app/(app)/utilisations/[id]/regularize-dialog.tsx",
+   "apps/web/app/(app)/utilisations/[id]/usage-detail.tsx",
+   "apps/api/src/modules/usages/departure-checks.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › retour contesté : relevé en attente, distance non validée jusqu’à la validation, puis régularisée",
+   "apps/api/test/integration/usages-regularization.int.spec.ts › R-4.4-06 — régularisation par un nouveau relevé : distance validée, alerte résolue, audit ; idempotente et versionnée",
+   "apps/api/test/integration/usages-regularization.int.spec.ts › R-4.4-06 — régularisation par un relevé accepté existant, observé avant la remise suivante et non rattaché à une autre utilisation",
+   "apps/api/test/integration/usages-regularization.int.spec.ts › R-4.4-06 — relevé de retour contesté : en attente → régularisation refusée (409) ; validé → alerte résolue ; rejeté → régularisation possible",
+   "apps/api/test/integration/usages-regularization.int.spec.ts › régularisation impossible avant la restitution (409) ou après un départ sans relevé (422 : distance indéterminée)",
+   "apps/api/test/integration/usages-regularization.int.spec.ts › régularisations concurrentes (clés différentes, même version) : une seule réussit, l’autre 409, un seul relevé rattaché",
+   "apps/api/src/domain/usage-rules.spec.ts › possible après un retour sans relevé ou avec un relevé rejeté, départ accepté",
+   "apps/api/src/domain/usage-rules.spec.ts › refusée avant la restitution, sans relevé de départ, déjà validée ou relevé en attente",
+   "apps/api/src/domain/usage-rules.spec.ts › fenêtre : du retour à la remise suivante incluse, jamais dans le futur",
+   "apps/api/test/integration/usages-controls.int.spec.ts › R-13.3-03 / R-18-05 — remise saisie après coup : refusée (409) si elle précède la dernière restitution du véhicule ou du conducteur, acceptée à l’instant même de la restitution"
+  ],
+  "note": "POST /usages/:id/return-reading : après un retour constaté sans relevé ou un relevé rejeté, rattachement d’un relevé accepté (nouveau relevé via le service d’ingestion unique, ou relevé existant observé entre le retour et la remise suivante), transactionnel, idempotent, versionné, audité ; distance recalculée et alerte DISTANCE_NON_VALIDEE résolue dans la transaction (aussi à la validation d’un relevé de retour en attente) ; action « Régulariser la distance » dans /utilisations/[id] (état returnReadingRegularizable calculé par l’API). Revue : la période admise « du retour à la remise suivante » suppose qu’aucune remise ne soit antidatée avant ce retour : c’est désormais garanti (409). Hors périmètre 404 vérifié par un essai (chef B)."
+ },
+ "R-4.4-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/usages/usages.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées",
+   "apps/api/test/integration/usages-rules.int.spec.ts › 13.3 — retours concurrents de la même utilisation : une seule restitution, un seul relevé et un seul lieu"
+  ],
+  "note": "Aucune route PATCH sur /usages (vérifié dans le contrôleur)."
+ },
+ "R-4.4-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/vehicle-status.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T23 — immobilisation pendant une utilisation : utilisation conservée, retour possible, véhicule toujours immobilisé",
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées"
+  ]
+ },
+ "R-4.4-09": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/utilisations/[id]/fiche/usage-sheet.tsx",
+   "apps/web/app/(app)/utilisations/[id]/fiche/usage-sheet-extras.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/utilisations.spec.ts › Utilisations : remise et restitution (T04) › remise avec relevé, seconde remise concurrente du même véhicule refusée par l’API, retour avec relevé, fiche imprimable et localisation"
+  ],
+  "note": "Fiche imprimable vérifiée en e2e (utilisations.spec.ts, vert) : statut, motif, relevés de départ et de retour, lieux, carburant, accessoires (clés, triangle), observations et réserves, distance, masquage des commandes à l’impression ; les noms et les dates imprimés ne sont pas assertés par ce test. Découpage lot B : section « Anomalies et incidents signalés » de la fiche (GET /incidents?usageId=) livrée avec le lot C."
+ },
+ "R-4.4-10": {
+  "status": "fait",
+  "files": [
+   "apps/web/app/(app)/utilisations/[id]/fiche/usage-sheet.tsx",
+   "apps/web/app/(app)/utilisations/[id]/return-form.tsx",
+   "apps/web/app/(app)/utilisations/nouvelle/checkout-form.tsx",
+   "apps/web/app/(app)/utilisations/[id]/usage-detail.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/utilisations.spec.ts › Utilisations : remise et restitution (T04) › remise avec relevé, seconde remise concurrente du même véhicule refusée par l’API, retour avec relevé, fiche imprimable et localisation"
+  ],
+  "note": "Mention « Ceci n’est pas une signature certifiée. » sur la fiche imprimable et « (non certifiée) » à côté de la confirmation nominative, vérifiées par l’e2e utilisations.spec.ts (vert)."
+ },
+ "R-4.5-01": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql",
+   "apps/api/src/domain/reservation-rules.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée",
+   "apps/api/src/domain/reservation-rules.spec.ts › [début, fin[ : consécutifs sans chevauchement ; fin inconnue = ouverte"
+  ]
+ },
+ "R-4.5-02": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql",
+   "apps/api/src/modules/reservations/reservations.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée"
+  ]
+ },
+ "R-4.5-03": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql",
+   "apps/api/src/modules/reservations/reservations.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée"
+  ]
+ },
+ "R-4.5-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/departure-checks.service.ts",
+   "apps/api/src/domain/vehicle-status.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T07 — retour dépassé avec réservation suivante : alerte, utilisation ouverte, départ suivant bloqué"
+  ]
+ },
+ "R-4.5-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T07 — retour dépassé avec réservation suivante : alerte, utilisation ouverte, départ suivant bloqué"
+  ]
+ },
+ "R-4.5-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T07 — retour dépassé avec réservation suivante : alerte, utilisation ouverte, départ suivant bloqué",
+   "apps/api/test/integration/usages-rules.int.spec.ts › D-135 / 4.5 — prolongation qui efface le retard : les alertes « réservation compromise » dues à ce retard sont résolues avec lui"
+  ]
+ },
+ "R-4.5-11": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T22 — document bloquant expiré : départ refusé sauf dérogation autorisée, retour toujours possible",
+   "apps/api/test/integration/usages.int.spec.ts › T23 — immobilisation pendant une utilisation : utilisation conservée, retour possible, véhicule toujours immobilisé",
+   "apps/api/test/integration/usages.int.spec.ts › T07 — retour dépassé avec réservation suivante : alerte, utilisation ouverte, départ suivant bloqué"
+  ]
+ },
+ "R-4.5-12": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/infra/prisma.service.ts",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql",
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/reservations/reservations.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T04 — deux remises simultanées du même véhicule à deux conducteurs : une seule réussite",
+   "apps/api/test/integration/usages.int.spec.ts › T05 — même conducteur, deux véhicules au même instant : une seule utilisation en cours",
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée",
+   "apps/api/test/integration/reservations.int.spec.ts › courses : modifications, annulations et constats parallèles sur la même version → une réussite, un 409 VERSION_OBSOLETE (jamais 500)"
+  ]
+ },
+ "R-5.1-01": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › initialise le compteur au premier relevé du personnel et expose le compteur courant",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › D-265 — même lot envoyé deux fois avec la même clé : aucune ligne dupliquée, mêmes résultats ; photo rattachée",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › pendingCount suit exactement le filtre de GET /vehicles/:id/readings?status=EN_ATTENTE (périmètre de sociétés)"
+  ]
+ },
+ "R-5.1-02": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/odometer/dto/odometer.dto.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/common/validation.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › GET /readings?mine=true : relevés dont l’utilisateur courant est l’auteur",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › pendingCount suit exactement le filtre de GET /vehicles/:id/readings?status=EN_ATTENTE (périmètre de sociétés)"
+  ],
+  "note": "Champs clients limités par le DTO et la validation whitelist/forbidNonWhitelisted ; société historique, auteur et source fixés par le serveur. Découpage lot B : société historique après transfert et relevé de plein : tests livrés avec le lot D (vehicle-transfer.int.spec.ts, fuel.int.spec.ts)."
+ },
+ "R-5.1-03": {
+  "status": "partiel",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/domain/odometer-rules.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › minute pour MANUAL et IMPORT, seconde pour TELEMATICS"
+  ],
+  "note": "Découpage lot B : source MANUAL testée ; IMPORT et TELEMATICS : tests livrés avec les lots E et F."
+ },
+ "R-5.1-04": {
+  "status": "partiel",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/odometer/dto/odometer.dto.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages-rules.int.spec.ts › 13.3 — retours concurrents de la même utilisation : une seule restitution, un seul relevé et un seul lieu"
+  ],
+  "note": "Contextes REMISE, RESTITUTION, CARBURANT, ENTRETIEN et SYNCHRONISATION vérifiés ; RELEVE_LIBRE par défaut ; INITIALISATION et TRANSFERT ajoutés (D-167, D-121). Découpage lot B : contextes RELEVE_LIBRE, REMISE et RESTITUTION testés ; CARBURANT, ENTRETIEN et SYNCHRONISATION : tests livrés avec les lots D, C et F."
+ },
+ "R-5.1-05": {
+  "status": "non testé",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/odometer/dto/odometer.dto.ts",
+   "apps/api/src/common/validation.ts"
+  ],
+  "tests": [],
+  "note": "Aucun DTO public n’expose la source ; un corps forgé avec source TELEMATICS est refusé (422) sur les routes publiques de saisie ; aucun relevé TELEMATICS créé ; l’ingestion refuse TELEMATICS hors auteur SYSTEM. Découpage lot B : refus de la source TELEMATICS implémenté ; test livré avec le lot C (odometer-dependents.int.spec.ts, dont tous les cas créent des types d’entretien)."
+ },
+ "R-5.1-06": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel",
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › validation et rejet simultanés du même relevé : un seul gagnant, l’autre reçoit 409 avec la version courante"
+  ]
+ },
+ "R-5.1-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › initialise le compteur au premier relevé du personnel et expose le compteur courant"
+  ]
+ },
+ "R-5.1-09": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel"
+  ]
+ },
+ "R-5.1-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › met en attente une hausse implausible, même saisie par un opérateur, puis la valide explicitement",
+   "apps/api/src/domain/odometer-rules.spec.ts › une hausse au-delà du seuil est proposée à validation sans devenir courante"
+  ]
+ },
+ "R-5.1-11": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/odometer/usage-distance.ts",
+   "apps/api/src/modules/vehicles/vehicles.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel",
+   "apps/api/test/integration/usages.int.spec.ts › retour contesté : relevé en attente, distance non validée jusqu’à la validation, puis régularisée",
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées"
+  ],
+  "note": "Découpage lot B : exclusion de la consommation testée avec le lot D (fuel.int.spec.ts)."
+ },
+ "R-5.1-12": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/odometer/odometer.controller.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › validation et rejet simultanés du même relevé : un seul gagnant, l’autre reçoit 409 avec la version courante",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › rejets simultanés et validations simultanées : un seul effet, 409 pour les autres",
+   "packages/contracts/src/index.spec.ts › seuls l’administrateur et le chef disposent des corrections et dérogations"
+  ]
+ },
+ "R-5.1-13": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/kilometrage/odometer-workspace.tsx",
+   "apps/web/app/(app)/kilometrage/quick-entry.tsx",
+   "apps/web/app/(app)/kilometrage/pending-readings.tsx",
+   "apps/web/app/(app)/kilometrage/readings-history.tsx",
+   "apps/web/app/(app)/vehicules/[id]/odometer-panel.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/releves.spec.ts › Relevés kilométriques › le conducteur déclare depuis Mon véhicule un kilométrage au-delà du seuil : soumission en attente sans effet sur le compteur, validée par le chef (T11)",
+   "tests/e2e/specs/releves.spec.ts › Relevés kilométriques › le chef corrige un relevé accepté avec motif : original conservé « Remplacé », remplacement accepté et chronologie recalculée ; une diminution est refusée (T09, T13)"
+  ],
+  "note": "E2e releves.spec.ts (verts) : file de validation /kilometrage (motif et code d’anomalie, validation commentée), onglet Kilométrage (historique avec statuts, ajout, diminution refusée, correction motivée) et historique filtré par statut ; la saisie rapide par parc et l’ajout de photos ne sont pas exercés par un e2e (API testée : odometer-workflow.int.spec.ts, D-265). Revue (2026-09-24, relance) : l’e2e T11 de releves.spec.ts est actuellement rouge dans le dépôt : le sélecteur getByRole('button', { name: 'Fermer' }) devient ambigu depuis l’ajout du bouton « Fermer la notification » au Toaster (components/ui/sonner.tsx, autre mission) ; le parcours est vert avec le sélecteur exact (copie temporaire) — correctif du test à apporter par la mission e2e (exact: true)."
+ },
+ "R-5.1-15": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/domain/km-display.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/km-display.spec.ts › libellé français tronqué",
+   "apps/api/test/integration/vehicles.int.spec.ts › crée un véhicule avec un kilométrage inconnu (NULL), un statut DISPONIBLE et un historique de société",
+   "apps/web/lib/format.spec.ts › compteurs tronqués au kilomètre entier, estimation GPS signalée"
+  ]
+ },
+ "R-5.2-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › refuse une valeur négative, une date future et une valeur sous le début du segment",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › correction : les erreurs de valeur portent les clés replacementReading.physicalKm et replacementReading.observedAt"
+  ]
+ },
+ "R-5.2-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › refuse une valeur négative, une date future et une valeur sous le début du segment",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › correction : les erreurs de valeur portent les clés replacementReading.physicalKm et replacementReading.observedAt"
+  ]
+ },
+ "R-5.2-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T01 — relevés et file de validation cloisonnés par société",
+   "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel"
+  ]
+ },
+ "R-5.2-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › T10 — un ancien relevé inséré entre deux voisins valides est accepté s’il respecte la chronologie",
+   "apps/api/src/domain/odometer-rules.spec.ts › T10 — un ancien relevé supérieur au suivant rompt la chronologie",
+   "apps/api/test/integration/odometer.int.spec.ts › T10 — un relevé rétroactif entre deux voisins est contrôlé et ne fait pas reculer le compteur courant"
+  ]
+ },
+ "R-5.2-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › traite deux valeurs identiques au même instant comme une seule opération et deux valeurs différentes comme un conflit",
+   "apps/api/test/integration/odometer.int.spec.ts › un relevé identique à un relevé encore en attente renvoie ce relevé, sans doublon (D-149)",
+   "apps/api/src/domain/odometer-rules.spec.ts › même instant : même valeur idempotente, valeur différente en conflit"
+  ]
+ },
+ "R-5.2-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › traite deux valeurs identiques au même instant comme une seule opération et deux valeurs différentes comme un conflit",
+   "apps/api/src/domain/odometer-rules.spec.ts › même instant : même valeur idempotente, valeur différente en conflit"
+  ]
+ },
+ "R-5.2-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › T09 — 89 000 après 89 500 dans le même segment : diminution refusée pour un relevé manuel",
+   "apps/api/test/integration/odometer.int.spec.ts › T09 — refuse 89 000 après 89 500 dans le même segment"
+  ]
+ },
+ "R-5.2-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › une hausse au-delà du seuil est proposée à validation sans devenir courante",
+   "apps/api/test/integration/odometer.int.spec.ts › met en attente une hausse implausible, même saisie par un opérateur, puis la valide explicitement"
+  ]
+ },
+ "R-5.2-09": {
+  "status": "partiel",
+  "files": [
+   "packages/contracts/src/index.ts",
+   "apps/api/src/modules/settings/settings.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/web/app/(app)/kilometrage/pending-readings.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/settings.int.spec.ts › versionne et audite chaque modification ; surcharge société explicite ; réservé à l’administrateur",
+   "apps/api/src/domain/odometer-rules.spec.ts › la tolérance minimale s’applique aux relevés rapprochés, le taux journalier au-delà"
+  ],
+  "note": "Seuils odometer.plausibilityMaxKmPerDay / plausibilityMinKm modifiables par l’administrateur seul (403 chef), par société, versionnés et audités (parametre.modification) ; un relevé mis en attente au seuil par défaut est accepté après relèvement ; libellés « filtre administratif, pas une limite physique » servis par GET /settings et rappel dans la file de validation /kilometrage. Découpage lot B : paramètre versionné et audité testé ; effet d’un relèvement du seuil sur un relevé : test livré avec le lot C (odometer-dependents.int.spec.ts)."
+ },
+ "R-5.2-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › T09 — 89 000 après 89 500 dans le même segment : diminution refusée pour un relevé manuel",
+   "apps/api/src/domain/odometer-rules.spec.ts › T40 — la même diminution venant de la télématique passe en attente avec motif"
+  ],
+  "note": "Revue : aucune règle de kilométrage dans apps/web ; evaluateReading unique appelé par l’ingestion pour toutes les sources. Découpage lot B : application identique aux imports et à la télématique testée avec les lots E et F."
+ },
+ "R-5.3-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › retient le dernier relevé selon la date d’observation, pas la date de saisie",
+   "apps/api/test/integration/odometer.int.spec.ts › T10 — un relevé rétroactif entre deux voisins est contrôlé et ne fait pas reculer le compteur courant"
+  ]
+ },
+ "R-5.3-02": {
+  "status": "fait",
+  "files": [
+   "apps/web/app/(app)/vehicules/[id]/vehicle-detail.tsx",
+   "apps/web/app/(app)/vehicules/[id]/odometer-panel.tsx",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "tests/e2e/specs/releves.spec.ts › Relevés kilométriques › le conducteur déclare depuis Mon véhicule un kilométrage au-delà du seuil : soumission en attente sans effet sur le compteur, validée par le chef (T11)",
+   "tests/e2e/specs/releves.spec.ts › Relevés kilométriques › le chef corrige un relevé accepté avec motif : original conservé « Remplacé », remplacement accepté et chronologie recalculée ; une diminution est refusée (T09, T13)",
+   "tests/e2e/specs/compteur.spec.ts › Compteur kilométrique : remplacement et cumul (T14) › remplacement à 120 000 km par un compteur à 0 : lecture 500 = 120 500 km cumulés, compteur courant daté, sourcé et frais ; la base du nouveau compteur ne se corrige pas"
+  ],
+  "note": "Valeur, date d’observation, source et fraîcheur exposées par l’API (testées) et affichées dans la carte « Compteur courant » : l’e2e compteur.spec.ts (vert) vérifie la valeur (500 km), le cumul (120 500 km), la source (« Manuel · Compteur affiché · compteur n° 2 »), la date « observé le … 08:00 » et la fraîcheur (« Fraîcheur : Inconnu » puis « À jour (n j) »). Revue (2026-09-24, relance) : l’e2e T11 de releves.spec.ts est actuellement rouge dans le dépôt : le sélecteur getByRole('button', { name: 'Fermer' }) devient ambigu depuis l’ajout du bouton « Fermer la notification » au Toaster (components/ui/sonner.tsx, autre mission) ; le parcours est vert avec le sélecteur exact (copie temporaire) — correctif du test à apporter par la mission e2e (exact: true)."
+ },
+ "R-5.3-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T10 — un relevé rétroactif entre deux voisins est contrôlé et ne fait pas reculer le compteur courant"
+  ]
+ },
+ "R-5.3-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.controller.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées"
+  ],
+  "note": "Aucune route PATCH/DELETE sur les relevés (contrôleur lu)."
+ },
+ "R-5.3-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/odometer/dto/odometer.dto.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées",
+   "packages/contracts/src/index.spec.ts › seuls l’administrateur et le chef disposent des corrections et dérogations"
+  ]
+ },
+ "R-5.3-06": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/odometer/usage-distance.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/odometer/odometer-events.service.ts",
+   "apps/api/src/modules/odometer/odometer-freshness.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › D-167 — le premier relevé d’un segment ordinaire se corrige (faute de frappe) et le début du segment le suit"
+  ],
+  "note": "Correction : original REMPLACE, remplacement lié, liens métier (remise, restitution, plein, intervention) et distances recalculés ; échéances et statuts des plans d’entretien, alertes d’échéance, fraîcheur et ses alertes recalculés DANS la transaction de correction (OdometerEventsService.recomputeDependentsInTx) ; alertes DISTANCE_NON_VALIDEE résolues si la distance devient validée ; consommation calculée à la lecture ; audit avec valeurs avant/après et dépendances recalculées. Revue adversariale : corriger la valeur du relevé qui avait fixé la base cumulée d’un compteur remplacé laissait faux le cumul du compteur suivant (défaut confirmé, corrigé : correction bloquée BASE_COMPTEUR_SUIVANT) ; la base du compteur suivant borne désormais les relevés rétroactifs, validations et corrections de l’ancien compteur (cumul toujours croissant, D-016). Découpage lot B : compteur courant, cumuls et distances recalculés et testés ; échéances d’entretien, consommation et leurs alertes : tests livrés avec les lots C et D."
+ },
+ "R-5.3-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées"
+  ]
+ },
+ "R-5.3-08": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › D-167 — le premier relevé d’un segment ordinaire se corrige (faute de frappe) et le début du segment le suit",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › correction vers la valeur et l’instant d’un autre relevé accepté : 422 sous replacementReading.physicalKm, jamais 500 ni doublon",
+   "apps/api/test/integration/usages-regularization.int.spec.ts › R-4.4-06 — relevé de retour contesté : en attente → régularisation refusée (409) ; validé → alerte résolue ; rejeté → régularisation possible",
+   "tests/e2e/specs/compteur.spec.ts › Compteur kilométrique : remplacement et cumul (T14) › remplacement à 120 000 km par un compteur à 0 : lecture 500 = 120 500 km cumulés, compteur courant daté, sourcé et frais ; la base du nouveau compteur ne se corrige pas"
+  ],
+  "note": "Correction bloquée (422 CORRECTION_BLOQUEE) si elle rompt la chronologie des voisins (remises/restitutions comprises) ou si elle déplace la date d’un relevé rattaché à une remise, une restitution, un plein ou une intervention (DATE_LIEE_A_UN_EVENEMENT, dépendances listées) ; les entretiens suivent le remplacement (performedKm) et sont recalculés dans la transaction ; parcours explicite de régularisation d’une restitution (POST /usages/:id/return-reading). Revue : blocage de date prouvé pour le plein et l’intervention (le test ne couvrait que la remise/restitution) ; ajout du blocage de la valeur qui fixe la base d’un compteur remplacé (422 BASE_COMPTEUR_SUIVANT, vérifié aussi dans le navigateur par compteur.spec.ts). Découpage lot B : chronologie des voisins et base du compteur suivant testées ; date d’un relevé rattaché à une remise, une restitution, un plein ou une intervention : test livré avec le lot C (odometer-dependents.int.spec.ts)."
+ },
+ "R-5.4-01": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T14 — remplacement à 120 000 par un compteur à 0 puis lecture 500 : physique 500, cumul 120 500"
+  ]
+ },
+ "R-5.4-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › égalité à l’initialisation ordinaire",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › D-167 — premier relevé du personnel : segment 1 automatique (physique = cumulé) ; initialisation explicite réservée au chef et à l’administrateur"
+  ],
+  "note": "D-016 (D-167) : initialisation ordinaire automatique au premier relevé du personnel, cumul = physique."
+ },
+ "R-5.4-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T14 — remplacement à 120 000 par un compteur à 0 puis lecture 500 : physique 500, cumul 120 500",
+   "tests/e2e/specs/compteur.spec.ts › Compteur kilométrique : remplacement et cumul (T14) › remplacement à 120 000 km par un compteur à 0 : lecture 500 = 120 500 km cumulés, compteur courant daté, sourcé et frais ; la base du nouveau compteur ne se corrige pas"
+  ],
+  "note": "Base « dernière distance cumulée validée » protégée contre les corrections et relevés rétroactifs ultérieurs."
+ },
+ "R-5.4-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › égalité à l’initialisation ordinaire",
+   "apps/api/src/domain/odometer-rules.spec.ts › remplacement à 120 000 par un compteur à 0 : lecture 500 = 120 500 cumulés"
+  ]
+ },
+ "R-5.4-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/domain/odometer-rules.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T14 — remplacement à 120 000 par un compteur à 0 puis lecture 500 : physique 500, cumul 120 500",
+   "apps/api/src/domain/odometer-rules.spec.ts › remplacement à 120 000 par un compteur à 0 : lecture 500 = 120 500 cumulés",
+   "tests/e2e/specs/compteur.spec.ts › Compteur kilométrique : remplacement et cumul (T14) › remplacement à 120 000 km par un compteur à 0 : lecture 500 = 120 500 km cumulés, compteur courant daté, sourcé et frais ; la base du nouveau compteur ne se corrige pas"
+  ]
+ },
+ "R-5.4-06": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › remplacement à 120 000 par un compteur à 0 : lecture 500 = 120 500 cumulés",
+   "apps/api/test/integration/odometer.int.spec.ts › T14 — remplacement à 120 000 par un compteur à 0 puis lecture 500 : physique 500, cumul 120 500"
+  ],
+  "note": "Plan d’entretien créé après un remplacement de compteur : statut, reste et kilométrage courant calculés sur le cumul (120 500), jamais sur le compteur physique (500) ; échéance dépassée détectée à 121 200 cumulés. Découpage lot B : kilométrage cumulé calculé et testé (T14) ; calcul des entretiens sur le cumul livré et testé avec le lot C."
+ },
+ "R-5.4-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/domain/period-distance.ts",
+   "apps/web/app/(app)/vehicules/[id]/vehicle-detail.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › D-167 — premier relevé du personnel : segment 1 automatique (physique = cumulé) ; initialisation explicite réservée au chef et à l’administrateur",
+   "apps/api/src/domain/period-distance.spec.ts › N/D pour un cumul incomplet entre deux compteurs, mais distance exacte au sein d’un même compteur",
+   "tests/e2e/specs/compteur.spec.ts › Compteur kilométrique : remplacement et cumul (T14) › compteur initialisé sans historique connu : « cumul incomplet » signalé, jamais une distance fabriquée"
+  ],
+  "note": "« Cumul incomplet » affiché dans la carte du compteur courant et le tableau des compteurs, vérifié par l’e2e compteur.spec.ts (vert)."
+ },
+ "R-5.4-08": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T14 — remplacement à 120 000 par un compteur à 0 puis lecture 500 : physique 500, cumul 120 500"
+  ],
+  "note": "Découpage lot B : aucun remplacement implicite par un relevé inférieur (T09, T14) ; imports et télématique : tests livrés avec les lots E et F."
+ },
+ "R-5.5-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/freshness.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/freshness.spec.ts › sans relevé accepté : INCONNU",
+   "apps/api/test/integration/odometer.int.spec.ts › T12 — fraîcheur INCONNU sans relevé puis A_ACTUALISER au-delà de sept jours"
+  ]
+ },
+ "R-5.5-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/freshness.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/freshness.spec.ts › relevé de moins de sept jours : A_JOUR ; exactement sept jours : encore A_JOUR ; au-delà : A_ACTUALISER",
+   "apps/api/test/integration/odometer.int.spec.ts › T12 — fraîcheur INCONNU sans relevé puis A_ACTUALISER au-delà de sept jours"
+  ]
+ },
+ "R-5.5-03": {
+  "status": "fait",
+  "files": [
+   "packages/contracts/src/index.ts",
+   "apps/api/src/modules/settings/settings.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/settings.int.spec.ts › versionne et audite chaque modification ; surcharge société explicite ; réservé à l’administrateur",
+   "apps/api/src/domain/freshness.spec.ts › respecte un seuil configuré différent"
+  ]
+ },
+ "R-5.5-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/freshness.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T12 — fraîcheur INCONNU sans relevé puis A_ACTUALISER au-delà de sept jours",
+   "apps/api/src/domain/freshness.spec.ts › relevé de moins de sept jours : A_JOUR ; exactement sept jours : encore A_JOUR ; au-delà : A_ACTUALISER"
+  ]
+ },
+ "R-10.2-05": {
+  "status": "non testé",
+  "files": [
+   "apps/web/app/(app)/planning/planning-view.tsx",
+   "apps/web/app/(app)/planning/planning-timeline.tsx",
+   "apps/api/src/modules/reservations/reservations.service.ts"
+  ],
+  "tests": [],
+  "note": "Vues jour/semaine/mois présentes ; seule l’API /planning est testée (intégration), aucun e2e de l’écran. Découpage lot B : interventions au planning testées avec le lot C (reservations.int.spec.ts)."
+ },
+ "R-10.2-06": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/utilisations/usages-list.tsx",
+   "apps/web/app/(app)/utilisations/[id]/usage-detail.tsx",
+   "apps/web/app/(app)/utilisations/[id]/return-form.tsx",
+   "apps/web/app/(app)/utilisations/nouvelle/checkout-form.tsx",
+   "apps/web/app/(app)/utilisations/[id]/fiche/usage-sheet.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/utilisations.spec.ts › Utilisations : remise et restitution (T04) › remise avec relevé, seconde remise concurrente du même véhicule refusée par l’API, retour avec relevé, fiche imprimable et localisation"
+  ],
+  "note": "E2e utilisations.spec.ts (vert) : liste des utilisations en cours, remise, refus concurrent, retour, fiche imprimable ; l’historique filtré et l’affichage du retard ne sont pas exercés par un e2e (retard vérifié en intégration : usages-rules.int.spec.ts)."
+ },
+ "R-10.2-07": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/kilometrage/odometer-workspace.tsx",
+   "apps/web/app/(app)/kilometrage/quick-entry.tsx",
+   "apps/web/app/(app)/kilometrage/pending-readings.tsx",
+   "apps/web/app/(app)/kilometrage/readings-history.tsx",
+   "apps/web/components/odometer/reading-dialogs.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/releves.spec.ts › Relevés kilométriques › le conducteur déclare depuis Mon véhicule un kilométrage au-delà du seuil : soumission en attente sans effet sur le compteur, validée par le chef (T11)",
+   "tests/e2e/specs/releves.spec.ts › Relevés kilométriques › le chef corrige un relevé accepté avec motif : original conservé « Remplacé », remplacement accepté et chronologie recalculée ; une diminution est refusée (T09, T13)"
+  ],
+  "note": "E2e releves.spec.ts (verts) : file de validation /kilometrage (motif et code d’anomalie, validation commentée), onglet Kilométrage (historique avec statuts, ajout, diminution refusée, correction motivée) et historique filtré par statut ; la saisie rapide par parc et l’ajout de photos ne sont pas exercés par un e2e (API testée : odometer-workflow.int.spec.ts, D-265). Revue (2026-09-24, relance) : l’e2e T11 de releves.spec.ts est actuellement rouge dans le dépôt : le sélecteur getByRole('button', { name: 'Fermer' }) devient ambigu depuis l’ajout du bouton « Fermer la notification » au Toaster (components/ui/sonner.tsx, autre mission) ; le parcours est vert avec le sélecteur exact (copie temporaire) — correctif du test à apporter par la mission e2e (exact: true)."
+ },
+ "R-13.2-06": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql",
+   "apps/api/src/modules/assignments/assignments.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T08 — responsable habituel A et utilisation ponctuelle B restent distincts, historique conservé",
+   "apps/api/test/integration/assignments.int.spec.ts › statut A_VENIR / EN_COURS / TERMINEE et canEnd calculés par le serveur, bornes comprises"
+  ]
+ },
+ "R-13.2-07": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/reservations/reservations.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › convertit une réservation lors de la remise",
+   "apps/api/test/integration/reservations.int.spec.ts › création (D-137) : début au plus 15 min dans le passé, fin après le début, bornes tronquées à la minute, société déduite du véhicule"
+  ]
+ },
+ "R-13.2-08": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées",
+   "apps/api/test/integration/usages.int.spec.ts › refuse un départ sans relevé pour l’opérateur ; exception motivée du chef avec alerte persistante et distance indéterminée",
+   "apps/api/test/integration/usages.int.spec.ts › T07 — retour dépassé avec réservation suivante : alerte, utilisation ouverte, départ suivant bloqué"
+  ]
+ },
+ "R-13.2-09": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/vehicles/vehicles.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts › déclare une localisation « dernière localisation déclarée » avec date et auteur, jamais une position",
+   "apps/api/test/integration/usages-rules.int.spec.ts › D-134 — remise : lieu absent, double, vide, trop long ou site invalide refusé (422) sans rien créer ; site actif accepté"
+  ]
+ },
+ "R-13.2-10": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T14 — remplacement à 120 000 par un compteur à 0 puis lecture 500 : physique 500, cumul 120 500",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › D-167 — premier relevé du personnel : segment 1 automatique (physique = cumulé) ; initialisation explicite réservée au chef et à l’administrateur"
+  ]
+ },
+ "R-13.2-11": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T09 — refuse 89 000 après 89 500 dans le même segment",
+   "apps/api/test/integration/odometer.int.spec.ts › T10 — un relevé rétroactif entre deux voisins est contrôlé et ne fait pas reculer le compteur courant",
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées"
+  ]
+ },
+ "R-13.3-02": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T04 — deux remises simultanées du même véhicule à deux conducteurs : une seule réussite",
+   "apps/api/test/integration/usages.int.spec.ts › T04 — dix remises concurrentes du même véhicule ne créent qu’une utilisation ouverte"
+  ]
+ },
+ "R-13.3-03": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/usages/departure-checks.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T05 — même conducteur, deux véhicules au même instant : une seule utilisation en cours",
+   "apps/api/test/integration/usages-controls.int.spec.ts › R-13.3-03 / R-18-05 — remise saisie après coup : refusée (409) si elle précède la dernière restitution du véhicule ou du conducteur, acceptée à l’instant même de la restitution"
+  ],
+  "note": "Revue : une remise antidatée pouvait chevaucher l’utilisation déjà restituée du même conducteur ou du même véhicule (double affectation dans l’historique, confirmée par un essai) ; refusée désormais en 409 (CONDUCTEUR_DEJA_EN_UTILISATION / VEHICULE_DEJA_EN_UTILISATION), aussi annoncée par l’aperçu de remise."
+ },
+ "R-13.3-04": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql",
+   "apps/api/src/modules/reservations/reservations.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée"
+  ]
+ },
+ "R-13.3-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/infra/prisma.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages-rules.int.spec.ts › 13.3 — retours concurrents de la même utilisation : une seule restitution, un seul relevé et un seul lieu",
+   "apps/api/test/integration/usages-rules.int.spec.ts › D-134 — remise : lieu absent, double, vide, trop long ou site invalide refusé (422) sans rien créer ; site actif accepté",
+   "apps/api/test/integration/usages-rules.int.spec.ts › D-134 — restitution : lieu obligatoire, site d’une autre société refusé sans clore l’utilisation"
+  ]
+ },
+ "R-13.3-07": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/odometer/usage-distance.ts",
+   "apps/api/src/modules/odometer/odometer-events.service.ts",
+   "apps/api/src/modules/odometer/odometer-freshness.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › corrections simultanées du même relevé (clés différentes) : un seul remplacement, 409 pour l’autre"
+  ],
+  "note": "Correction transactionnelle (sérialisable, verrous véhicule → relevé) : original conservé, remplacement, utilisations, plans d’entretien (verrouillés dans l’ordre des identifiants) et alertes d’échéance et de fraîcheur recalculés dans la même transaction ; notifications différées après validation. Le recalcul du calibrage GPS (module F11) reste après validation (écouteur télématique, hors périmètre du lot B). Découpage lot B : correction transactionnelle testée (T13, concurrence) ; recalcul des plans d’entretien dans la transaction : test livré avec le lot C (odometer-dependents.int.spec.ts)."
+ },
+ "R-13.3-11": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/infra/prisma.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/reservations/reservations.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/infra/prisma-retry.spec.ts › reprend P2034 et les conflits 40001/40P01 d’une requête brute (P2010), pas les autres erreurs",
+   "apps/api/test/integration/usages.int.spec.ts › T04 — dix remises concurrentes du même véhicule ne créent qu’une utilisation ouverte",
+   "apps/api/test/integration/usages.int.spec.ts › T05 — même conducteur, deux véhicules au même instant : une seule utilisation en cours"
+  ]
+ },
+ "R-13.3-12": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/infra/prisma.service.ts",
+   "apps/api/src/common/errors.ts",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/usages/departure-checks.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T04 — deux remises simultanées du même véhicule à deux conducteurs : une seule réussite",
+   "apps/api/test/integration/usages.int.spec.ts › T05 — même conducteur, deux véhicules au même instant : une seule utilisation en cours",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › validation et rejet simultanés du même relevé : un seul gagnant, l’autre reçoit 409 avec la version courante",
+   "apps/api/test/integration/usages-controls.int.spec.ts › R-13.3-03 / R-18-05 — remise saisie après coup : refusée (409) si elle précède la dernière restitution du véhicule ou du conducteur, acceptée à l’instant même de la restitution"
+  ],
+  "note": "Revue : aucune double affectation, même par une remise saisie après coup (409 lisible)."
+ },
+ "R-13.3-14": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées"
+  ],
+  "note": "Compteur courant calculé à la lecture ; statut d’entretien matérialisé recalculable (recomputeAll). Revue : le cumul d’un compteur remplacé reste recalculable depuis les relevés validés (base du compteur suivant protégée). Découpage lot B : compteur courant recalculable testé ; prochaines échéances : lot C, idempotence des alertes : lot D."
+ },
+ "R-14.2-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/odometer-rules.spec.ts › T09 — 89 000 après 89 500 dans le même segment : diminution refusée pour un relevé manuel",
+   "apps/api/src/domain/odometer-rules.spec.ts › T10 — un ancien relevé supérieur au suivant rompt la chronologie",
+   "apps/api/src/domain/odometer-rules.spec.ts › même instant : même valeur idempotente, valeur différente en conflit",
+   "apps/api/src/domain/odometer-rules.spec.ts › refuse une valeur négative, une date future et une valeur sous le début du segment",
+   "apps/api/src/domain/odometer-rules.spec.ts › une hausse au-delà du seuil est proposée à validation sans devenir courante"
+  ],
+  "note": "Découpage lot B : décroissance télématique en attente testée avec le lot F."
+ },
+ "R-14.3-01": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T09 — refuse 89 000 après 89 500 dans le même segment"
+  ],
+  "note": "Découpage lot B : ingestion MANUAL testée ; IMPORT et TELEMATICS par le même service : tests livrés avec les lots E et F."
+ },
+ "R-15.2-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicles.controller.ts",
+   "apps/api/src/modules/vehicles/vehicles.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicles.int.spec.ts › déclare une localisation « dernière localisation déclarée » avec date et auteur, jamais une position"
+  ],
+  "note": "Découpage lot B : localisations après transfert testées avec le lot D."
+ },
+ "R-15.2-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/assignments/assignments.controller.ts",
+   "apps/api/src/modules/assignments/assignments.service.ts",
+   "apps/api/src/domain/responsible-assignment.ts",
+   "apps/web/app/(app)/vehicules/[id]/edit-assignment-dialog.tsx",
+   "apps/web/app/(app)/vehicules/[id]/assignments-panel.tsx",
+   "apps/web/app/(app)/conducteurs/[id]/driver-assignments-card.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T08 — responsable habituel A et utilisation ponctuelle B restent distincts, historique conservé",
+   "apps/api/test/integration/assignments.int.spec.ts › remplacement explicite d’un responsable EN_COURS avec fin prévue ; une affectation à venir n’est jamais remplacée",
+   "apps/api/test/integration/assignments.int.spec.ts › fin : version contrôlée sous verrou (fins concurrentes : une seule), déjà terminée → 409, chevauchement → 409 lisible",
+   "apps/api/test/integration/assignments-update.int.spec.ts › affectation à venir : responsable, début, fin et notes modifiés avec motif, version incrémentée et audit avant/après",
+   "apps/api/test/integration/assignments-update.int.spec.ts › affectation en cours : fin prévue et notes modifiables ; responsable, début ou fin passée refusés (422) ; terminée : 409",
+   "apps/api/test/integration/assignments-update.int.spec.ts › mêmes contrôles que la nomination : chevauchement 409, conducteur inactif ou d’une autre société 422, hors périmètre 404, lecteur 403",
+   "apps/api/test/integration/assignments-update.int.spec.ts › modifications concurrentes sur la même version : une seule réussit, l’autre reçoit 409 (jamais 500)",
+   "apps/api/src/domain/responsible-assignment.spec.ts › à venir : tous les champs ; en cours : fin et notes seulement ; terminée : aucun",
+   "apps/api/src/domain/responsible-assignment.spec.ts › une modification fixe une fin future ou aucune fin ; une fin passée ou présente relève de « terminer »"
+  ],
+  "note": "PATCH /responsible-assignments/:id (motif, expectedVersion, mêmes contrôles que la nomination, contrainte d’exclusion, verrous véhicule → conducteurs, audit avant/après ; champs modifiables calculés par le serveur : editableFields) ; action « Modifier » dans l’onglet Affectations du véhicule et sur la fiche conducteur. Création, fin et consultation déjà couvertes."
+ },
+ "R-15.2-09": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/reservations/reservations.controller.ts",
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/reservations.int.spec.ts › création (D-137) : début au plus 15 min dans le passé, fin après le début, bornes tronquées à la minute, société déduite du véhicule",
+   "apps/api/test/integration/reservations.int.spec.ts › modification avant le début (D-137) : véhicule et conducteur changés avec les contrôles de la création, motif et audit, société du véhicule",
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée",
+   "apps/api/test/integration/usages.int.spec.ts › convertit une réservation lors de la remise"
+  ],
+  "note": "La conversion passe par POST /usages/checkout (reservationId), pas par une route /reservations."
+ },
+ "R-15.2-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.controller.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées",
+   "apps/api/test/integration/usages.int.spec.ts › T03 — un conducteur voit ses utilisations et pas celles des autres"
+  ],
+  "note": "Aucune route PATCH sur /usages (contrôleur lu)."
+ },
+ "R-15.2-11": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.controller.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel",
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › validation et rejet simultanés du même relevé : un seul gagnant, l’autre reçoit 409 avec la version courante",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › GET /vehicles/:id/readings applique le paramètre order (récent d’abord par défaut)"
+  ]
+ },
+ "R-15.2-12": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.controller.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T14 — remplacement à 120 000 par un compteur à 0 puis lecture 500 : physique 500, cumul 120 500",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › D-167 — premier relevé du personnel : segment 1 automatique (physique = cumulé) ; initialisation explicite réservée au chef et à l’administrateur"
+  ]
+ },
+ "R-15.3-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/dto/usages.dto.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées",
+   "apps/api/test/integration/usages.int.spec.ts › T33 — même clé et même corps : réponse initiale rejouée ; même clé et corps différent : 409",
+   "apps/api/test/integration/usages.int.spec.ts › refuse un départ sans relevé pour l’opérateur ; exception motivée du chef avec alerte persistante et distance indéterminée"
+  ]
+ },
+ "R-15.3-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/dto/usages.dto.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées",
+   "apps/api/test/integration/usages-rules.int.spec.ts › D-134 — restitution : lieu obligatoire, site d’une autre société refusé sans clore l’utilisation",
+   "apps/api/test/integration/usages-rules.int.spec.ts › 13.3 — retours concurrents de la même utilisation : une seule restitution, un seul relevé et un seul lieu",
+   "apps/api/test/integration/usages-regularization.int.spec.ts › R-4.4-05 / R-15.3-02 — constat de retour sans relevé : réservé au chef, motif ≥ 5 caractères, checklist et observations conservées, distance non validée avec alerte",
+   "apps/api/test/integration/usages-controls.int.spec.ts › R-4.3-02 / R-4.4-01 — carburant, checklist, observations, confirmation nominative et photos enregistrés à la remise et à la restitution"
+  ],
+  "note": "Contrat Return exercé : returnedAt, reading ou readingException (exception autorisée), location, checklist (conservée telle quelle), carburant, observations, confirmation nominative, photos et expectedVersion."
+ },
+ "R-15.3-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/validation.ts",
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/reservations.int.spec.ts › création (D-137) : début au plus 15 min dans le passé, fin après le début, bornes tronquées à la minute, société déduite du véhicule",
+   "apps/api/test/integration/scope.int.spec.ts › T01 — les mutations hors périmètre sont refusées sans révéler l’objet"
+  ]
+ },
+ "R-15.3-04": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/odometer/dto/odometer.dto.ts",
+   "apps/api/src/modules/odometer/odometer.controller.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › D-265 — même lot envoyé deux fois avec la même clé : aucune ligne dupliquée, mêmes résultats ; photo rattachée"
+  ],
+  "note": "Contrat Reading exercé via POST /vehicles/:id/readings : physicalKm, observedAt, odometerSegmentId (relevé rétroactif sur l’ancien compteur, chronologie de ce segment contrôlée), context (liste fermée, REMISE refusé), attachmentId et note ; source, auteur et société déterminés par le serveur. Revue : un relevé rétroactif sur l’ancien compteur au-delà de la base cumulée du compteur suivant était accepté (cumul décroissant) ; il est désormais refusé (CHRONOLOGIE_SUIVANT), à valeur égale il reste accepté. Découpage lot B : physicalKm, observedAt, attachmentId et note testés ; odometerSegmentId (relevé rétroactif sur l’ancien compteur) et context : test livré avec le lot C (odometer-dependents.int.spec.ts)."
+ },
+ "R-15.3-05": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/odometer/dto/odometer.dto.ts",
+   "apps/api/src/common/validation.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › GET /readings?mine=true : relevés dont l’utilisateur courant est l’auteur"
+  ],
+  "note": "Source TELEMATICS, auteur ou société transmis sur POST /vehicles/:id/readings, /readings/batch ou /usages/checkout : refus 422 (champs non déclarés) ; saisie légitime enregistrée MANUAL, auteur et société (à la date d’observation) fixés par le serveur. Découpage lot B : auteur, société et source MANUAL fixés par le serveur testés ; refus de TELEMATICS (lot C) et société historique après transfert (lot D) : tests livrés avec ces lots."
+ },
+ "R-15.3-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/dto/odometer.dto.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › validation et rejet simultanés du même relevé : un seul gagnant, l’autre reçoit 409 avec la version courante",
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées"
+  ]
+ },
+ "R-17.1-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/freshness.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/freshness.spec.ts › relevé de moins de sept jours : A_JOUR ; exactement sept jours : encore A_JOUR ; au-delà : A_ACTUALISER",
+   "apps/api/src/domain/freshness.spec.ts › respecte un seuil configuré différent",
+   "apps/api/test/integration/settings.int.spec.ts › versionne et audite chaque modification ; surcharge société explicite ; réservé à l’administrateur"
+  ]
+ },
+ "R-18-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T04 — deux remises simultanées du même véhicule à deux conducteurs : une seule réussite",
+   "apps/api/test/integration/usages.int.spec.ts › T04 — dix remises concurrentes du même véhicule ne créent qu’une utilisation ouverte"
+  ]
+ },
+ "R-18-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts",
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/usages/departure-checks.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T05 — même conducteur, deux véhicules au même instant : une seule utilisation en cours",
+   "apps/api/test/integration/usages-controls.int.spec.ts › R-13.3-03 / R-18-05 — remise saisie après coup : refusée (409) si elle précède la dernière restitution du véhicule ou du conducteur, acceptée à l’instant même de la restitution"
+  ],
+  "note": "Revue : le même conducteur ne peut plus être remis un véhicule à un instant où il détenait encore l’autre (remise saisie après coup)."
+ },
+ "R-18-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée"
+  ]
+ },
+ "R-18-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T07 — retour dépassé avec réservation suivante : alerte, utilisation ouverte, départ suivant bloqué"
+  ]
+ },
+ "R-18-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/assignments/assignments.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T08 — responsable habituel A et utilisation ponctuelle B restent distincts, historique conservé"
+  ]
+ },
+ "R-18-09": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T09 — refuse 89 000 après 89 500 dans le même segment",
+   "apps/api/src/domain/odometer-rules.spec.ts › T09 — 89 000 après 89 500 dans le même segment : diminution refusée pour un relevé manuel"
+  ]
+ },
+ "R-18-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/odometer-rules.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T10 — un relevé rétroactif entre deux voisins est contrôlé et ne fait pas reculer le compteur courant",
+   "apps/api/src/domain/odometer-rules.spec.ts › T10 — un ancien relevé inséré entre deux voisins valides est accepté s’il respecte la chronologie",
+   "apps/api/src/domain/odometer-rules.spec.ts › T10 — un ancien relevé supérieur au suivant rompt la chronologie"
+  ]
+ },
+ "R-18-11": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel"
+  ]
+ },
+ "R-18-12": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/freshness.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T12 — fraîcheur INCONNU sans relevé puis A_ACTUALISER au-delà de sept jours",
+   "apps/api/src/domain/freshness.spec.ts › sans relevé accepté : INCONNU",
+   "apps/api/src/domain/freshness.spec.ts › relevé de moins de sept jours : A_JOUR ; exactement sept jours : encore A_JOUR ; au-delà : A_ACTUALISER"
+  ]
+ },
+ "R-18-13": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées"
+  ],
+  "note": "Recalcul vérifié sur la distance d’utilisation ; le recalcul des échéances d’entretien (après validation) n’est pas vérifié."
+ },
+ "R-18-14": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/domain/odometer-rules.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T14 — remplacement à 120 000 par un compteur à 0 puis lecture 500 : physique 500, cumul 120 500",
+   "apps/api/src/domain/odometer-rules.spec.ts › remplacement à 120 000 par un compteur à 0 : lecture 500 = 120 500 cumulés",
+   "tests/e2e/specs/compteur.spec.ts › Compteur kilométrique : remplacement et cumul (T14) › remplacement à 120 000 km par un compteur à 0 : lecture 500 = 120 500 km cumulés, compteur courant daté, sourcé et frais ; la base du nouveau compteur ne se corrige pas"
+  ],
+  "note": "T14 complet : physique 500, cumul 120 500, entretien calculé sur le cumul (plan à prévoir à 500 km de l’échéance 121 000, en retard à 121 200) et synthèse véhicule alignée. Découpage lot B : physique 500, cumul 120 500 testés (intégration, unitaire, e2e) ; entretien calculé sur le cumul : test livré avec le lot C (odometer-dependents.int.spec.ts)."
+ },
+ "R-19.1-02": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/assignments/assignments.service.ts",
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T08 — responsable habituel A et utilisation ponctuelle B restent distincts, historique conservé",
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée",
+   "apps/api/test/integration/usages.int.spec.ts › remise puis restitution : utilisation EN_COURS, distance validée, localisations déclarées",
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées",
+   "apps/api/test/integration/vehicles.int.spec.ts › déclare une localisation « dernière localisation déclarée » avec date et auteur, jamais une position",
+   "apps/api/test/integration/assignments-update.int.spec.ts › affectation à venir : responsable, début, fin et notes modifiés avec motif, version incrémentée et audit avant/après",
+   "apps/api/test/integration/usages-regularization.int.spec.ts › R-4.4-06 — régularisation par un nouveau relevé : distance validée, alerte résolue, audit ; idempotente et versionnée",
+   "tests/e2e/specs/utilisations.spec.ts › Utilisations : remise et restitution (T04) › remise avec relevé, seconde remise concurrente du même véhicule refusée par l’API, retour avec relevé, fiche imprimable et localisation",
+   "tests/e2e/specs/reservations.spec.ts › Réservations et responsable habituel › réservation créée au planning, créneau chevauchant refusé avec le message de l’API, créneau consécutif accepté (T06)",
+   "tests/e2e/specs/releves.spec.ts › Relevés kilométriques › le chef corrige un relevé accepté avec motif : original conservé « Remplacé », remplacement accepté et chronologie recalculée ; une diminution est refusée (T09, T13)"
+  ],
+  "note": "Contenu du lot B livré et testé (revue adversariale : défauts corrigés sur la base d’un compteur remplacé et les remises antidatées). Restent sans e2e : vues jour/semaine/mois de /planning, saisie rapide et photos de /kilometrage, historique filtré et retard de /utilisations, noms et dates de la fiche imprimable."
+ },
+ "R-20-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/infra/prisma.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/infra/prisma-retry.spec.ts › reprend P2034 et les conflits 40001/40P01 d’une requête brute (P2010), pas les autres erreurs",
+   "apps/api/test/integration/usages.int.spec.ts › T04 — dix remises concurrentes du même véhicule ne créent qu’une utilisation ouverte",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › validation et rejet simultanés du même relevé : un seul gagnant, l’autre reçoit 409 avec la version courante"
+  ]
+ },
+ "R-20-03": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T06 — réservations : chevauchement refusé, succession [début, fin[ acceptée"
+  ]
+ },
+ "R-3.2-X01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/vehicle-status.ts",
+   "apps/api/src/modules/usages/departure-checks.service.ts",
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [
+   "apps/api/src/domain/vehicle-status.spec.ts › n’attribue aucun statut opérationnel hors du cycle ACTIF",
+   "apps/api/src/domain/vehicle-status.spec.ts › bloque un départ si immobilisé, déjà utilisé ou non actif",
+   "apps/api/test/integration/vehicles.int.spec.ts › refuse l’archivage tant que des opérations sont ouvertes et conserve les dossiers",
+   "apps/api/test/integration/vehicles.int.spec.ts › D-129 — archivage et remise simultanés : jamais d’utilisation EN_COURS sur un véhicule archivé",
+   "apps/api/test/integration/usages-controls.int.spec.ts › R-3.2-X01 — véhicule HORS_SERVICE : réservation et remise refusées en 409 VEHICULE_NON_ACTIF ; la restitution d’une utilisation ouverte reste possible"
+  ],
+  "note": "Aligné sur CDC 15.1 (409 = conflit d’état) : réservation (création/modification) et remise d’un véhicule HORS_SERVICE, CEDE ou ARCHIVE refusées en 409 VEHICULE_NON_ACTIF avec message français ; restitution d’une utilisation ouverte toujours possible ; ligne D-016 mise à jour."
+ },
+ "R-4.1-X01": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql",
+   "apps/api/src/modules/assignments/assignments.service.ts",
+   "apps/api/src/domain/responsible-assignment.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T08 — responsable habituel A et utilisation ponctuelle B restent distincts, historique conservé",
+   "apps/api/test/integration/assignments.int.spec.ts › remplacement explicite d’un responsable EN_COURS avec fin prévue ; une affectation à venir n’est jamais remplacée",
+   "apps/api/test/integration/assignments.int.spec.ts › nominations concurrentes : une seule réussit ; remplacements concurrents : un seul responsable en cours",
+   "apps/api/test/integration/assignments.int.spec.ts › fin : version contrôlée sous verrou (fins concurrentes : une seule), déjà terminée → 409, chevauchement → 409 lisible"
+  ]
+ },
+ "R-5.4-X01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/odometer/odometer.controller.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T14 — remplacement à 120 000 par un compteur à 0 puis lecture 500 : physique 500, cumul 120 500",
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › D-167 — premier relevé du personnel : segment 1 automatique (physique = cumulé) ; initialisation explicite réservée au chef et à l’administrateur",
+   "packages/contracts/src/index.spec.ts › seuls l’administrateur et le chef disposent des corrections et dérogations"
+  ],
+  "note": "Refus 403 testé pour l’opérateur ; lecteur et conducteur couverts par la matrice de permissions testée ; l’exigence du motif (MOTIF_REQUIS) n’est pas testée."
  }
 }

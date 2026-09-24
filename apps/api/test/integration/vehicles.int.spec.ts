@@ -115,6 +115,29 @@ describe('Dossiers véhicules (CDC 3.1, 3.2, 3.4)', () => {
     expect(audit[1]?.reason).toBe('fin de vie');
   });
 
+  it('D-129 — archivage et remise simultanés : jamais d’utilisation EN_COURS sur un véhicule archivé', async () => {
+    await t.prisma.client.driverPermit.create({ data: { organizationId: f.organizationId, driverId: f.drivers.a1, number: 'P-A1', categories: ['B'], expiresOn: new Date('2030-01-01T00:00:00Z') } });
+    for (let i = 0; i < 4; i += 1) {
+      const created = await chefA.post('/vehicles', { ...base(), code: `VH-R${i}`, registration: `70${i} TU 2026` });
+      expect((await chefA.post(`/vehicles/${created.body.id}/odometer-segments`, { mode: 'INITIAL', startedAt: '2026-09-01T08:00:00Z', physicalKm: '10000' })).status).toBe(201);
+      const [archive, checkout] = await Promise.all([
+        chefA.post(`/vehicles/${created.body.id}/lifecycle`, { lifecycleStatus: 'ARCHIVE', reason: 'fin', expectedVersion: created.body.version }),
+        chefA
+          .post('/usages/checkout', { vehicleId: created.body.id, driverId: f.drivers.a1, checkedOutAt: '2026-09-24T09:55:00Z', expectedReturnAt: '2026-09-24T18:00:00Z', purpose: 'Mission', reading: { physicalKm: '10050' }, location: { placeLabel: 'Dépôt' }, fuelGauge: 'PLEIN', checklist: [{ label: 'Clés', present: true }] })
+          .set('Idempotency-Key', `course-${i}-${created.body.id}`),
+      ]);
+      expect([archive.status, checkout.status].filter((s) => s >= 500)).toEqual([]);
+      const v = await t.prisma.client.vehicle.findUniqueOrThrow({ where: { id: created.body.id } });
+      const open = await t.prisma.client.vehicleUsage.count({ where: { vehicleId: created.body.id, status: 'EN_COURS' } });
+      expect(v.lifecycleStatus === 'ARCHIVE' && open > 0).toBe(false);
+      expect(archive.status === 200 || checkout.status === 201).toBe(true);
+      if (checkout.status === 201) {
+        // La remise reste ouverte : on la clôt pour libérer le conducteur pour l'itération suivante.
+        await t.prisma.client.vehicleUsage.updateMany({ where: { vehicleId: created.body.id, status: 'EN_COURS' }, data: { status: 'TERMINEE', returnedAt: new Date('2026-09-24T09:58:00Z'), returnWithoutReading: true } });
+      }
+    }
+  });
+
   it('résout un QR code interne uniquement dans le périmètre et après authentification', async () => {
     const created = await chefA.post('/vehicles', base());
     const synthesis = await chefA.get(`/vehicles/${created.body.id}/synthesis`);

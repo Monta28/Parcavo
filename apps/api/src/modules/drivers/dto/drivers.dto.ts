@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsDateString, IsEmail, IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, MaxLength, Min, MinLength } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsDateString, IsEmail, IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, MaxLength, Min, MinLength } from 'class-validator';
 import { PageQueryDto } from '../../../common/pagination.js';
 
 export class CreateDriverDto {
@@ -29,6 +29,7 @@ export class UpdateDriverDto {
 export class DeactivateDriverDto {
   @ApiProperty() @IsString() @MinLength(3) @MaxLength(500) reason!: string;
   @ApiProperty() @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
+  @ApiPropertyOptional({ description: 'Annuler explicitement ses réservations confirmées futures (D-131) ; sans cela, 409 avec leur liste.' }) @IsOptional() @IsBoolean() cancelFutureReservations?: boolean;
 }
 
 export class ReactivateDriverDto {

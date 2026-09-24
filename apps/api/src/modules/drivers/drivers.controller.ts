@@ -50,7 +50,7 @@ export class DriversController {
   @HttpCode(200)
   @ApiOkResponse({ type: DriverViewDto })
   deactivate(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body() dto: DeactivateDriverDto): Promise<DriverViewDto> {
-    return this.drivers.deactivate(ctx, id, dto.reason, dto.expectedVersion);
+    return this.drivers.deactivate(ctx, id, dto.reason, dto.expectedVersion, dto.cancelFutureReservations ?? false);
   }
 
   @Post(':id/reactivate')

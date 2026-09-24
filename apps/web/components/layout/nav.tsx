@@ -2,30 +2,39 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Car, LayoutDashboard, Settings, Smartphone, Users, type LucideIcon } from 'lucide-react';
+import { Calendar, Car, ClipboardList, Gauge, LayoutDashboard, Settings, Smartphone, Users, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSession } from './session-context';
+import { useCan, useSession } from './session-context';
+
+type Audience = 'staff' | 'manager' | 'costs' | 'admin';
 
 interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  adminOnly?: boolean;
+  /** Qui voit l'entrée ; l'API reste seule juge des droits (le menu masque seulement l'inaccessible). */
+  audience: Audience;
 }
 
 const STAFF_ITEMS: NavItem[] = [
-  { href: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard },
-  { href: '/vehicules', label: 'Véhicules', icon: Car },
-  { href: '/conducteurs', label: 'Conducteurs', icon: Users },
-  { href: '/administration', label: 'Administration', icon: Settings, adminOnly: true },
+  { href: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, audience: 'staff' },
+  { href: '/vehicules', label: 'Véhicules', icon: Car, audience: 'staff' },
+  { href: '/conducteurs', label: 'Conducteurs', icon: Users, audience: 'staff' },
+  { href: '/planning', label: 'Planning', icon: Calendar, audience: 'staff' },
+  { href: '/utilisations', label: 'Utilisations', icon: ClipboardList, audience: 'staff' },
+  { href: '/kilometrage', label: 'Kilométrage', icon: Gauge, audience: 'staff' },
+  { href: '/administration', label: 'Administration', icon: Settings, audience: 'admin' },
 ];
+
+const DRIVER_ITEMS: NavItem[] = [{ href: '/mon-vehicule', label: 'Mon véhicule', icon: Smartphone, audience: 'staff' }];
 
 export function MainNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const session = useSession();
-  // Compte conducteur : sa fiche seulement (les utilisations et Mon véhicule arrivent avec le lot B).
-  const driverItems: NavItem[] = session.driverId ? [{ href: `/conducteurs/${session.driverId}`, label: 'Ma fiche conducteur', icon: Smartphone }] : [];
-  const items = (session.isDriverOnly ? driverItems : STAFF_ITEMS).filter((i) => !i.adminOnly || session.isAdmin);
+  const canReadCosts = useCan('costs.read');
+  const isManager = session.isAdmin || session.grants.some((g) => g.role === 'CHEF_PARC');
+  const visible = (audience: Audience): boolean => audience === 'staff' || (audience === 'costs' && canReadCosts) || (audience === 'manager' && isManager) || (audience === 'admin' && session.isAdmin);
+  const items = (session.isDriverOnly ? DRIVER_ITEMS : STAFF_ITEMS).filter((i) => visible(i.audience));
   return (
     <nav aria-label="Navigation principale" className="flex flex-col gap-1">
       {items.map((item) => {

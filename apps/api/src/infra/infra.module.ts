@@ -5,6 +5,7 @@ import { AuditService } from './audit.service.js';
 import { APP_ENV, loadEnv, type AppEnv } from './env.js';
 import { PasswordService } from './password.service.js';
 import { PrismaService } from './prisma.service.js';
+import { ReferenceService } from './reference.service.js';
 import { SecretsCryptoService } from './secrets-crypto.service.js';
 import { FileSystemStorage, ObjectStorage } from './storage.service.js';
 
@@ -27,9 +28,10 @@ export class InfraModule {
         SecretsCryptoService,
         AuditService,
         IdempotencyService,
+        ReferenceService,
         { provide: ObjectStorage, useClass: FileSystemStorage },
       ],
-      exports: [APP_ENV, Clock, PrismaService, PasswordService, SecretsCryptoService, AuditService, IdempotencyService, ObjectStorage],
+      exports: [APP_ENV, Clock, PrismaService, PasswordService, SecretsCryptoService, AuditService, IdempotencyService, ReferenceService, ObjectStorage],
     };
   }
 }

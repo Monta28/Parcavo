@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { AlertSeverity, AlertType, Prisma } from '@parc-auto/db';
+import type { AfterCommit } from '../../common/after-commit.js';
 import { Clock } from '../../common/clock.js';
 import { PrismaService, type Tx } from '../../infra/prisma.service.js';
 
@@ -52,8 +53,12 @@ export class AlertsService {
     this.listeners.push(listener);
   }
 
-  /** Crée ou met à jour l'alerte active de cette occurrence ; renvoie son identifiant. */
-  async raise(condition: AlertCondition, tx?: Tx): Promise<string> {
+  /**
+   * Crée ou met à jour l'alerte active de cette occurrence ; renvoie son identifiant.
+   * Dans une transaction (tx), la notification d'une création ou d'une hausse de gravité n'est émise qu'après
+   * validation, par la file `after` fournie par l'appelant ; sans file, elle n'est pas émise (rattrapage).
+   */
+  async raise(condition: AlertCondition, tx?: Tx, after?: AfterCommit): Promise<string> {
     const client = tx ?? this.prisma.client;
     const now = this.clock.now();
     const unique = {
@@ -109,6 +114,7 @@ export class AlertsService {
       id = existing.id;
     }
     if ((created || escalated) && !tx) await this.notify(id, condition, created, escalated);
+    else if ((created || escalated) && after) after.add(`notification de l’alerte ${id}`, () => this.notify(id, condition, created, escalated));
     return id;
   }
 

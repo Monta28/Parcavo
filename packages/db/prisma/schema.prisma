@@ -1291,6 +1291,16 @@ model Intervention {
   @@index([vehicleId, performedOn])
 }
 
+/// Compteur de références métier par organisation, portée et année (INT-AAAA-NNNNNN, D-203).
+model ReferenceSequence {
+  organizationId String @db.Uuid
+  scope          String
+  year           Int
+  lastValue      Int    @default(0)
+
+  @@id([organizationId, scope, year])
+}
+
 /// Ligne de travail : opération réalisée, liée au plan qu'elle met à jour (6.4).
 model InterventionTask {
   id                String   @id @default(uuid(7)) @db.Uuid
@@ -1400,6 +1410,8 @@ model DocumentVersion {
 model Incident {
   id             String           @id @default(uuid(7)) @db.Uuid
   organizationId String           @db.Uuid
+  /// Référence immuable INC-AAAA-NNNNNN (séquence par organisation et année).
+  reference      String
   companyId      String           @db.Uuid
   vehicleId      String           @db.Uuid
   driverId       String?          @db.Uuid
@@ -1433,6 +1445,7 @@ model Incident {
   interventions        Intervention[]        @relation("IncidentInterventions")
   immobilizationCauses ImmobilizationCause[]
 
+  @@unique([organizationId, reference])
   @@unique([id, organizationId])
   @@index([organizationId, companyId, status])
   @@index([vehicleId, occurredAt])

@@ -58,11 +58,12 @@ export interface VehicleSynthesis extends VehicleView {
   } | null;
   freshness: 'INCONNU' | 'A_ACTUALISER' | 'A_JOUR';
   upcomingMaintenance: Array<{ planId: string; maintenanceTypeLabel: string; status: string; nextDueKm: string | null; nextDueDate: string | null }>;
-  documentCompliance: { blocking: number; missing: number; expired: number; expiringSoon: number };
-  openIncidents: number;
-  pendingReadings: number;
+  /** Absents (null) pour un compte conducteur (D-116). */
+  documentCompliance: { blocking: number; missing: number; expired: number; expiringSoon: number } | null;
+  openIncidents: number | null;
+  pendingReadings: number | null;
   photoAttachmentIds: string[];
-  qrToken: string;
+  qrToken: string | null;
 }
 
 export interface VehicleCategory {

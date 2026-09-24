@@ -20,6 +20,7 @@ packages/db/src/generated/
 /storage/
 /backups/
 tests/e2e/.storage/
+tests/e2e/.storage-*/
 test-results/
 playwright-report/
 blob-report/

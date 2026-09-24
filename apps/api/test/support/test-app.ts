@@ -108,3 +108,13 @@ export async function login(server: App, email: string, password: string): Promi
   const csrf = cookies.find((c) => c.startsWith('pa_csrf='))?.split(';')[0]?.slice('pa_csrf='.length) ?? '';
   return agentFor(server, cookies, csrf);
 }
+
+/** PDF minimal valide (sans contenu actif), pour les justificatifs des tests. */
+export const TEST_PDF = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF', 'latin1');
+
+/** Téléverse un justificatif PDF via l'API réelle et renvoie son identifiant. */
+export async function uploadPdf(agent: Agent, server: App, companyId: string, name = 'justificatif.pdf'): Promise<string> {
+  const res = await request(server).post('/api/v1/attachments').set('Cookie', agent.cookies).set('Origin', TEST_ORIGIN).set('X-CSRF-Token', agent.csrf).field('companyId', companyId).attach('file', TEST_PDF, name);
+  if (res.status !== 201) throw new Error(`Téléversement refusé : ${res.status} ${JSON.stringify(res.body)}`);
+  return (res.body as { id: string }).id;
+}

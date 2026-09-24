@@ -1,4 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import type { Type as ClassType } from '@nestjs/common';
+import { ApiOkResponse, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { PAGINATION } from '@parc-auto/contracts';
@@ -66,4 +67,26 @@ export class PageMetaDto {
   @ApiProperty() total!: number;
   @ApiProperty() page!: number;
   @ApiProperty() pageSize!: number;
+}
+
+const PAGE_DTOS = new Map<ClassType<unknown>, ClassType<PageMetaDto>>();
+
+/**
+ * Schéma OpenAPI nommé d'une page de résultats Page<T> (métadonnées + items) : « VehicleViewDto » donne
+ * « VehicleViewPageDto ». Une seule classe par type d'élément, pour un document stable.
+ */
+export function pageDtoOf(item: ClassType<unknown>): ClassType<PageMetaDto> {
+  const existing = PAGE_DTOS.get(item);
+  if (existing) return existing;
+  class ItemsPageDto extends PageMetaDto {
+    @ApiProperty({ type: [item] }) items!: unknown[];
+  }
+  Object.defineProperty(ItemsPageDto, 'name', { value: `${item.name.replace(/Dto$/, '')}PageDto` });
+  PAGE_DTOS.set(item, ItemsPageDto);
+  return ItemsPageDto;
+}
+
+/** Réponse 200 d'une liste paginée (CDC 15.1) renvoyant Page<T>. */
+export function ApiPageResponse(item: ClassType<unknown>, description?: string): MethodDecorator & ClassDecorator {
+  return ApiOkResponse({ type: pageDtoOf(item), ...(description ? { description } : {}) });
 }

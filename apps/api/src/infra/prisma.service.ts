@@ -59,7 +59,15 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 }
 
 export function isRetryable(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && RETRYABLE_CODES.has(error.code);
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (RETRYABLE_CODES.has(error.code)) return true;
+    // Requête brute en échec (P2010, ex. SELECT … FOR UPDATE) : le conflit de sérialisation (40001) ou
+    // l'interblocage (40P01) est porté par l'erreur de l'adaptateur pg, sans conversion en P2034.
+    const cause = ((error.meta as { driverAdapterError?: { cause?: { kind?: unknown; originalCode?: unknown } } } | undefined)?.driverAdapterError)?.cause;
+    return error.code === 'P2010' && (cause?.kind === 'TransactionWriteConflict' || cause?.originalCode === '40001' || cause?.originalCode === '40P01');
+  }
+  // Erreur de l'adaptateur remontée telle quelle (hors enveloppe Prisma).
+  return error instanceof Error && error.name === 'DriverAdapterError' && (error.cause as { kind?: unknown } | undefined)?.kind === 'TransactionWriteConflict';
 }
 
 /** Nom de la contrainte violée, extrait des métadonnées de l'adaptateur (jamais du texte source). */

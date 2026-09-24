@@ -6,6 +6,8 @@ import { assertExpectedVersion } from '../../common/optimistic-lock.js';
 import { type Page, pageOf, resolveSort, skipTake } from '../../common/pagination.js';
 import type { RequestContext } from '../../common/request-context.js';
 import { AuditService } from '../../infra/audit.service.js';
+import { closeAssignmentsOnDriverDeactivation } from '../assignments/assignment-exit.js';
+import { lockDriver } from '../odometer/odometer-ingestion.service.js';
 import { PrismaService, isUniqueViolation } from '../../infra/prisma.service.js';
 import { AccessControlService } from '../access-control/access-control.service.js';
 import { AttachmentsService } from '../attachments/attachments.service.js';
@@ -125,21 +127,48 @@ export class DriversService {
   }
 
   /** Désactivation : refusée tant qu'une utilisation ouverte existe (CDC 3.3). */
-  async deactivate(ctx: RequestContext, id: string, reason: string, expectedVersion: number): Promise<DriverViewDto> {
+  /**
+   * Désactivation (CDC 3.3, D-131), sous verrou du conducteur : refusée avec une utilisation EN_COURS ;
+   * les réservations confirmées futures doivent être annulées explicitement (sinon 409 avec leur liste) ;
+   * l'affectation habituelle en cours est clôturée à la date de désactivation, une affectation à venir retirée.
+   */
+  async deactivate(ctx: RequestContext, id: string, reason: string, expectedVersion: number, cancelFutureReservations = false): Promise<DriverViewDto> {
     const current = await this.load(ctx, id);
     this.access.requireManager(ctx, current.companyId);
-    assertExpectedVersion(current, expectedVersion, 'conducteur');
-    if (current.usages.length > 0) {
-      throw new BusinessRuleError('UTILISATION_OUVERTE', 'Ce conducteur a une utilisation en cours : enregistrez d’abord la restitution.', { details: { usageId: current.usages[0]?.id } });
-    }
-    const updated = await this.prisma.client.$transaction(async (tx) => {
-      const d = await tx.driver.update({ where: { id, version: expectedVersion }, data: { status: 'INACTIF', deactivatedAt: this.clock.now(), version: { increment: 1 } }, include: this.include() });
-      await tx.reservation.updateMany({ where: { driverId: id, status: 'CONFIRMEE', startAt: { gte: this.clock.now() } }, data: { status: 'ANNULEE', cancelledAt: this.clock.now(), cancelledById: ctx.userId, cancelReason: `conducteur désactivé : ${reason}` } });
-      await this.audit.record(ctx, { action: 'conducteur.desactivation', objectType: 'Driver', objectId: id, companyId: d.companyId, reason }, tx);
+    const now = this.clock.now();
+    const updated = await this.prisma.serializable(async (tx) => {
+      await lockDriver(tx, id);
+      const locked = await tx.driver.findUniqueOrThrow({ where: { id }, select: { version: true, status: true } });
+      assertExpectedVersion(locked, expectedVersion, 'conducteur');
+      if (locked.status === 'INACTIF') throw new ConflictError('DEJA_INACTIF', 'Ce conducteur est déjà inactif.');
+      const openUsage = await tx.vehicleUsage.findFirst({ where: { driverId: id, status: 'EN_COURS' }, select: { id: true } });
+      if (openUsage) {
+        throw new ConflictError('UTILISATION_OUVERTE', 'Ce conducteur a une utilisation en cours : enregistrez d’abord la restitution, toujours possible.', { usageId: openUsage.id });
+      }
+      const future = await tx.reservation.findMany({ where: { driverId: id, status: 'CONFIRMEE', endAt: { gt: now } }, orderBy: { startAt: 'asc' }, select: { id: true, startAt: true, endAt: true, vehicle: { select: { code: true } } } });
+      if (future.length > 0 && !cancelFutureReservations) {
+        throw new ConflictError('RESERVATIONS_FUTURES', 'Ce conducteur a des réservations confirmées à venir : confirmez leur annulation pour le désactiver.', {
+          reservations: future.map((r) => ({ id: r.id, vehicleCode: r.vehicle.code, startAt: r.startAt.toISOString(), endAt: r.endAt.toISOString() })),
+        });
+      }
+      const d = await tx.driver.update({ where: { id, version: expectedVersion }, data: { status: 'INACTIF', deactivatedAt: now, version: { increment: 1 } }, include: this.include() });
+      for (const r of future) {
+        await tx.reservation.update({ where: { id: r.id }, data: { status: 'ANNULEE', cancelledAt: now, cancelledById: ctx.userId, cancelReason: `conducteur désactivé : ${reason}`, version: { increment: 1 } } });
+        await this.audit.record(ctx, { action: 'reservation.annulation', objectType: 'Reservation', objectId: r.id, companyId: d.companyId, reason: `conducteur désactivé : ${reason}` }, tx);
+      }
+      const assignments = await closeAssignmentsOnDriverDeactivation(tx, id, now, `conducteur désactivé : ${reason}`, ctx.userId);
+      for (const a of assignments.closed) {
+        await this.audit.record(ctx, { action: 'responsable_habituel.fin', objectType: 'VehicleResponsibleAssignment', objectId: a.id, companyId: a.companyId, reason: `conducteur désactivé : ${reason}`, before: { endsAt: a.endsAt }, after: { endsAt: now } }, tx);
+      }
+      for (const a of assignments.withdrawn) {
+        await this.audit.record(ctx, { action: 'responsable_habituel.retrait', objectType: 'VehicleResponsibleAssignment', objectId: a.id, companyId: a.companyId, reason: `conducteur désactivé : ${reason}`, before: { vehicleId: a.vehicleId, startsAt: a.startsAt, endsAt: a.endsAt } }, tx);
+      }
+      await this.audit.record(ctx, { action: 'conducteur.desactivation', objectType: 'Driver', objectId: id, companyId: d.companyId, reason, after: { reservationsAnnulees: future.length, affectationsCloturees: assignments.closed.length, affectationsRetirees: assignments.withdrawn.length } }, tx);
       return d;
     });
     return this.view(updated);
   }
+
 
   async reactivate(ctx: RequestContext, id: string, expectedVersion: number): Promise<DriverViewDto> {
     const current = await this.load(ctx, id);

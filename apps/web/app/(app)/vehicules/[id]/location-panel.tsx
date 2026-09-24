@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { LOCATION_CONTEXT_LABELS } from '@parc-auto/contracts';
 import { useSession } from '@/components/layout/session-context';
 import { EmptyState, ErrorState, LoadingState } from '@/components/states';
 import { Button } from '@/components/ui/button';
@@ -17,15 +18,9 @@ import { isApiError } from '@/lib/api-error';
 import type { Page } from '@/lib/api-types';
 import { formatDateTime } from '@/lib/format';
 import type { LocationReportView, SiteView } from '@/lib/vehicles-types';
+import { localInputToIso, nowLocalInput } from '@/lib/zoned-time';
 
 const FREE = '__libre__';
-
-function nowLocalInput(): string {
-  const d = new Date();
-  d.setSeconds(0, 0);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 export function LocationPanel({ vehicleId, companyId, canDeclare }: { vehicleId: string; companyId: string; canDeclare: boolean }) {
   const session = useSession();
@@ -34,13 +29,14 @@ export function LocationPanel({ vehicleId, companyId, canDeclare }: { vehicleId:
   const sites = useQuery({ queryKey: ['sites', companyId], queryFn: () => api<Page<SiteView>>(`/sites${toQuery({ companyId, pageSize: 100, status: 'ACTIF' })}`) });
   const [siteId, setSiteId] = useState(FREE);
   const [placeLabel, setPlaceLabel] = useState('');
-  const [observedAt, setObservedAt] = useState(nowLocalInput);
+  // Heure murale du fuseau de l'organisation, indépendante du fuseau du navigateur.
+  const [observedAt, setObservedAt] = useState(() => nowLocalInput(session.timezone));
   const [comment, setComment] = useState('');
   const declare = useMutation({
     mutationFn: () =>
       api(`/vehicles/${vehicleId}/location-reports`, {
         method: 'POST',
-        body: { siteId: siteId === FREE ? undefined : siteId, placeLabel: siteId === FREE ? placeLabel : undefined, observedAt: new Date(observedAt).toISOString(), comment: comment || undefined },
+        body: { siteId: siteId === FREE ? undefined : siteId, placeLabel: siteId === FREE ? placeLabel : undefined, observedAt: localInputToIso(observedAt, session.timezone) ?? undefined, comment: comment || undefined },
       }),
     onSuccess: () => {
       toast.success('Localisation déclarée.');
@@ -126,7 +122,7 @@ export function LocationPanel({ vehicleId, companyId, canDeclare }: { vehicleId:
                   <TableRow key={r.id}>
                     <TableCell>{formatDateTime(r.observedAt, session.timezone)}</TableCell>
                     <TableCell>{r.siteName ?? r.placeLabel}</TableCell>
-                    <TableCell>{r.context}</TableCell>
+                    <TableCell>{LOCATION_CONTEXT_LABELS[r.context as keyof typeof LOCATION_CONTEXT_LABELS] ?? r.context}</TableCell>
                     <TableCell>{r.createdByName ?? '—'}</TableCell>
                     <TableCell>{r.comment ?? '—'}</TableCell>
                   </TableRow>

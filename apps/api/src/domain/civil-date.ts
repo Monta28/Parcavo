@@ -59,3 +59,12 @@ export function fromDbDate(value: Date | null | undefined): CivilDate | null {
 export function toDbDate(value: CivilDate | null | undefined): Date | null {
   return value ? new Date(`${value}T00:00:00.000Z`) : null;
 }
+
+/**
+ * Horodatage local lisible dans le fuseau du groupe (fonction unique d'affichage) : « 24/09/2026 11:00 »
+ * dans un tableau, « 24/09/2026 à 11:00 » dans une phrase ; secondes sur demande.
+ */
+export function formatLocalDateTime(instant: Date, timezone: string, options: { withSeconds?: boolean; sentence?: boolean } = {}): string {
+  const time = options.withSeconds ? 'HH:mm:ss' : 'HH:mm';
+  return DateTime.fromJSDate(instant, { zone: timezone }).toFormat(options.sentence ? `dd/MM/yyyy 'à' ${time}` : `dd/MM/yyyy ${time}`);
+}

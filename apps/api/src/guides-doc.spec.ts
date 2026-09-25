@@ -109,6 +109,30 @@ describe('Guides utilisateur fidèles à l’interface (CDC 19.2)', () => {
     for (const guide of GUIDES) expect(readme).toContain(guide);
   });
 
+  it('guide du chef de parc : limites réelles annoncées et renvois aux guides thématiques', () => {
+    const chef = prose(guides['docs/guide-chef-de-parc.md']);
+    for (const target of [
+      'guide-imports.md',
+      'connecteur-telematique.md',
+      'guide-utilisateur.md',
+      'guide-conformite-entretien.md',
+    ])
+      expect(chef, target).toContain(`](${target}`);
+    // Dérogation : la mention affichée à l'écran est reprise mot pour mot.
+    const notice = /OVERRIDE_LEGAL_NOTICE =\s*'([^']+)'/.exec(
+      read('apps/web/components/documents/override-notice.tsx'),
+    )?.[1];
+    expect(notice).toBeDefined();
+    expect(chef).toContain(`« ${notice ?? ''} »`);
+    expect(chef).toContain(
+      '« Le registre ne remplace pas la comptabilité et ne calcule aucune obligation fiscale »',
+    );
+    expect(chef).toMatch(/aucune position en temps réel/i);
+    expect(chef).toMatch(/aucune application native/i);
+    expect(chef).toMatch(/serveur d’envoi \(SMTP\)/);
+    expect(chef).toContain('« Ceci n’est pas une signature certifiée. »');
+  });
+
   it('guide du conducteur : mobile par le navigateur, hors connexion décrit tel que codé, rien d’inventé', () => {
     const driver = prose(guides['docs/guide-conducteur.md']);
     for (const action of [

@@ -218,4 +218,32 @@ describe('Jeu de démonstration (seed-demo)', () => {
       await client.organization.delete({ where: { id: other.id } });
     }
   });
+
+  it(
+    '--reset vide la base et recharge ; mot de passe généré affiché une seule fois ; simulateur si activé',
+    async () => {
+      const io = captureIo();
+      const code = await runSeedDemoCli(['--', '--reset'], env({ TELEMETRY_SIMULATOR_ENABLED: 'true' }), io);
+      expect(code, io.stderr()).toBe(0);
+      const match = /Mot de passe généré[^:]*: (\S+)/.exec(io.stdout());
+      const generated = match?.[1] ?? '';
+      expect(generated).toMatch(/^[A-Za-z0-9]{5}(-[A-Za-z0-9]{5}){3}$/);
+      expect(io.stdout().split(generated)).toHaveLength(2);
+      const client = prisma.client;
+      expect(await client.organization.count()).toBe(1);
+      expect(await client.vehicle.count()).toBe(12);
+      const admin = await client.user.findFirstOrThrow({ where: { email: 'admin@demo.parc-auto.test' } });
+      expect(await passwords.verify(admin.passwordHash, generated)).toBe(true);
+      // Le mot de passe n'est écrit nulle part en clair (audit compris).
+      const leaked = await client.$queryRaw<Array<{ n: bigint }>>`SELECT count(*)::bigint AS n FROM "AuditEvent" WHERE "before"::text LIKE ${`%${generated}%`} OR "after"::text LIKE ${`%${generated}%`}`;
+      expect(Number(leaked[0]?.n ?? 0)).toBe(0);
+      // Télématique : simulateur explicitement libellé, unité reconnue proposée pour VH-12.
+      const provider = await client.telemetryProvider.findFirstOrThrow({ where: { kind: 'SIMULATEUR' } });
+      expect(provider.status).toBe('ACTIF');
+      const vh12 = await client.vehicle.findFirstOrThrow({ where: { code: 'VH-12' } });
+      expect(await client.telemetryVehicleMapping.count({ where: { providerId: provider.id, vehicleId: vh12.id, status: 'PROPOSE' } })).toBe(1);
+      expect(await client.company.count({ where: { telemetryEnabled: true } })).toBe(1);
+    },
+    SEED_TIMEOUT_MS,
+  );
 });

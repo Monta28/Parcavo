@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -35,6 +35,14 @@ function tableNames(text: string): string[] {
   return [...text.matchAll(/^\| `([\w]+)` \|/gm)].map((m) => m[1] ?? '');
 }
 
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) return name === 'generated' ? [] : sourceFiles(path);
+    return path.endsWith('.ts') && !path.endsWith('.spec.ts') ? [path] : [];
+  });
+}
+
 describe('Documentation du modèle de données (docs/modele-de-donnees.md)', () => {
   const all = models();
 
@@ -53,6 +61,27 @@ describe('Documentation du modèle de données (docs/modele-de-donnees.md)', () 
     const withoutOrganization = all.filter((m) => !/^\s+organizationId\s/m.test(m.body)).map((m) => m.name);
     expect(withoutOrganization.sort()).toEqual(['JobLease', 'LoginAttempt', 'Organization', 'WorkerHeartbeat']);
     expect(tableNames(section('Tables techniques globales')).sort()).toEqual([...withoutOrganization, '_prisma_migrations'].sort());
+  });
+
+  it('liste chaque table dont le code de l’API ou du worker supprime physiquement des lignes', () => {
+    const delegates = new Map(all.map((m) => [m.name.charAt(0).toLowerCase() + m.name.slice(1), m.name]));
+    const deleted = new Map<string, string[]>();
+    for (const dir of ['apps/api/src', 'apps/worker/src']) {
+      for (const file of sourceFiles(join(ROOT, dir))) {
+        for (const m of readFileSync(file, 'utf8').matchAll(/\.(\w+)\.(?:delete|deleteMany)\(/g)) {
+          const model = delegates.get(m[1] ?? '');
+          if (model) deleted.set(model, [...(deleted.get(model) ?? []), relative(ROOT, file)]);
+        }
+      }
+    }
+    expect(deleted.size).toBeGreaterThan(5);
+    const listed = new Set(tableNames(section('Suppressions physiques')));
+    const missing = [...deleted.entries()].filter(([model]) => !listed.has(model)).map(([model, files]) => `${model} (${[...new Set(files)].join(', ')})`);
+    expect(missing).toEqual([]);
+    // Chaque fichier cité par la section existe encore.
+    for (const path of section('Suppressions physiques').matchAll(/`((?:apps|packages)\/[^`]+\.ts)`/g)) {
+      expect(() => statSync(join(ROOT, path[1] ?? '')), path[1]).not.toThrow();
+    }
   });
 
   it('ne documente comme archivables que des tables sans suppression physique par le code, hors cas listés', () => {

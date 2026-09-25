@@ -22,7 +22,7 @@ export class UpdateCompanyDto {
   @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsEmail() @MaxLength(254) email?: string | null;
   @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsString() @MaxLength(50) taxIdentifier?: string | null;
   @ApiPropertyOptional({ type: String, nullable: true, description: 'Pièce jointe (logo) déjà téléversée.' }) @IsOptional() @IsUUID() logoAttachmentId?: string | null;
-  @ApiPropertyOptional({ description: 'Module F11 activable par société (administrateur).' }) @IsOptional() @IsBoolean() telemetryEnabled?: boolean;
+  @ApiPropertyOptional({ description: 'Lecture seule : une valeur différente de l’état courant est refusée (422) ; le module F11 s’active avec un motif via POST /telemetry/companies/:companyId/enable|disable (D-101, D-295).' }) @IsOptional() @IsBoolean() telemetryEnabled?: boolean;
   @ApiProperty() @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
 }
 

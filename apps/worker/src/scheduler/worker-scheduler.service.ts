@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
-import { Clock, describeErrorSafely } from '@parc-auto/api';
+import { APP_ENV, Clock, PrismaService, assertNoActiveSimulatorInProduction, describeErrorSafely, type AppEnv } from '@parc-auto/api';
 import { AlertCatchUpJob } from '../jobs/alert-catch-up.job.js';
 import { DailyDigestJob } from '../jobs/daily-digest.job.js';
 import { DailyPurgeJob } from '../jobs/daily-purge.job.js';
@@ -7,6 +7,8 @@ import { DailyRetentionJob } from '../jobs/daily-retention.job.js';
 import { JobQueueJob } from '../jobs/job-queue.job.js';
 import { OutboxDispatcherJob } from '../jobs/outbox-dispatcher.job.js';
 import type { ScheduledTask, TaskSummary } from '../jobs/scheduled-task.js';
+import { TelemetrySyncJob } from '../jobs/telemetry-sync.job.js';
+import { TelemetryWebhookJob } from '../jobs/telemetry-webhook.job.js';
 import { WORKER_OPTIONS, type WorkerOptions } from '../worker-options.js';
 import { JobLeaseService } from './job-lease.service.js';
 
@@ -36,6 +38,8 @@ export class WorkerScheduler implements OnApplicationBootstrap, OnApplicationShu
 
   constructor(
     @Inject(WORKER_OPTIONS) private readonly options: WorkerOptions,
+    @Inject(APP_ENV) private readonly env: AppEnv,
+    private readonly prisma: PrismaService,
     private readonly clock: Clock,
     private readonly leases: JobLeaseService,
     catchUp: AlertCatchUpJob,
@@ -43,9 +47,11 @@ export class WorkerScheduler implements OnApplicationBootstrap, OnApplicationShu
     digest: DailyDigestJob,
     purge: DailyPurgeJob,
     jobQueue: JobQueueJob,
+    telemetry: TelemetrySyncJob,
     retention: DailyRetentionJob,
+    webhooks: TelemetryWebhookJob,
   ) {
-    this.tasks = new Map<string, ScheduledTask>([catchUp, outbox, digest, purge, jobQueue, retention].map((t) => [t.name, t]));
+    this.tasks = new Map<string, ScheduledTask>([catchUp, outbox, digest, purge, jobQueue, telemetry, webhooks, retention].map((t) => [t.name, t]));
   }
 
   taskNames(): string[] {
@@ -64,7 +70,12 @@ export class WorkerScheduler implements OnApplicationBootstrap, OnApplicationShu
     return execution;
   }
 
-  onApplicationBootstrap(): void {
+  /**
+   * Démarrage : refus si un fournisseur SIMULATEUR est actif en production (D-303) — l'erreur interrompt la
+   * création du contexte et le processus s'arrête —, puis armement des minuteurs.
+   */
+  async onApplicationBootstrap(): Promise<void> {
+    await assertNoActiveSimulatorInProduction(this.prisma, this.env);
     if (!this.options.schedule) return;
     let offset = 0;
     for (const task of this.tasks.values()) {

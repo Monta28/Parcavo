@@ -35,6 +35,7 @@ import { OdometerIngestionService, companyAt, dec, lockVehicle } from '../odomet
 import { SettingsService } from '../settings/settings.service.js';
 import { SuppliersService } from '../suppliers/suppliers.service.js';
 import { VehiclesService } from '../vehicles/vehicles.service.js';
+import { type TelematicConsumption, loadTelematicConsumptions } from '../telemetry/telematic-consumption.js';
 import { driverOwnWhere } from './fuel-visibility.js';
 import type { ConsumptionQueryDto, ConsumptionReasonDto, ConsumptionViewDto, CreateFuelPurchaseGapDto, FuelPurchaseGapViewDto } from './dto/consumption.dto.js';
 import type { CorrectFuelEntryDto, CreateFuelEntryDto } from './dto/create-fuel-entry.dto.js';
@@ -442,7 +443,7 @@ export class FuelService {
 
   /**
    * Consommations de plusieurs véhicules sur une même période (rapport carburant) : même périmètre et même
-   * règle que consumption() — computeConsumption (8.3) — avec des lectures
+   * règle que consumption() — computeConsumption (8.3) et consommation télématique (8.5) — avec des lectures
    * groupées pour tout le lot. Un véhicule inconnu de l'organisation ou hors du périmètre courant (404 pour
    * consumption()) est absent du résultat.
    */
@@ -494,8 +495,12 @@ export class FuelService {
       const signals = events.filter((e) => e.vehicleId === vehicle.id).map((e) => telemetrySignalOf(e)).filter((s): s is TelemetrySignal => s !== null);
       results.set(vehicle.id, computeConsumption({ entries, gaps: gaps.filter((g) => g.vehicleId === vehicle.id), signals, period: { from, to } }));
     }
+    // 8.5 (D-234, D-236) : consommation télématique en parallèle, mêmes intervalles A → B, si le véhicule a une
+    // mesure CONSOMMATION_CAN ou NIVEAU_SONDE ; sinon rien (F11 absent : consommation déclarée seule).
+    const telematics = await loadTelematicConsumptions(this.prisma.client, { scope, vehicles: vehicles.map((v) => ({ vehicleId: v.id, tankCapacityLiters: v.tankCapacityLiters, intervals: (results.get(v.id) as ReturnType<typeof computeConsumption>).intervals })) });
     for (const vehicle of vehicles) {
       const result = results.get(vehicle.id) as ReturnType<typeof computeConsumption>;
+      const telematic = telematics.get(vehicle.id) as TelematicConsumption;
       out.set(vehicle.id, {
         vehicleId: vehicle.id,
         from: query.from ?? null,
@@ -514,6 +519,7 @@ export class FuelService {
           reasons: reasonViews(t.reasons),
           retainedIntervals: t.retainedCount,
           excludedIntervals: t.excludedCount,
+          ...optionalTelematics(telematic.total(t.energy)),
         })),
         intervals: result.intervals.map((i) => ({
           energy: i.energy,
@@ -530,6 +536,7 @@ export class FuelService {
           litersPer100Km: i.ratio ? formatRatio(i.ratio, 1) : null,
           litersPer100KmExact: i.ratio?.toFixed() ?? null,
           reasons: reasonViews(i.reasons),
+          ...optionalTelematics(telematic.interval(i)),
         })),
       });
     }
@@ -788,6 +795,11 @@ function assertConsumptionPeriod(query: ConsumptionQueryDto): void {
   if (query.from && query.to && query.from > query.to) {
     throw new BusinessRuleError('PERIODE_INVALIDE', 'La fin de période précède son début.', { fieldErrors: { to: ['Fin avant le début.'] } });
   }
+}
+
+/** Consommation télématique présente seulement si le véhicule a une mesure exploitable (F11 absent : réponse inchangée). */
+function optionalTelematics<T>(value: T | null): { telematics?: T } {
+  return value ? { telematics: value } : {};
 }
 
 function reasonViews(codes: readonly ConsumptionUnavailableReason[]): ConsumptionReasonDto[] {

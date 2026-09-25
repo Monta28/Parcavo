@@ -17,6 +17,7 @@ const SECTIONS = [
   { href: '/administration/utilisateurs', label: 'Utilisateurs' },
   { href: '/administration/organisation', label: 'Organisation' },
   { href: '/administration/parametres', label: 'Paramètres' },
+  { href: '/administration/telematique', label: 'Télématique' },
   { href: '/administration/notifications', label: 'Notifications' },
   { href: AUDIT_HREF, label: 'Audit' },
 ] as const;

@@ -90,11 +90,13 @@ Les partitions mensuelles des échantillons télématiques (`TelemetryOdometerSa
 | `TelemetryVehicleMapping` | Association unité ↔ véhicule. | société | Statut (`REJETE`, `CLOTURE`) ; conservée. |
 | `TelemetryUnitState` | Dernier état reçu d'une unité. | organisation | Mis à jour à chaque synchronisation. |
 | `TelemetrySyncRun` | Exécution de synchronisation (volumes, résultat). | organisation | Ajout seul ; conservée. |
+| `TelemetryWebhookDelivery` | Lot reçu par webhook (file persistante). | organisation | Purge 7 jours après traitement (`TRAITE`, `IGNORE`, `ECHEC`). |
 | `TelemetryReportFile` | Fichier de rapport déjà traité (idempotence par empreinte). | organisation | Conservé. |
 | `TelemetryCalibration` | Calibrage d'une distance GPS sur un relevé manuel. | organisation | Ajout seul. |
 | `TelemetryOdometerSample` | Échantillon brut d'odomètre (partitionné par mois). | organisation | Purge après `telemetry.odometerSampleRetentionDays` (90 jours) ; partitions échues supprimées. |
 | `FuelLevelSample` | Échantillon de niveau ou de consommation carburant (partitionné par mois). | organisation | Purge après `telemetry.fuelSampleRetentionDays` (90 jours) ; partitions échues supprimées. |
 | `FuelEvent` | Événement carburant détecté, à qualifier. | société | Statut (`QUALIFIE`) ; conservé. |
+| `VehicleFuelThresholds` | Seuils carburant propres à un véhicule (baisse à l'arrêt, remplissage), prioritaires sur ceux de la société (D-238, D-240). | organisation | Modifiés avec motif, verrou optimiste et audit ; supprimés quand tous les seuils reviennent à la valeur de la société (audit). |
 | `AuditEvent` | Journal d'audit (acteur, objet, motif, avant/après expurgés). | société ou groupe | Ajout seul, `UPDATE`/`DELETE` bloqués par déclencheur ; conservé. |
 | `ImportBatch` | Lot d'import CSV/XLSX. | organisation | Abandon automatique après 7 jours sans confirmation ; statut conservé. |
 | `ImportRow` | Ligne d'un lot et son résultat de contrôle. | société | Remplacée à chaque nouveau contrôle du lot ; valeurs brutes vidées 90 jours après la fin du lot. |
@@ -120,8 +122,10 @@ Suppressions de lignes réellement faites par le code (hors tests), toutes dans 
 | `TelemetryProvider` | Fournisseur en brouillon jamais synchronisé (ni unité ni exécution), avec ses sociétés et secrets (cascade). | `apps/api/src/modules/telemetry/telemetry-providers.service.ts` |
 | `TelemetryProviderCompany` | Sociétés retirées de la couverture d'un fournisseur. | `apps/api/src/modules/telemetry/telemetry-providers.service.ts` |
 | `TelemetryCredential` | Secret remplacé ou révoqué ; secret de signature webhook remplacé, après sa période de recouvrement. | `apps/api/src/modules/telemetry/telemetry-credentials.service.ts` |
+| `TelemetryWebhookDelivery` | Lots traités depuis plus de 7 jours. | `apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts` |
 | `FuelLevelSample` | Échantillons au-delà de la rétention ; partitions mensuelles échues supprimées (`drop_month_partitions_before`). | `apps/api/src/modules/telemetry/sync/telemetry-purge.service.ts` |
 | `TelemetryOdometerSample` | Échantillons au-delà de la rétention ; partitions mensuelles échues supprimées. | `apps/api/src/modules/telemetry/sync/telemetry-purge.service.ts` |
+| `VehicleFuelThresholds` | Surcharges d'un véhicule retirées par le chef de parc ou l'administrateur (retour aux seuils de la société, motif et audit avant/après). | `apps/api/src/modules/telemetry/telemetry-fuel-thresholds.service.ts` |
 
 Suppressions en cascade (clés étrangères `ON DELETE CASCADE`) : `TelemetryProviderCompany` et `TelemetryCredential` avec leur fournisseur brouillon ; `MaintenancePlanTemplateItem`, `InterventionTask`, `InterventionLine`, `AlertRecipientState`, `TelemetryUnitState` et `ImportRow` avec leur parent, lequel n'est jamais supprimé par le code (archivage ou statut).
 

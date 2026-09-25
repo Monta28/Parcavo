@@ -81,6 +81,32 @@ export interface ConsumptionInterval {
   litersPer100Km: string | null;
   litersPer100KmExact: string | null;
   reasons: ConsumptionReason[];
+  /** Consommation télématique du même intervalle (8.5 ; D-234, D-236) : absente sans mesure exploitable. */
+  telematics?: TelematicConsumption;
+}
+
+/**
+ * Consommation télématique calculée par l'API en parallèle de la consommation déclarée (CDC 8.5 ; D-234) :
+ * nature de la mesure (compteur de consommation CAN ou sonde), L/100 km sur les mêmes bornes et écart signé
+ * en % avec la consommation déclarée ; N/D motivé, jamais remplacé par un chiffre.
+ */
+export interface TelematicConsumption {
+  kind: 'CONSOMMATION_CAN' | 'NIVEAU_SONDE';
+  kindLabel: string;
+  available: boolean;
+  liters: string | null;
+  litersPer100Km: string | null;
+  litersPer100KmExact: string | null;
+  /** Écart signé (« +4.2 », « -3.0 ») arrondi par l'API. */
+  deviationPercent: string | null;
+  reasons: ConsumptionReason[];
+}
+
+export interface TelematicConsumptionTotal extends TelematicConsumption {
+  comparedIntervals: number;
+  distanceKm: string | null;
+  declaredLiters: string | null;
+  declaredLitersPer100Km: string | null;
 }
 
 export interface ConsumptionTotal {
@@ -93,6 +119,8 @@ export interface ConsumptionTotal {
   reasons: ConsumptionReason[];
   retainedIntervals: number;
   excludedIntervals: number;
+  /** Consommation télématique sur les intervalles comparables : absente sans mesure exploitable. */
+  telematics?: TelematicConsumptionTotal;
 }
 
 /** GET /vehicles/:id/consumption : estimation fondée sur les saisies (8.3), N/D motivé. */

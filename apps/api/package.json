@@ -14,6 +14,7 @@
     "test:unit": "vitest run --config vitest.config.ts",
     "test:integration": "vitest run --config vitest.config.integration.ts",
     "openapi:export": "pnpm run build && node dist/cli/export-openapi.js",
+    "telemetry:rotate-secrets": "node dist/cli/rotate-telemetry-secrets.js",
     "seed:demo": "node dist/cli/seed-demo.js",
     "seed:load": "node dist/cli/seed-load.js"
   },

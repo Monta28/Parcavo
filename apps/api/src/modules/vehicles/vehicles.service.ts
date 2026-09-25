@@ -21,6 +21,7 @@ import { AttachmentsService } from '../attachments/attachments.service.js';
 import { eventCompany } from './event-company.js';
 import { lockVehicle } from '../odometer/odometer-ingestion.service.js';
 import { SettingsService } from '../settings/settings.service.js';
+import { closeOpenMappingsForVehicle } from '../telemetry/telemetry-units.service.js';
 import type { ChangeLifecycleDto, CreateLocationReportDto, CreateVehicleDto, LocationReportViewDto, QrResolveDto, UpdateVehicleDto, VehicleSynthesisDto, VehicleViewDto, VehiclesQueryDto } from './dto/vehicles.dto.js';
 import { operationalStatusWhere, vehicleConditionClauses } from './vehicle-conditions.js';
 
@@ -327,6 +328,8 @@ export class VehiclesService {
           await this.audit.record(ctx, { action: 'responsable_habituel.retrait', objectType: 'VehicleResponsibleAssignment', objectId: a.id, companyId: a.companyId, reason: `véhicule ${exitLabel} : ${dto.reason}`, before: { driverId: a.driverId, startsAt: a.startsAt, endsAt: a.endsAt } }, tx);
         }
         await tx.vehicleMaintenancePlan.updateMany({ where: { vehicleId: id, active: true }, data: { active: false, deactivatedAt: now, deactivationReason: 'véhicule sorti du parc' } });
+        // D-175 : l'association télématique ouverte est clôturée à la date de l'opération.
+        await closeOpenMappingsForVehicle(tx, { organizationId: ctx.organizationId, vehicleId: id, at: now, reason: `Véhicule ${target === 'CEDE' ? 'cédé' : 'archivé'}.`, userId: ctx.userId });
       }
       await this.audit.record(ctx, { action: 'vehicule.cycle_de_vie', objectType: 'Vehicle', objectId: id, companyId: v.companyId, reason: dto.reason, before: { lifecycleStatus: locked.lifecycleStatus }, after: { lifecycleStatus: target } }, tx);
       return v;

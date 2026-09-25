@@ -11,6 +11,7 @@ import { useAppScope } from '@/components/layout/session-context';
 import { PaginationControls } from '@/components/pagination-controls';
 import { EmptyState, ErrorState, LoadingState } from '@/components/states';
 import { StatusBadge } from '@/components/status-badge';
+import { TelematicConsumptionLine } from '@/components/telemetry/telematic-consumption';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -240,6 +241,7 @@ function ConsumptionResult({ data, timezone }: { data: ConsumptionView; timezone
             <p className="text-xs text-muted-foreground">
               Intervalles retenus : {t.retainedIntervals} · exclus : {t.excludedIntervals}
             </p>
+            {t.telematics ? <TelematicConsumptionLine value={t.telematics} unit={data.unit} /> : null}
             {!t.available ? (
               <div className="mt-2">
                 <p className="font-medium">Motif :</p>
@@ -299,7 +301,10 @@ function ConsumptionResult({ data, timezone }: { data: ConsumptionView; timezone
                 <TableCell className="hidden md:table-cell">{energyLabel(i.energy)}</TableCell>
                 <TableCell className="text-right whitespace-nowrap">{formatKm(i.distanceKm)}</TableCell>
                 <TableCell className="text-right whitespace-nowrap">{formatFuelLiters(i.liters)}</TableCell>
-                <TableCell className="text-right whitespace-nowrap">{i.retained ? formatConsumption(i.litersPer100Km, data.unit) : 'N/D'}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">
+                  {i.retained ? formatConsumption(i.litersPer100Km, data.unit) : 'N/D'}
+                  {i.telematics ? <TelematicConsumptionLine value={i.telematics} unit={data.unit} compact /> : null}
+                </TableCell>
                 <TableCell>{i.retained ? <StatusBadge label="Retenu" tone="success" /> : <StatusBadge label="Exclu" tone="neutral" />}</TableCell>
               </TableRow>
             ))}

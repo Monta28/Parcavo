@@ -259,11 +259,12 @@ export const ALERT_SEVERITY_LABELS = {
   CRITIQUE: 'Critique',
 } as const;
 
-export const TELEMETRY_CHANNEL_LABELS = { API: 'API', RAPPORT: 'Rapport (CSV/XLSX)', RPA: 'RPA (portail)' } as const;
+export const TELEMETRY_CHANNEL_LABELS = { API: 'API', RAPPORT: 'Rapport (CSV/XLSX)', RPA: 'RPA (portail)', WEBHOOK: 'Webhook (envoi signé du fournisseur)' } as const;
 export const TELEMETRY_PROVIDER_KIND_LABELS = {
   TRACCAR: 'Traccar (API)',
   WIALON: 'Wialon (Remote API)',
   RAPPORT_GENERIQUE: 'Rapports CSV/XLSX (IMAP ou SFTP)',
+  WEBHOOK_GENERIQUE: 'Webhook générique (lots signés HMAC-SHA256)',
   RPA: 'RPA — non activable en V1',
   SIMULATEUR: 'Simulateur de test (jamais en production)',
 } as const;
@@ -312,6 +313,15 @@ export const SETTING_DEFAULTS = {
   'session.ttlHours': 12,
   'usage.checklistItems': ['Clés', 'Carte grise', 'Attestation d’assurance', 'Gilet de sécurité', 'Triangle', 'Roue de secours', 'Cric'],
   'telemetry.calibrationMaxGapMinutes': 60,
+  /** D-240 : remplissage détecté au-delà de 10 L ou de 10 % du réservoir, sur 30 min au plus. */
+  'telemetry.fuelFillPercent': 10,
+  'telemetry.fuelFillWindowMinutes': 30,
+  /** D-237, D-242 : tolérance ticket = max(litres, pourcentage des litres du ticket). */
+  'telemetry.fuelTicketTolerancePercent': 10,
+  /** D-190 à D-192 : distance manuelle minimale pour évaluer la dérive GPS. */
+  'telemetry.driftMinDistanceKm': 50,
+  /** D-174 : rétention des échantillons bruts d'odomètre (calibrage GPS). */
+  'telemetry.odometerSampleRetentionDays': 90,
   'expenses.vehiclePurchaseExcludedByDefault': true,
   'incidents.driverLateDeclarationHours': 24,
   'reservations.noShowGraceMinutes': 60,
@@ -372,6 +382,11 @@ export const SETTING_DESCRIPTORS: Record<SettingKey, SettingDescriptor> = {
   'telemetry.fuelSampleStepMinutes': { label: 'Pas des échantillons carburant', kind: 'integer', min: 1, max: 5, unit: 'minutes', companyOverride: false },
   'telemetry.fuelSampleRetentionDays': { label: 'Rétention des échantillons carburant', kind: 'integer', min: 7, max: 730, unit: 'jours', companyOverride: false },
   'telemetry.calibrationMaxGapMinutes': { label: 'Écart maximal pour le calibrage GPS', kind: 'integer', min: 5, max: 1440, unit: 'minutes', companyOverride: false },
+  'telemetry.fuelFillPercent': { label: 'Seuil de remplissage détecté (pourcentage du réservoir)', kind: 'number', min: 1, max: 100, unit: '%', companyOverride: true },
+  'telemetry.fuelFillWindowMinutes': { label: 'Fenêtre de remplissage détecté', kind: 'integer', min: 5, max: 1440, unit: 'minutes', companyOverride: true },
+  'telemetry.fuelTicketTolerancePercent': { label: 'Tolérance remplissage / ticket (pourcentage des litres du ticket)', kind: 'number', min: 0, max: 100, unit: '%', companyOverride: true },
+  'telemetry.driftMinDistanceKm': { label: 'Distance minimale pour évaluer la dérive GPS', kind: 'integer', min: 1, max: 10000, unit: 'km', companyOverride: true },
+  'telemetry.odometerSampleRetentionDays': { label: 'Rétention des échantillons d’odomètre télématique', kind: 'integer', min: 7, max: 730, unit: 'jours', companyOverride: false },
   'session.ttlHours': { label: 'Durée de session (appliquée aux nouvelles connexions)', kind: 'integer', min: 1, max: 72, unit: 'heures', companyOverride: false },
   'usage.checklistItems': { label: 'Checklist de remise et de restitution', kind: 'string-list', companyOverride: true },
   'expenses.vehiclePurchaseExcludedByDefault': { label: 'Achats de véhicules exclus du coût d’exploitation', kind: 'boolean', companyOverride: false },

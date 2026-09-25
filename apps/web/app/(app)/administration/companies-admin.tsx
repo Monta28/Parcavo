@@ -28,7 +28,7 @@ import { ALL, COMPANY_STATUS_LABELS } from './labels';
 
 type DialogState = { mode: 'create' } | { mode: 'edit'; company: CompanyView } | null;
 
-/** Sociétés du groupe (CDC 2.1) : création, modification, activation de la télématique, archivage. */
+/** Sociétés du groupe (CDC 2.1) : création, modification, archivage ; la télématique s'active dans l'onglet Télématique (D-101). */
 /** Tris autorisés par GET /companies. */
 const COMPANY_SORTS = ['code', 'legalName', 'createdAt'] as const;
 
@@ -69,7 +69,7 @@ export function CompaniesAdmin() {
     <div>
       <PageHeader
         title="Sociétés"
-        description="Sociétés du groupe : identité, coordonnées, activation de la télématique et archivage."
+        description="Sociétés du groupe : identité, coordonnées, état de la télématique et archivage."
         actions={
           <Button onClick={() => setDialog({ mode: 'create' })}>
             <Plus className="size-4" /> Nouvelle société

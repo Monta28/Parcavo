@@ -3,6 +3,7 @@ import { Transform } from 'class-transformer';
 import { IsDateString, IsISO8601, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { CONSUMPTION_UNAVAILABLE_REASONS } from '../../../domain/consumption.js';
 import { FUEL_ENERGIES } from '../../../domain/fuel-rules.js';
+import { TELEMATIC_CONSUMPTION_REASONS } from '../../../domain/telemetry/telematic-consumption.js';
 import { INSTANT_PATTERN, trimmed } from './create-fuel-entry.dto.js';
 import { DATE_ONLY } from './fuel-entry-view.dto.js';
 
@@ -25,6 +26,34 @@ export class ConsumptionReasonDto {
   @ApiProperty() label!: string;
 }
 
+/** Motif d'une consommation télématique N/D (D-234). */
+export class TelematicConsumptionReasonDto {
+  @ApiProperty({ enum: TELEMATIC_CONSUMPTION_REASONS }) code!: string;
+  @ApiProperty() label!: string;
+}
+
+/**
+ * Consommation télématique en parallèle (CDC 8.5 ; D-234, D-236) : même intervalle A → B et mêmes kilomètres
+ * que la consommation déclarée ; nature de la mesure et écart avec la consommation déclarée.
+ */
+export class TelematicConsumptionDto {
+  @ApiProperty({ enum: ['CONSOMMATION_CAN', 'NIVEAU_SONDE'] }) kind!: string;
+  @ApiProperty({ description: 'Libellé de la nature (« Consommation CAN », « Niveau sonde »).' }) kindLabel!: string;
+  @ApiProperty({ description: 'Faux : N/D motivé, jamais remplacé par une estimation.' }) available!: boolean;
+  @ApiProperty({ nullable: true, type: String, description: 'Litres consommés selon la télématique.' }) liters!: string | null;
+  @ApiProperty({ nullable: true, type: String, description: 'L/100 km arrondi à 1 décimale.' }) litersPer100Km!: string | null;
+  @ApiProperty({ nullable: true, type: String, description: 'L/100 km exact.' }) litersPer100KmExact!: string | null;
+  @ApiProperty({ nullable: true, type: String, description: 'Écart signé en % par rapport à la consommation déclarée (1 décimale, ex. « +4.2 »).' }) deviationPercent!: string | null;
+  @ApiProperty({ type: [TelematicConsumptionReasonDto] }) reasons!: TelematicConsumptionReasonDto[];
+}
+
+export class TelematicConsumptionTotalDto extends TelematicConsumptionDto {
+  @ApiProperty({ description: 'Intervalles comparés : consommation déclarée retenue et télématique disponible.' }) comparedIntervals!: number;
+  @ApiProperty({ nullable: true, type: String }) distanceKm!: string | null;
+  @ApiProperty({ nullable: true, type: String, description: 'Litres déclarés des intervalles comparés.' }) declaredLiters!: string | null;
+  @ApiProperty({ nullable: true, type: String, description: 'Consommation déclarée des seuls intervalles comparés (1 décimale).' }) declaredLitersPer100Km!: string | null;
+}
+
 export class ConsumptionIntervalDto {
   @ApiProperty({ enum: FUEL_ENERGIES }) energy!: string;
   @ApiProperty({ nullable: true, type: String, description: 'Plein complet de référence A.' }) startFuelEntryId!: string | null;
@@ -40,6 +69,8 @@ export class ConsumptionIntervalDto {
   @ApiProperty({ nullable: true, type: String, description: 'L/100 km arrondi à 1 décimale (affichage).' }) litersPer100Km!: string | null;
   @ApiProperty({ nullable: true, type: String, description: 'L/100 km exact (non arrondi).' }) litersPer100KmExact!: string | null;
   @ApiProperty({ type: [ConsumptionReasonDto] }) reasons!: ConsumptionReasonDto[];
+  @ApiPropertyOptional({ type: TelematicConsumptionDto, description: 'Consommation télématique du même intervalle (8.5 ; D-234, D-236) ; absente sans mesure CONSOMMATION_CAN ou NIVEAU_SONDE.' })
+  telematics?: TelematicConsumptionDto;
 }
 
 export class ConsumptionTotalDto {
@@ -52,6 +83,8 @@ export class ConsumptionTotalDto {
   @ApiProperty({ type: [ConsumptionReasonDto] }) reasons!: ConsumptionReasonDto[];
   @ApiProperty() retainedIntervals!: number;
   @ApiProperty() excludedIntervals!: number;
+  @ApiPropertyOptional({ type: TelematicConsumptionTotalDto, description: 'Consommation télématique sur les intervalles comparables (8.5 ; D-234, D-236) ; absente sans mesure CONSOMMATION_CAN ou NIVEAU_SONDE.' })
+  telematics?: TelematicConsumptionTotalDto;
 }
 
 export class ConsumptionViewDto {

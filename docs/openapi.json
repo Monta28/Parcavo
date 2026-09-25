@@ -1295,6 +1295,56 @@
         ],
         "type": "object"
       },
+      "CloseMappingDto": {
+        "properties": {
+          "closedAt": {
+            "description": "Instant du changement (défaut : maintenant).",
+            "format": "date-time",
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "number"
+          },
+          "reason": {
+            "description": "Motif (changement de boîtier, retrait...).",
+            "type": "string"
+          },
+          "replacement": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReplacementUnitDto"
+              }
+            ],
+            "description": "Changement de boîtier (D-300) : nouvelle association confirmée à la même date, sans modifier le kilométrage cumulé."
+          }
+        },
+        "required": [
+          "reason",
+          "expectedVersion"
+        ],
+        "type": "object"
+      },
+      "CloseMappingResultDto": {
+        "properties": {
+          "closed": {
+            "$ref": "#/components/schemas/MappingViewDto"
+          },
+          "replacement": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MappingViewDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "closed",
+          "replacement"
+        ],
+        "type": "object"
+      },
       "CompanyGrantDto": {
         "properties": {
           "companyCode": {
@@ -1330,6 +1380,100 @@
           "companyName",
           "role",
           "permissions"
+        ],
+        "type": "object"
+      },
+      "CompanyProviderRefDto": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "TRACCAR",
+              "WIALON",
+              "RAPPORT_GENERIQUE",
+              "WEBHOOK_GENERIQUE",
+              "RPA",
+              "SIMULATEUR"
+            ],
+            "type": "string"
+          },
+          "kindLabel": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "BROUILLON",
+              "ACTIF",
+              "SUSPENDU",
+              "DESACTIVE"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "kindLabel",
+          "status"
+        ],
+        "type": "object"
+      },
+      "CompanyTelemetryDto": {
+        "properties": {
+          "expectedVersion": {
+            "description": "Version attendue de la société (verrou optimiste).",
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
+      "CompanyTelemetryViewDto": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "companyId": {
+            "type": "string"
+          },
+          "legalName": {
+            "type": "string"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyProviderRefDto"
+            },
+            "type": "array"
+          },
+          "resolvedAlerts": {
+            "description": "Alertes F11 résolues par la désactivation.",
+            "type": "number"
+          },
+          "telemetryEnabled": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "companyId",
+          "code",
+          "legalName",
+          "telemetryEnabled",
+          "providers",
+          "version"
         ],
         "type": "object"
       },
@@ -1641,6 +1785,43 @@
         ],
         "type": "object"
       },
+      "ConfirmMappingDto": {
+        "properties": {
+          "expectedVersion": {
+            "type": "number"
+          },
+          "fuelKinds": {
+            "items": {
+              "enum": [
+                "NIVEAU_CAN",
+                "NIVEAU_SONDE",
+                "CONSOMMATION_CAN"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "odometerKind": {
+            "enum": [
+              "COMPTEUR_CAN",
+              "DISTANCE_GPS",
+              "AUCUN"
+            ],
+            "type": "string"
+          },
+          "validFrom": {
+            "description": "Date d’effet (D-301).",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "odometerKind",
+          "fuelKinds",
+          "expectedVersion"
+        ],
+        "type": "object"
+      },
       "ConflictingReservationDto": {
         "properties": {
           "driverName": {
@@ -1737,6 +1918,14 @@
             "description": "Kilométrage cumulé validé en A.",
             "nullable": true,
             "type": "string"
+          },
+          "telematics": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TelematicConsumptionDto"
+              }
+            ],
+            "description": "Consommation télématique du même intervalle (8.5 ; D-234, D-236) ; absente sans mesure CONSOMMATION_CAN ou NIVEAU_SONDE."
           }
         },
         "required": [
@@ -1828,6 +2017,14 @@
           },
           "retainedIntervals": {
             "type": "number"
+          },
+          "telematics": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TelematicConsumptionTotalDto"
+              }
+            ],
+            "description": "Consommation télématique sur les intervalles comparables (8.5 ; D-234, D-236) ; absente sans mesure CONSOMMATION_CAN ou NIVEAU_SONDE."
           }
         },
         "required": [
@@ -2807,6 +3004,48 @@
         ],
         "type": "object"
       },
+      "CreateMappingDto": {
+        "properties": {
+          "fuelKinds": {
+            "items": {
+              "enum": [
+                "NIVEAU_CAN",
+                "NIVEAU_SONDE",
+                "CONSOMMATION_CAN"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "odometerKind": {
+            "description": "Nature du kilométrage selon l’annexe A (COMPTEUR_CAN, DISTANCE_GPS ou AUCUN).",
+            "enum": [
+              "COMPTEUR_CAN",
+              "DISTANCE_GPS",
+              "AUCUN"
+            ],
+            "type": "string"
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "validFrom": {
+            "description": "Date d’effet (D-301) ; défaut : la plus tardive de maintenant − reprise, début du compteur ouvert, entrée dans la société.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "vehicleId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "unitId",
+          "vehicleId",
+          "odometerKind",
+          "fuelKinds"
+        ],
+        "type": "object"
+      },
       "CreatePlanDto": {
         "properties": {
           "acceptedSources": {
@@ -2859,6 +3098,60 @@
           "vehicleId",
           "maintenanceTypeId",
           "base"
+        ],
+        "type": "object"
+      },
+      "CreateProviderDto": {
+        "properties": {
+          "backfillDays": {
+            "description": "Profondeur de la reprise initiale en jours (défaut 7).",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number"
+          },
+          "baseUrl": {
+            "description": "URL de base de l’API (http/https, sans identifiant ni paramètre).",
+            "nullable": true,
+            "type": "string"
+          },
+          "companyIds": {
+            "description": "Sociétés couvertes par le fournisseur.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "description": "Type ; le canal (API, RAPPORT) en est déduit. RPA refusé en V1 (D-292) ; SIMULATEUR refusé en production (D-303).",
+            "enum": [
+              "TRACCAR",
+              "WIALON",
+              "RAPPORT_GENERIQUE",
+              "WEBHOOK_GENERIQUE",
+              "RPA",
+              "SIMULATEUR"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "description": "Nom unique dans l’organisation.",
+            "type": "string"
+          },
+          "settings": {
+            "description": "Paramètres non secrets propres au type (jamais de jeton ni de mot de passe).",
+            "type": "object"
+          },
+          "syncIntervalMinutes": {
+            "description": "Intervalle de synchronisation (défaut : paramètre telemetry.syncIntervalMinutes).",
+            "maximum": 1440,
+            "minimum": 5,
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "companyIds"
         ],
         "type": "object"
       },
@@ -3189,6 +3482,42 @@
         ],
         "type": "object"
       },
+      "CredentialStatusDto": {
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "JETON_API",
+              "IDENTIFIANTS_API",
+              "IMAP",
+              "SFTP",
+              "RPA",
+              "SIGNATURE_WEBHOOK"
+            ],
+            "type": "string"
+          },
+          "previousValidUntil": {
+            "description": "SIGNATURE_WEBHOOK uniquement : l’ancien secret, remplacé à la dernière rotation, reste accepté jusqu’à cette date.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "rotatedAt": {
+            "description": "Date du dernier dépôt du secret.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "configured",
+          "rotatedAt"
+        ],
+        "type": "object"
+      },
       "CurrentOdometerDto": {
         "properties": {
           "ageDays": {
@@ -3428,6 +3757,145 @@
         },
         "required": [
           "reason"
+        ],
+        "type": "object"
+      },
+      "DiscoveredUnitDto": {
+        "properties": {
+          "declaredRegistration": {
+            "nullable": true,
+            "type": "string"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "fuelKinds": {
+            "items": {
+              "enum": [
+                "NIVEAU_CAN",
+                "NIVEAU_SONDE",
+                "CONSOMMATION_CAN"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "label": {
+            "type": "string"
+          },
+          "mappingId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "odometerKinds": {
+            "description": "Natures remontées déclarées par le fournisseur lors de cette découverte.",
+            "items": {
+              "enum": [
+                "COMPTEUR_CAN",
+                "DISTANCE_GPS"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "outcome": {
+            "enum": [
+              "PROPOSEE",
+              "ASSOCIEE",
+              "NON_ASSOCIEE"
+            ],
+            "type": "string"
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unmappedReason": {
+            "enum": [
+              "INCONNUE",
+              "IMMATRICULATION_ABSENTE",
+              "AMBIGUE",
+              "VEHICULE_DEJA_EQUIPE",
+              "PROPOSITION_REJETEE",
+              "VEHICULE_NON_ELIGIBLE",
+              "A_REEXAMINER",
+              "IGNOREE"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "vehicleId": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "unitId",
+          "externalId",
+          "label",
+          "declaredRegistration",
+          "odometerKinds",
+          "fuelKinds",
+          "outcome",
+          "mappingId",
+          "vehicleId",
+          "unmappedReason"
+        ],
+        "type": "object"
+      },
+      "DiscoveryResultDto": {
+        "properties": {
+          "ignored": {
+            "description": "Unités ignorées (D-249) : aucune proposition.",
+            "type": "number"
+          },
+          "proposalsCreated": {
+            "type": "number"
+          },
+          "proposalsPending": {
+            "type": "number"
+          },
+          "rejectedUnits": {
+            "type": "number"
+          },
+          "syncRunId": {
+            "type": "string"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/DiscoveredUnitDto"
+            },
+            "type": "array"
+          },
+          "unitsCreated": {
+            "type": "number"
+          },
+          "unitsMissing": {
+            "description": "Unités précédemment connues absentes de la liste du fournisseur.",
+            "type": "number"
+          },
+          "unitsSeen": {
+            "type": "number"
+          },
+          "unitsUpdated": {
+            "type": "number"
+          },
+          "unmapped": {
+            "description": "Unités non associées, hors unités ignorées.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "syncRunId",
+          "unitsSeen",
+          "unitsCreated",
+          "unitsUpdated",
+          "unitsMissing",
+          "proposalsCreated",
+          "proposalsPending",
+          "unmapped",
+          "ignored",
+          "rejectedUnits",
+          "units"
         ],
         "type": "object"
       },
@@ -3860,6 +4328,11 @@
               "session.ttlHours",
               "usage.checklistItems",
               "telemetry.calibrationMaxGapMinutes",
+              "telemetry.fuelFillPercent",
+              "telemetry.fuelFillWindowMinutes",
+              "telemetry.fuelTicketTolerancePercent",
+              "telemetry.driftMinDistanceKm",
+              "telemetry.odometerSampleRetentionDays",
               "expenses.vehiclePurchaseExcludedByDefault",
               "incidents.driverLateDeclarationHours",
               "reservations.noShowGraceMinutes",
@@ -4847,6 +5320,174 @@
         ],
         "type": "object"
       },
+      "FuelEventViewDto": {
+        "properties": {
+          "companyId": {
+            "type": "string"
+          },
+          "details": {
+            "description": "Nature, seuils appliqués et résultat du rapprochement.",
+            "nullable": true,
+            "type": "object"
+          },
+          "detectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fuelEntryId": {
+            "description": "Plein rapproché (ou le plus proche pour un écart).",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isSimulator": {
+            "description": "Vrai si l’événement provient d’un fournisseur SIMULATEUR : à afficher « SIMULATEUR — données fictives » (D-303).",
+            "type": "boolean"
+          },
+          "litersDelta": {
+            "description": "Variation en litres (décimal exact, positive).",
+            "nullable": true,
+            "type": "string"
+          },
+          "measureKind": {
+            "description": "Nature de la mesure (affichée telle quelle, 8.5).",
+            "enum": [
+              "NIVEAU_CAN",
+              "NIVEAU_SONDE",
+              "CONSOMMATION_CAN"
+            ],
+            "type": "string"
+          },
+          "measureKindLabel": {
+            "type": "string"
+          },
+          "percentDelta": {
+            "description": "Variation en % du réservoir.",
+            "nullable": true,
+            "type": "string"
+          },
+          "qualification": {
+            "enum": [
+              "JUSTIFIE",
+              "ANOMALIE_CONFIRMEE",
+              "ERREUR_CAPTEUR"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "qualificationNote": {
+            "nullable": true,
+            "type": "string"
+          },
+          "qualifiedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "qualifiedById": {
+            "description": "Nul pour une justification automatique (rapprochement d’un plein).",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "A_QUALIFIER",
+              "QUALIFIE"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "REMPLISSAGE_DETECTE",
+              "BAISSE_ANORMALE",
+              "ECART_TICKET"
+            ],
+            "type": "string"
+          },
+          "typeLabel": {
+            "type": "string"
+          },
+          "unitId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "vehicleCode": {
+            "type": "string"
+          },
+          "vehicleId": {
+            "type": "string"
+          },
+          "vehicleRegistration": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "windowEnd": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "windowStart": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "isSimulator",
+          "companyId",
+          "vehicleId",
+          "vehicleCode",
+          "vehicleRegistration",
+          "unitId",
+          "type",
+          "typeLabel",
+          "measureKind",
+          "measureKindLabel",
+          "detectedAt",
+          "windowStart",
+          "windowEnd",
+          "litersDelta",
+          "percentDelta",
+          "fuelEntryId",
+          "status",
+          "qualification",
+          "qualifiedAt",
+          "qualifiedById",
+          "qualificationNote",
+          "details",
+          "version"
+        ],
+        "type": "object"
+      },
+      "FuelEventsPageDto": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FuelEventViewDto"
+            },
+            "type": "array"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object"
+      },
       "FuelPurchaseGapViewDto": {
         "properties": {
           "companyId": {
@@ -4887,6 +5528,18 @@
           "reason",
           "createdById",
           "createdAt"
+        ],
+        "type": "object"
+      },
+      "IgnoreUnitDto": {
+        "properties": {
+          "reason": {
+            "description": "Motif (remorque, boîtier de rechange...).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
         ],
         "type": "object"
       },
@@ -6647,6 +7300,235 @@
         ],
         "type": "object"
       },
+      "ManualSyncDto": {
+        "properties": {
+          "companyId": {
+            "description": "Limiter la synchronisation à une société couverte (sinon : toutes les sociétés couvertes, activées et gérées par l’appelant).",
+            "type": "string"
+          },
+          "reprise": {
+            "default": false,
+            "description": "Reprise d’historique sur la période de reprise du fournisseur, bornée à la dernière désactivation du module (administrateur, D-101, D-295).",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "ManualSyncResultDto": {
+        "properties": {
+          "providerId": {
+            "type": "string"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/ManualSyncRunDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "providerId",
+          "runs"
+        ],
+        "type": "object"
+      },
+      "ManualSyncRunDto": {
+        "properties": {
+          "alreadyRunning": {
+            "description": "Vrai si une exécution était déjà en cours (bail détenu) : aucune nouvelle exécution n’est lancée.",
+            "type": "boolean"
+          },
+          "companyId": {
+            "type": "string"
+          },
+          "message": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "description": "EN_COURS : exécution lancée en arrière-plan ; IGNORE : coupe-circuit ouvert, aucun appel au fournisseur.",
+            "enum": [
+              "EN_COURS",
+              "SUCCES",
+              "PARTIEL",
+              "ECHEC",
+              "IGNORE"
+            ],
+            "type": "string"
+          },
+          "syncRunId": {
+            "description": "Exécution créée, ou exécution déjà en cours pour ce couple fournisseur-société.",
+            "nullable": true,
+            "type": "string"
+          },
+          "trigger": {
+            "enum": [
+              "PLANIFIE",
+              "MANUEL",
+              "REPRISE_INITIALE",
+              "WEBHOOK"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "syncRunId",
+          "companyId",
+          "trigger",
+          "status",
+          "alreadyRunning",
+          "message"
+        ],
+        "type": "object"
+      },
+      "MappingViewDto": {
+        "properties": {
+          "closedReason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "companyId": {
+            "description": "Société gestionnaire courante du véhicule.",
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "decidedById": {
+            "nullable": true,
+            "type": "string"
+          },
+          "fuelKinds": {
+            "items": {
+              "enum": [
+                "NIVEAU_CAN",
+                "NIVEAU_SONDE",
+                "CONSOMMATION_CAN"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isSimulator": {
+            "type": "boolean"
+          },
+          "odometerKind": {
+            "enum": [
+              "COMPTEUR_CAN",
+              "DISTANCE_GPS",
+              "AUCUN"
+            ],
+            "type": "string"
+          },
+          "proposalReason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "proposedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PROPOSE",
+              "CONFIRME",
+              "REJETE",
+              "CLOTURE"
+            ],
+            "type": "string"
+          },
+          "unitDeclaredRegistration": {
+            "nullable": true,
+            "type": "string"
+          },
+          "unitExternalId": {
+            "type": "string"
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitLabel": {
+            "type": "string"
+          },
+          "validFrom": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "validTo": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "vehicle": {
+            "$ref": "#/components/schemas/VehicleRefDto"
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "providerId",
+          "providerName",
+          "isSimulator",
+          "unitId",
+          "unitExternalId",
+          "unitLabel",
+          "unitDeclaredRegistration",
+          "vehicle",
+          "companyId",
+          "status",
+          "odometerKind",
+          "fuelKinds",
+          "validFrom",
+          "validTo",
+          "proposedAt",
+          "proposalReason",
+          "decidedAt",
+          "decidedById",
+          "closedReason",
+          "version"
+        ],
+        "type": "object"
+      },
+      "MappingViewPageDto": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MappingViewDto"
+            },
+            "type": "array"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
+        ],
+        "type": "object"
+      },
       "MembershipInputDto": {
         "properties": {
           "companyId": {
@@ -7662,6 +8544,263 @@
         ],
         "type": "object"
       },
+      "ProviderHealthDto": {
+        "properties": {
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "latencyMs": {
+            "nullable": true,
+            "type": "number"
+          },
+          "message": {
+            "description": "Message expurgé.",
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "message",
+          "latencyMs",
+          "checkedAt"
+        ],
+        "type": "object"
+      },
+      "ProviderKindDto": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "channel": {
+            "enum": [
+              "API",
+              "RAPPORT",
+              "RPA",
+              "WEBHOOK"
+            ],
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "TRACCAR",
+              "WIALON",
+              "RAPPORT_GENERIQUE",
+              "WEBHOOK_GENERIQUE",
+              "RPA",
+              "SIMULATEUR"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "reason": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "label",
+          "channel",
+          "available",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "ProviderTransitionDto": {
+        "properties": {
+          "expectedVersion": {
+            "type": "number"
+          },
+          "reason": {
+            "description": "Motif (obligatoire pour suspendre ou désactiver).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expectedVersion"
+        ],
+        "type": "object"
+      },
+      "ProviderViewDto": {
+        "properties": {
+          "backfillDays": {
+            "description": "Administrateur uniquement.",
+            "type": "number"
+          },
+          "baseUrl": {
+            "description": "Administrateur uniquement.",
+            "nullable": true,
+            "type": "string"
+          },
+          "channel": {
+            "enum": [
+              "API",
+              "RAPPORT",
+              "RPA",
+              "WEBHOOK"
+            ],
+            "type": "string"
+          },
+          "circuitOpenUntil": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "companyIds": {
+            "description": "Sociétés couvertes (limitées au périmètre du lecteur).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "configurationVisible": {
+            "description": "Vrai si la vue contient la configuration (administrateur).",
+            "type": "boolean"
+          },
+          "consecutiveFailures": {
+            "type": "number"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "credentials": {
+            "description": "État des secrets (jamais leur valeur) ; administrateur uniquement.",
+            "items": {
+              "$ref": "#/components/schemas/CredentialStatusDto"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isSimulator": {
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "TRACCAR",
+              "WIALON",
+              "RAPPORT_GENERIQUE",
+              "WEBHOOK_GENERIQUE",
+              "RPA",
+              "SIMULATEUR"
+            ],
+            "type": "string"
+          },
+          "kindLabel": {
+            "description": "Libellé du type ; « SIMULATEUR — données fictives » pour le simulateur.",
+            "type": "string"
+          },
+          "lastErrorSummary": {
+            "description": "Dernière erreur, expurgée.",
+            "nullable": true,
+            "type": "string"
+          },
+          "lastSuccessAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "lastSyncAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notice": {
+            "description": "Avertissement affiché pour un simulateur.",
+            "nullable": true,
+            "type": "string"
+          },
+          "settings": {
+            "description": "Paramètres non secrets ; administrateur uniquement.",
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "BROUILLON",
+              "ACTIF",
+              "SUSPENDU",
+              "DESACTIVE"
+            ],
+            "type": "string"
+          },
+          "syncIntervalMinutes": {
+            "type": "number"
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "kindLabel",
+          "channel",
+          "status",
+          "isSimulator",
+          "notice",
+          "syncIntervalMinutes",
+          "lastSyncAt",
+          "lastSuccessAt",
+          "consecutiveFailures",
+          "circuitOpenUntil",
+          "lastErrorSummary",
+          "companyIds",
+          "version",
+          "configurationVisible"
+        ],
+        "type": "object"
+      },
+      "ProviderViewPageDto": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderViewDto"
+            },
+            "type": "array"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
+        ],
+        "type": "object"
+      },
+      "PutCredentialDto": {
+        "properties": {
+          "secret": {
+            "description": "Secret en écriture seule (jeton, identifiants, accès IMAP/SFTP) ; jamais renvoyé ni journalisé.",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "secret"
+        ],
+        "type": "object"
+      },
       "QrResolveDto": {
         "properties": {
           "code": {
@@ -7691,6 +8830,32 @@
         },
         "required": [
           "qrToken"
+        ],
+        "type": "object"
+      },
+      "QualifyFuelEventDto": {
+        "properties": {
+          "expectedVersion": {
+            "type": "number"
+          },
+          "note": {
+            "description": "Note de qualification (motif), conservée et auditée.",
+            "type": "string"
+          },
+          "qualification": {
+            "description": "JUSTIFIE, ANOMALIE_CONFIRMEE ou ERREUR_CAPTEUR ; aucune dépense ni retenue n’est jamais déduite.",
+            "enum": [
+              "JUSTIFIE",
+              "ANOMALIE_CONFIRMEE",
+              "ERREUR_CAPTEUR"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "qualification",
+          "note",
+          "expectedVersion"
         ],
         "type": "object"
       },
@@ -8071,6 +9236,21 @@
         ],
         "type": "object"
       },
+      "RejectMappingDto": {
+        "properties": {
+          "expectedVersion": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "expectedVersion"
+        ],
+        "type": "object"
+      },
       "RemoveBodyDto": {
         "properties": {
           "reason": {
@@ -8127,6 +9307,39 @@
         },
         "required": [
           "physicalKm"
+        ],
+        "type": "object"
+      },
+      "ReplacementUnitDto": {
+        "properties": {
+          "fuelKinds": {
+            "items": {
+              "enum": [
+                "NIVEAU_CAN",
+                "NIVEAU_SONDE",
+                "CONSOMMATION_CAN"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "odometerKind": {
+            "enum": [
+              "COMPTEUR_CAN",
+              "DISTANCE_GPS",
+              "AUCUN"
+            ],
+            "type": "string"
+          },
+          "unitId": {
+            "description": "Nouvelle unité (boîtier) du véhicule.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unitId",
+          "odometerKind",
+          "fuelKinds"
         ],
         "type": "object"
       },
@@ -9350,6 +10563,130 @@
         ],
         "type": "object"
       },
+      "SyncRunViewDto": {
+        "properties": {
+          "companyId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "duplicatesIgnored": {
+            "type": "number"
+          },
+          "durationMs": {
+            "nullable": true,
+            "type": "number"
+          },
+          "errorCount": {
+            "type": "number"
+          },
+          "errorSummary": {
+            "description": "Résumé expurgé.",
+            "nullable": true,
+            "type": "string"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "fuelEventsCreated": {
+            "type": "number"
+          },
+          "fuelSamples": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "odometerSamples": {
+            "type": "number"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "readingsCreated": {
+            "type": "number"
+          },
+          "readingsPending": {
+            "type": "number"
+          },
+          "requestedById": {
+            "nullable": true,
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "EN_COURS",
+              "SUCCES",
+              "PARTIEL",
+              "ECHEC",
+              "IGNORE"
+            ],
+            "type": "string"
+          },
+          "trigger": {
+            "type": "string"
+          },
+          "unitsSeen": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "providerId",
+          "providerName",
+          "companyId",
+          "trigger",
+          "status",
+          "startedAt",
+          "finishedAt",
+          "durationMs",
+          "unitsSeen",
+          "odometerSamples",
+          "readingsCreated",
+          "readingsPending",
+          "duplicatesIgnored",
+          "fuelSamples",
+          "fuelEventsCreated",
+          "errorCount",
+          "errorSummary",
+          "requestedById"
+        ],
+        "type": "object"
+      },
+      "SyncRunViewPageDto": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SyncRunViewDto"
+            },
+            "type": "array"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
+        ],
+        "type": "object"
+      },
       "TaskInputDto": {
         "properties": {
           "label": {
@@ -9406,6 +10743,164 @@
           "maintenanceTypeLabel",
           "completed",
           "notes"
+        ],
+        "type": "object"
+      },
+      "TelematicConsumptionDto": {
+        "properties": {
+          "available": {
+            "description": "Faux : N/D motivé, jamais remplacé par une estimation.",
+            "type": "boolean"
+          },
+          "deviationPercent": {
+            "description": "Écart signé en % par rapport à la consommation déclarée (1 décimale, ex. « +4.2 »).",
+            "nullable": true,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "CONSOMMATION_CAN",
+              "NIVEAU_SONDE"
+            ],
+            "type": "string"
+          },
+          "kindLabel": {
+            "description": "Libellé de la nature (« Consommation CAN », « Niveau sonde »).",
+            "type": "string"
+          },
+          "liters": {
+            "description": "Litres consommés selon la télématique.",
+            "nullable": true,
+            "type": "string"
+          },
+          "litersPer100Km": {
+            "description": "L/100 km arrondi à 1 décimale.",
+            "nullable": true,
+            "type": "string"
+          },
+          "litersPer100KmExact": {
+            "description": "L/100 km exact.",
+            "nullable": true,
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/TelematicConsumptionReasonDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "kindLabel",
+          "available",
+          "liters",
+          "litersPer100Km",
+          "litersPer100KmExact",
+          "deviationPercent",
+          "reasons"
+        ],
+        "type": "object"
+      },
+      "TelematicConsumptionReasonDto": {
+        "properties": {
+          "code": {
+            "enum": [
+              "ECHANTILLONS_ABSENTS",
+              "TROU_ECHANTILLONS",
+              "COUVERTURE_INSUFFISANTE",
+              "REMPLISSAGE_NON_DETECTE",
+              "VOLUME_INCONNU",
+              "BILAN_INCOHERENT",
+              "DISTANCE_NON_VALIDE"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "label"
+        ],
+        "type": "object"
+      },
+      "TelematicConsumptionTotalDto": {
+        "properties": {
+          "available": {
+            "description": "Faux : N/D motivé, jamais remplacé par une estimation.",
+            "type": "boolean"
+          },
+          "comparedIntervals": {
+            "description": "Intervalles comparés : consommation déclarée retenue et télématique disponible.",
+            "type": "number"
+          },
+          "declaredLiters": {
+            "description": "Litres déclarés des intervalles comparés.",
+            "nullable": true,
+            "type": "string"
+          },
+          "declaredLitersPer100Km": {
+            "description": "Consommation déclarée des seuls intervalles comparés (1 décimale).",
+            "nullable": true,
+            "type": "string"
+          },
+          "deviationPercent": {
+            "description": "Écart signé en % par rapport à la consommation déclarée (1 décimale, ex. « +4.2 »).",
+            "nullable": true,
+            "type": "string"
+          },
+          "distanceKm": {
+            "nullable": true,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "CONSOMMATION_CAN",
+              "NIVEAU_SONDE"
+            ],
+            "type": "string"
+          },
+          "kindLabel": {
+            "description": "Libellé de la nature (« Consommation CAN », « Niveau sonde »).",
+            "type": "string"
+          },
+          "liters": {
+            "description": "Litres consommés selon la télématique.",
+            "nullable": true,
+            "type": "string"
+          },
+          "litersPer100Km": {
+            "description": "L/100 km arrondi à 1 décimale.",
+            "nullable": true,
+            "type": "string"
+          },
+          "litersPer100KmExact": {
+            "description": "L/100 km exact.",
+            "nullable": true,
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/TelematicConsumptionReasonDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "kindLabel",
+          "available",
+          "liters",
+          "litersPer100Km",
+          "litersPer100KmExact",
+          "deviationPercent",
+          "reasons",
+          "comparedIntervals",
+          "distanceKm",
+          "declaredLiters",
+          "declaredLitersPer100Km"
         ],
         "type": "object"
       },
@@ -10489,6 +11984,220 @@
         ],
         "type": "object"
       },
+      "UnignoreUnitDto": {
+        "properties": {
+          "reason": {
+            "description": "Motif de la reprise (facultatif).",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UnitCountsDto": {
+        "properties": {
+          "associees": {
+            "type": "number"
+          },
+          "ignorees": {
+            "description": "Unités ignorées (D-249).",
+            "type": "number"
+          },
+          "nonAssociees": {
+            "type": "number"
+          },
+          "proposees": {
+            "type": "number"
+          },
+          "vehiculesSansUnite": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "nonAssociees",
+          "proposees",
+          "associees",
+          "vehiculesSansUnite",
+          "ignorees"
+        ],
+        "type": "object"
+      },
+      "UnitRowDto": {
+        "properties": {
+          "category": {
+            "enum": [
+              "NON_ASSOCIEES",
+              "PROPOSEES",
+              "ASSOCIEES",
+              "VEHICULES_SANS_UNITE",
+              "IGNOREES"
+            ],
+            "type": "string"
+          },
+          "mapping": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MappingViewDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          },
+          "unit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UnitViewDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          },
+          "unmappedReason": {
+            "enum": [
+              "INCONNUE",
+              "IMMATRICULATION_ABSENTE",
+              "AMBIGUE",
+              "VEHICULE_DEJA_EQUIPE",
+              "PROPOSITION_REJETEE",
+              "VEHICULE_NON_ELIGIBLE",
+              "A_REEXAMINER",
+              "IGNOREE"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "vehicle": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VehicleRefDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "category",
+          "unit",
+          "mapping",
+          "vehicle",
+          "unmappedReason"
+        ],
+        "type": "object"
+      },
+      "UnitViewDto": {
+        "properties": {
+          "declaredRegistration": {
+            "nullable": true,
+            "type": "string"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "firstSeenAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ignoredAt": {
+            "description": "Unité ignorée (D-249) : ni proposition ni alerte « unité non associée ».",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "ignoredById": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ignoredReason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "isSimulator": {
+            "type": "boolean"
+          },
+          "label": {
+            "type": "string"
+          },
+          "lastSeenAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "presentAtProvider": {
+            "type": "boolean"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "providerKind": {
+            "enum": [
+              "TRACCAR",
+              "WIALON",
+              "RAPPORT_GENERIQUE",
+              "WEBHOOK_GENERIQUE",
+              "RPA",
+              "SIMULATEUR"
+            ],
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "registrationNormalized": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "providerId",
+          "providerName",
+          "providerKind",
+          "isSimulator",
+          "externalId",
+          "label",
+          "declaredRegistration",
+          "registrationNormalized",
+          "presentAtProvider",
+          "firstSeenAt",
+          "lastSeenAt",
+          "ignoredAt",
+          "ignoredById",
+          "ignoredReason"
+        ],
+        "type": "object"
+      },
+      "UnitsPageDto": {
+        "properties": {
+          "counts": {
+            "$ref": "#/components/schemas/UnitCountsDto"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UnitRowDto"
+            },
+            "type": "array"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize",
+          "counts"
+        ],
+        "type": "object"
+      },
       "UpdateAssignmentDto": {
         "properties": {
           "driverId": {
@@ -10556,7 +12265,7 @@
             "type": "string"
           },
           "telemetryEnabled": {
-            "description": "Module F11 activable par société (administrateur).",
+            "description": "Lecture seule : une valeur différente de l’état courant est refusée (422) ; le module F11 s’active avec un motif via POST /telemetry/companies/:companyId/enable|disable (D-101, D-295).",
             "type": "boolean"
           }
         },
@@ -10945,6 +12654,43 @@
         ],
         "type": "object"
       },
+      "UpdateProviderDto": {
+        "properties": {
+          "backfillDays": {
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number"
+          },
+          "baseUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "companyIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "expectedVersion": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "settings": {
+            "type": "object"
+          },
+          "syncIntervalMinutes": {
+            "maximum": 1440,
+            "minimum": 5,
+            "type": "number"
+          }
+        },
+        "required": [
+          "expectedVersion"
+        ],
+        "type": "object"
+      },
       "UpdateReservationDto": {
         "properties": {
           "comment": {
@@ -11249,6 +12995,53 @@
           }
         },
         "required": [
+          "expectedVersion"
+        ],
+        "type": "object"
+      },
+      "UpdateVehicleFuelThresholdsDto": {
+        "properties": {
+          "dropLiters": {
+            "description": "Baisse à l’arrêt : seuil en litres (telemetry.fuelDropLiters).",
+            "nullable": true,
+            "type": "number"
+          },
+          "dropPercent": {
+            "description": "Baisse à l’arrêt : seuil en pourcentage du réservoir (telemetry.fuelDropPercent).",
+            "nullable": true,
+            "type": "number"
+          },
+          "dropWindowMinutes": {
+            "description": "Baisse à l’arrêt : fenêtre en minutes (telemetry.fuelDropWindowMinutes).",
+            "nullable": true,
+            "type": "number"
+          },
+          "expectedVersion": {
+            "description": "Version courante des seuils du véhicule (0 quand le véhicule n’en a pas encore).",
+            "type": "number"
+          },
+          "fillLiters": {
+            "description": "Remplissage détecté : seuil en litres (telemetry.fuelFillMinLiters).",
+            "nullable": true,
+            "type": "number"
+          },
+          "fillPercent": {
+            "description": "Remplissage détecté : seuil en pourcentage du réservoir (telemetry.fuelFillPercent).",
+            "nullable": true,
+            "type": "number"
+          },
+          "fillWindowMinutes": {
+            "description": "Remplissage détecté : fenêtre en minutes (telemetry.fuelFillWindowMinutes).",
+            "nullable": true,
+            "type": "number"
+          },
+          "reason": {
+            "description": "Motif de la modification (audité).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
           "expectedVersion"
         ],
         "type": "object"
@@ -11805,6 +13598,74 @@
         ],
         "type": "object"
       },
+      "VehicleCalibrationDto": {
+        "properties": {
+          "deviationKm": {
+            "description": "Écart estimation − relevé manuel (km).",
+            "nullable": true,
+            "type": "string"
+          },
+          "deviationPercent": {
+            "description": "Dérive en % de la distance manuelle (3 décimales, D-190).",
+            "nullable": true,
+            "type": "string"
+          },
+          "deviationPercentLabel": {
+            "description": "Dérive affichée à une décimale, virgule décimale (« 4,2 »).",
+            "nullable": true,
+            "type": "string"
+          },
+          "distanceSincePreviousKm": {
+            "description": "Distance manuelle depuis la référence précédente.",
+            "nullable": true,
+            "type": "string"
+          },
+          "driftAlertRaised": {
+            "description": "Vrai si la dérive a dépassé le seuil et levé l’alerte « dérive GPS ».",
+            "type": "boolean"
+          },
+          "estimatedKmAtReference": {
+            "description": "Estimation GPS à l’instant de la référence, selon le calibrage précédent.",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "referenceAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "referenceKm": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "CALIBRE",
+              "NON_CALIBRABLE"
+            ],
+            "type": "string"
+          },
+          "statusReason": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "referenceAt",
+          "referenceKm",
+          "estimatedKmAtReference",
+          "distanceSincePreviousKm",
+          "deviationKm",
+          "deviationPercent",
+          "deviationPercentLabel",
+          "driftAlertRaised",
+          "statusReason"
+        ],
+        "type": "object"
+      },
       "VehicleCategoryViewDto": {
         "properties": {
           "code": {
@@ -11896,6 +13757,181 @@
         ],
         "type": "object"
       },
+      "VehicleFuelThresholdDto": {
+        "properties": {
+          "companySource": {
+            "enum": [
+              "societe",
+              "groupe",
+              "defaut"
+            ],
+            "type": "string"
+          },
+          "companyValue": {
+            "description": "Valeur de la société (surcharge société, sinon groupe, sinon produit).",
+            "type": "number"
+          },
+          "effectiveValue": {
+            "description": "Valeur appliquée à la détection pour ce véhicule.",
+            "type": "number"
+          },
+          "field": {
+            "enum": [
+              "dropLiters",
+              "dropPercent",
+              "dropWindowMinutes",
+              "fillLiters",
+              "fillPercent",
+              "fillWindowMinutes"
+            ],
+            "type": "string"
+          },
+          "key": {
+            "description": "Paramètre société correspondant.",
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "max": {
+            "nullable": true,
+            "type": "number"
+          },
+          "min": {
+            "nullable": true,
+            "type": "number"
+          },
+          "source": {
+            "enum": [
+              "vehicule",
+              "societe",
+              "groupe",
+              "defaut"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "nullable": true,
+            "type": "string"
+          },
+          "vehicleValue": {
+            "description": "Surcharge du véhicule (null : valeur de la société).",
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "required": [
+          "field",
+          "key",
+          "label",
+          "unit",
+          "vehicleValue",
+          "companyValue",
+          "companySource",
+          "effectiveValue",
+          "source",
+          "min",
+          "max"
+        ],
+        "type": "object"
+      },
+      "VehicleFuelThresholdsViewDto": {
+        "properties": {
+          "canEdit": {
+            "description": "Vrai si l’utilisateur peut modifier ces seuils (chef de parc de la société, administrateur).",
+            "type": "boolean"
+          },
+          "companyId": {
+            "type": "string"
+          },
+          "reason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "thresholds": {
+            "items": {
+              "$ref": "#/components/schemas/VehicleFuelThresholdDto"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "updatedByName": {
+            "description": "Auteur de la dernière modification.",
+            "nullable": true,
+            "type": "string"
+          },
+          "vehicleCode": {
+            "type": "string"
+          },
+          "vehicleId": {
+            "type": "string"
+          },
+          "version": {
+            "description": "Version des seuils du véhicule (0 : aucune surcharge).",
+            "type": "number"
+          }
+        },
+        "required": [
+          "vehicleId",
+          "vehicleCode",
+          "companyId",
+          "version",
+          "reason",
+          "updatedAt",
+          "updatedByName",
+          "canEdit",
+          "thresholds"
+        ],
+        "type": "object"
+      },
+      "VehicleGpsEstimateDto": {
+        "properties": {
+          "cumulativeKm": {
+            "description": "Kilométrage cumulé estimé (décimal exact), jamais présenté comme un compteur.",
+            "type": "string"
+          },
+          "gpsDistanceKm": {
+            "nullable": true,
+            "type": "string"
+          },
+          "label": {
+            "description": "Libellé « Estimé GPS (réf. manuelle du …, … km) » enregistré avec l’estimation.",
+            "nullable": true,
+            "type": "string"
+          },
+          "observedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "readingId": {
+            "type": "string"
+          },
+          "referenceAt": {
+            "description": "Date de la référence manuelle du calibrage.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "referenceKm": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "readingId",
+          "cumulativeKm",
+          "gpsDistanceKm",
+          "observedAt",
+          "label",
+          "referenceAt",
+          "referenceKm"
+        ],
+        "type": "object"
+      },
       "VehicleOdometerSummaryDto": {
         "properties": {
           "ageDays": {
@@ -11964,6 +14000,33 @@
         },
         "required": [
           "attachmentId"
+        ],
+        "type": "object"
+      },
+      "VehicleRefDto": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "companyId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lifecycleStatus": {
+            "type": "string"
+          },
+          "registration": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "registration",
+          "companyId",
+          "lifecycleStatus"
         ],
         "type": "object"
       },
@@ -12221,6 +14284,217 @@
         ],
         "type": "object"
       },
+      "VehicleTelemetryObservationDto": {
+        "properties": {
+          "fuelKind": {
+            "enum": [
+              "NIVEAU_CAN",
+              "NIVEAU_SONDE",
+              "CONSOMMATION_CAN"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "fuelLiters": {
+            "description": "Dernier échantillon carburant stocké : litres (décimal exact), si le fournisseur les donne.",
+            "nullable": true,
+            "type": "string"
+          },
+          "fuelObservedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "fuelPercent": {
+            "description": "Dernier échantillon carburant stocké : pourcentage du réservoir, si le fournisseur le donne.",
+            "nullable": true,
+            "type": "string"
+          },
+          "odometerKind": {
+            "enum": [
+              "COMPTEUR_CAN",
+              "DISTANCE_GPS"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "odometerKm": {
+            "description": "Dernière valeur d’odomètre reçue (km, décimal exact) ; jamais un relevé accepté en soi.",
+            "nullable": true,
+            "type": "string"
+          },
+          "odometerObservedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "receivedAt": {
+            "description": "Dernière réception d’une donnée de l’unité (synchronisation).",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "odometerKm",
+          "odometerKind",
+          "odometerObservedAt",
+          "fuelKind",
+          "fuelLiters",
+          "fuelPercent",
+          "fuelObservedAt",
+          "receivedAt"
+        ],
+        "type": "object"
+      },
+      "VehicleTelemetryProviderDto": {
+        "properties": {
+          "circuitOpenUntil": {
+            "description": "Coupe-circuit ouvert jusqu’à cet instant (D-297).",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "consecutiveFailures": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isSimulator": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "kindLabel": {
+            "description": "Libellé du type ; « SIMULATEUR — données fictives » pour le simulateur.",
+            "type": "string"
+          },
+          "lastSuccessAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "BROUILLON",
+              "ACTIF",
+              "SUSPENDU",
+              "DESACTIVE"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "kindLabel",
+          "isSimulator",
+          "status",
+          "lastSuccessAt",
+          "consecutiveFailures",
+          "circuitOpenUntil"
+        ],
+        "type": "object"
+      },
+      "VehicleTelemetryViewDto": {
+        "properties": {
+          "companyId": {
+            "type": "string"
+          },
+          "lastCalibration": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VehicleCalibrationDto"
+              }
+            ],
+            "description": "Dernier calibrage (référence manuelle), calibrable ou non.",
+            "nullable": true,
+            "type": "object"
+          },
+          "lastDrift": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VehicleCalibrationDto"
+              }
+            ],
+            "description": "Dernier calibrage ayant mesuré une dérive.",
+            "nullable": true,
+            "type": "object"
+          },
+          "lastEstimate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VehicleGpsEstimateDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          },
+          "lastObservation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VehicleTelemetryObservationDto"
+              }
+            ],
+            "description": "Dernière observation reçue de l’unité associée, depuis la date d’effet de l’association en cours (un boîtier réutilisé ne restitue pas les valeurs de son véhicule précédent).",
+            "nullable": true,
+            "type": "object"
+          },
+          "mapping": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MappingViewDto"
+              }
+            ],
+            "description": "Association confirmée en cours.",
+            "nullable": true,
+            "type": "object"
+          },
+          "pendingProposals": {
+            "description": "Propositions d’association en attente de confirmation pour ce véhicule.",
+            "type": "number"
+          },
+          "provider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VehicleTelemetryProviderDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          },
+          "telemetryEnabled": {
+            "description": "Module F11 activé pour la société gestionnaire du véhicule.",
+            "type": "boolean"
+          },
+          "vehicleCode": {
+            "type": "string"
+          },
+          "vehicleId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "vehicleId",
+          "vehicleCode",
+          "companyId",
+          "telemetryEnabled",
+          "mapping",
+          "pendingProposals",
+          "provider",
+          "lastObservation",
+          "lastEstimate",
+          "lastCalibration",
+          "lastDrift"
+        ],
+        "type": "object"
+      },
       "VehicleUpcomingMaintenanceDto": {
         "properties": {
           "maintenanceTypeLabel": {
@@ -12422,6 +14696,233 @@
           "page",
           "pageSize",
           "items"
+        ],
+        "type": "object"
+      },
+      "WebhookAcceptedDto": {
+        "properties": {
+          "deliveryId": {
+            "description": "Identifiant du lot dans la file (à communiquer au support).",
+            "type": "string"
+          },
+          "fuel": {
+            "type": "number"
+          },
+          "odometers": {
+            "type": "number"
+          },
+          "receivedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "EN_ATTENTE"
+            ],
+            "type": "string"
+          },
+          "units": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "deliveryId",
+          "status",
+          "receivedAt",
+          "units",
+          "odometers",
+          "fuel"
+        ],
+        "type": "object"
+      },
+      "WebhookCountsDto": {
+        "properties": {
+          "failedLast24h": {
+            "type": "number"
+          },
+          "ignoredLast24h": {
+            "type": "number"
+          },
+          "lastReceivedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "pending": {
+            "type": "number"
+          },
+          "processedLast24h": {
+            "type": "number"
+          },
+          "receivedLast24h": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "pending",
+          "receivedLast24h",
+          "processedLast24h",
+          "ignoredLast24h",
+          "failedLast24h",
+          "lastReceivedAt"
+        ],
+        "type": "object"
+      },
+      "WebhookDeliveryViewDto": {
+        "properties": {
+          "attempts": {
+            "type": "number"
+          },
+          "fuel": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastError": {
+            "description": "Motif expurgé d’un lot ignoré ou en échec.",
+            "nullable": true,
+            "type": "string"
+          },
+          "odometers": {
+            "type": "number"
+          },
+          "processedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "receivedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "signedAt": {
+            "description": "Horodatage signé par le fournisseur.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "EN_ATTENTE",
+              "EN_COURS",
+              "TRAITE",
+              "IGNORE",
+              "ECHEC"
+            ],
+            "type": "string"
+          },
+          "syncRunIds": {
+            "description": "Exécutions de synchronisation (une par société) créées par le traitement du lot.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "units": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "signedAt",
+          "receivedAt",
+          "sizeBytes",
+          "units",
+          "odometers",
+          "fuel",
+          "attempts",
+          "processedAt",
+          "lastError",
+          "syncRunIds"
+        ],
+        "type": "object"
+      },
+      "WebhookViewDto": {
+        "properties": {
+          "counts": {
+            "$ref": "#/components/schemas/WebhookCountsDto"
+          },
+          "formatVersion": {
+            "type": "number"
+          },
+          "maxBodyBytes": {
+            "type": "number"
+          },
+          "maxRequestsPerMinute": {
+            "type": "number"
+          },
+          "maxSamplesPerList": {
+            "type": "number"
+          },
+          "method": {
+            "type": "string"
+          },
+          "notice": {
+            "description": "Avertissement (fournisseur non actif, secret absent).",
+            "nullable": true,
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "recent": {
+            "description": "Derniers lots reçus (20 au plus).",
+            "items": {
+              "$ref": "#/components/schemas/WebhookDeliveryViewDto"
+            },
+            "type": "array"
+          },
+          "rotationOverlapHours": {
+            "type": "number"
+          },
+          "secret": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CredentialStatusDto"
+              }
+            ],
+            "description": "État du secret de signature (jamais sa valeur)."
+          },
+          "signatureHeader": {
+            "description": "En-tête portant la signature « sha256=<hex> ».",
+            "type": "string"
+          },
+          "signedContent": {
+            "description": "Chaîne signée par HMAC-SHA256 avec le secret de signature.",
+            "type": "string"
+          },
+          "timestampHeader": {
+            "description": "En-tête portant l’horodatage signé (secondes Unix, UTC).",
+            "type": "string"
+          },
+          "toleranceSeconds": {
+            "type": "number"
+          },
+          "url": {
+            "description": "URL de réception à communiquer au fournisseur (méthode POST).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerId",
+          "url",
+          "method",
+          "timestampHeader",
+          "signatureHeader",
+          "signedContent",
+          "formatVersion",
+          "maxBodyBytes",
+          "maxSamplesPerList",
+          "maxRequestsPerMinute",
+          "toleranceSeconds",
+          "rotationOverlapHours",
+          "secret",
+          "counts",
+          "recent"
         ],
         "type": "object"
       },
@@ -22002,6 +24503,1876 @@
         "summary": "Réactiver un fournisseur archivé.",
         "tags": [
           "suppliers"
+        ]
+      }
+    },
+    "/api/v1/telemetry/companies": {
+      "get": {
+        "operationId": "TelemetryController_companies",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CompanyTelemetryViewDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Sociétés visibles, état du module F11 et fournisseurs couvrants.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/companies/{companyId}/disable": {
+      "post": {
+        "operationId": "TelemetryController_disable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "companyId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyTelemetryDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyTelemetryViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Désactiver le module F11 (administrateur, motif) : plus d’ingestion, données conservées, alertes F11 résolues.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/companies/{companyId}/enable": {
+      "post": {
+        "operationId": "TelemetryController_enable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "companyId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyTelemetryDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyTelemetryViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Activer le module F11 pour une société (administrateur, motif, audit).",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/fuel-events": {
+      "get": {
+        "operationId": "TelemetrySyncController_listFuelEvents",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "companyId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Détection à partir de cet instant.",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Recherche plein texte simple.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Champ de tri (liste autorisée par ressource).",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "A_QUALIFIER",
+                "QUALIFIE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Détection jusqu’à cet instant.",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "enum": [
+                "REMPLISSAGE_DETECTE",
+                "BAISSE_ANORMALE",
+                "ECART_TICKET"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "vehicleId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FuelEventsPageDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Événements carburant dérivés (remplissage, baisse anormale, écart ticket) du périmètre : anomalies à qualifier, jamais des dépenses.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/fuel-events/{id}": {
+      "get": {
+        "operationId": "TelemetrySyncController_getFuelEvent",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FuelEventViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Détail d’un événement carburant dérivé du périmètre (remplissage, baisse anormale, écart ticket) et de sa qualification.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/fuel-events/{id}/qualify": {
+      "post": {
+        "operationId": "TelemetrySyncController_qualify",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QualifyFuelEventDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FuelEventViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Qualifier un événement carburant (chef de parc ou administrateur) : JUSTIFIE, ANOMALIE_CONFIRMEE ou ERREUR_CAPTEUR, note obligatoire, verrou optimiste. Aucune dépense ni retenue n’est créée.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/mappings": {
+      "get": {
+        "operationId": "TelemetryController_listMappings",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "companyId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "providerId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Recherche plein texte simple.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Champ de tri (liste autorisée par ressource).",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "PROPOSE",
+                "CONFIRME",
+                "REJETE",
+                "CLOTURE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "unitId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "vehicleId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingViewPageDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Associations unité ↔ véhicule du périmètre.",
+        "tags": [
+          "telemetry"
+        ]
+      },
+      "post": {
+        "operationId": "TelemetryController_createMapping",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMappingDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Association manuelle confirmée par le chef de la société du véhicule (ou l’administrateur).",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/mappings/{id}": {
+      "get": {
+        "operationId": "TelemetryController_getMapping",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Détail d’une association unité ↔ véhicule du périmètre.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/mappings/{id}/close": {
+      "post": {
+        "operationId": "TelemetryController_close",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseMappingDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloseMappingResultDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Clôturer une association ; avec remplacement : changement de boîtier (D-300), kilométrage cumulé inchangé.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/mappings/{id}/confirm": {
+      "post": {
+        "operationId": "TelemetryController_confirm",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmMappingDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Confirmer une proposition : date d’effet (D-301), nature du kilométrage et du carburant.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/mappings/{id}/reject": {
+      "post": {
+        "operationId": "TelemetryController_reject",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectMappingDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Rejeter une proposition (motif).",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/provider-kinds": {
+      "get": {
+        "operationId": "TelemetryController_kinds",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderKindDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Types de fournisseur et disponibilité de leur adaptateur (administrateur).",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/providers": {
+      "get": {
+        "operationId": "TelemetryController_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "companyId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Recherche plein texte simple.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Champ de tri (liste autorisée par ressource).",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "BROUILLON",
+                "ACTIF",
+                "SUSPENDU",
+                "DESACTIVE"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderViewPageDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Fournisseurs visibles : tous (administrateur) ou couvrant les sociétés du lecteur, sans configuration.",
+        "tags": [
+          "telemetry"
+        ]
+      },
+      "post": {
+        "operationId": "TelemetryController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProviderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Créer un fournisseur en brouillon (administrateur). RPA et simulateur en production refusés (422).",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/providers/{id}": {
+      "delete": {
+        "operationId": "TelemetryController_remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expectedVersion",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Brouillon supprimé (aucun contenu)."
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Supprimer un brouillon jamais synchronisé (administrateur).",
+        "tags": [
+          "telemetry"
+        ]
+      },
+      "get": {
+        "operationId": "TelemetryController_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Détail d’un fournisseur télématique visible (configuration non secrète réservée à l’administrateur).",
+        "tags": [
+          "telemetry"
+        ]
+      },
+      "patch": {
+        "operationId": "TelemetryController_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProviderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Modifier nom, URL, paramètres non secrets, intervalle, reprise, sociétés couvertes (administrateur).",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/providers/{id}/activate": {
+      "post": {
+        "operationId": "TelemetryController_activate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderTransitionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "BROUILLON/SUSPENDU → ACTIF (administrateur) : configuration complète exigée.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/providers/{id}/credentials/{kind}": {
+      "delete": {
+        "operationId": "TelemetryController_removeCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "JETON_API",
+                "IDENTIFIANTS_API",
+                "IMAP",
+                "SFTP",
+                "RPA",
+                "SIGNATURE_WEBHOOK"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialStatusDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Révoquer (supprimer) un secret (administrateur).",
+        "tags": [
+          "telemetry"
+        ]
+      },
+      "put": {
+        "operationId": "TelemetryController_putCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "JETON_API",
+                "IDENTIFIANTS_API",
+                "IMAP",
+                "SFTP",
+                "RPA",
+                "SIGNATURE_WEBHOOK"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutCredentialDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialStatusDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Déposer ou remplacer un secret en écriture seule (administrateur) ; la réponse ne contient que { kind, configured, rotatedAt }.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/providers/{id}/deactivate": {
+      "post": {
+        "operationId": "TelemetryController_deactivate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderTransitionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "→ DESACTIVE (administrateur, motif) ; données conservées.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/providers/{id}/discover": {
+      "post": {
+        "operationId": "TelemetryController_discover",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveryResultDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Lister les unités chez le fournisseur et proposer les associations par immatriculation (administrateur ou chef d’une société couverte). Aucun relevé n’est ingéré.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/providers/{id}/health": {
+      "post": {
+        "operationId": "TelemetryController_health",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderHealthDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Test de connexion réel (healthCheck de l’adaptateur), message expurgé (administrateur).",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/providers/{id}/suspend": {
+      "post": {
+        "operationId": "TelemetryController_suspend",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderTransitionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "ACTIF → SUSPENDU (administrateur, motif).",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/providers/{id}/sync": {
+      "post": {
+        "operationId": "TelemetrySyncController_requestSync",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualSyncDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualSyncResultDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Synchronisation manuelle (administrateur ; chef de parc pour ses sociétés couvertes et activées). Lancée en arrière-plan : réponse 202 avec l’identifiant du run, ou du run déjà en cours ; run IGNORE si le coupe-circuit est ouvert. Reprise d’historique réservée à l’administrateur.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/providers/{id}/webhook": {
+      "get": {
+        "operationId": "TelemetryWebhookController_view",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "URL de réception, règles de signature, état du secret (jamais sa valeur) et derniers lots reçus (administrateur).",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/sync-runs": {
+      "get": {
+        "operationId": "TelemetryController_syncRuns",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "companyId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "providerId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Recherche plein texte simple.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Champ de tri (liste autorisée par ressource).",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "EN_COURS",
+                "SUCCES",
+                "PARTIEL",
+                "ECHEC",
+                "IGNORE"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncRunViewPageDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Exécutions de synchronisation et de découverte (périmètre ; résumés d’erreur expurgés).",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/units": {
+      "get": {
+        "operationId": "TelemetryController_listUnits",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "NON_ASSOCIEES",
+              "enum": [
+                "NON_ASSOCIEES",
+                "PROPOSEES",
+                "ASSOCIEES",
+                "VEHICULES_SANS_UNITE",
+                "IGNOREES"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "companyId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "providerId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Recherche plein texte simple.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Champ de tri (liste autorisée par ressource).",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitsPageDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Unités non associées, propositions, associations en cours, véhicules sans unité active, unités ignorées (périmètre).",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/units/{id}/ignore": {
+      "post": {
+        "operationId": "TelemetryController_ignoreUnit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IgnoreUnitDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Ignorer une unité volontairement sans véhicule (remorque, boîtier de rechange ; D-249), motif obligatoire : administrateur ou chef d’une société couverte. Propositions en attente rejetées, alerte « unité non associée » résolue ; 409 si une association confirmée est en cours.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/units/{id}/unignore": {
+      "post": {
+        "operationId": "TelemetryController_unignoreUnit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnignoreUnitDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Ne plus ignorer une unité (D-249), motif facultatif : elle redevient à associer et son alerte « unité non associée » est relevée de nouveau.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/vehicles/{vehicleId}": {
+      "get": {
+        "operationId": "TelemetryVehicleController_status",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vehicleId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleTelemetryViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "État télématique d’un véhicule : association en cours, fournisseur, dernière observation reçue, dernière estimation « estimé GPS » avec sa référence, dernier calibrage et dernière dérive.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/vehicles/{vehicleId}/fuel-thresholds": {
+      "get": {
+        "operationId": "TelemetryVehicleController_fuelThresholdsView",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vehicleId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleFuelThresholdsViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Seuils carburant du véhicule (baisse à l’arrêt, remplissage détecté) : surcharge propre au véhicule, valeur de la société et valeur appliquée, avec leur origine (D-238, D-240).",
+        "tags": [
+          "telemetry"
+        ]
+      },
+      "put": {
+        "operationId": "TelemetryVehicleController_updateFuelThresholds",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vehicleId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVehicleFuelThresholdsDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleFuelThresholdsViewDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "csrf": [],
+            "session": []
+          }
+        ],
+        "summary": "Remplace les seuils carburant propres au véhicule (chef de parc de la société ou administrateur ; motif, verrou optimiste, audit) ; tous les champs nuls retirent la surcharge.",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/v1/telemetry/webhooks/{providerId}": {
+      "post": {
+        "description": "Sans session. Signature = HMAC-SHA256(secret de signature, « <X-Webhook-Timestamp>.<corps brut> ») en hexadécimal, en-tête « X-Webhook-Signature: sha256=<hex> ». 401 : signature absente, expirée ou invalide ; 409 : rejeu d’une même requête signée ; 413 : corps trop volumineux ; 422 : fournisseur non actif, module non activé ou lot non conforme ; 429 : débit ou file pleine (Retry-After).",
+        "operationId": "TelemetryWebhookController_receive",
+        "parameters": [
+          {
+            "description": "sha256=<HMAC hexadécimal> (plusieurs valeurs séparées par des virgules admises).",
+            "in": "header",
+            "name": "X-Webhook-Signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Secondes Unix (UTC) de la signature.",
+            "in": "header",
+            "name": "X-Webhook-Timestamp",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Identifiant du fournisseur de canal WEBHOOK.",
+            "in": "path",
+            "name": "providerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAcceptedDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [],
+        "summary": "Réception d’un lot poussé par un fournisseur (webhook signé HMAC-SHA256) : dépôt dans la file puis ingestion par le worker.",
+        "tags": [
+          "telemetry"
         ]
       }
     },

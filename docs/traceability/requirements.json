@@ -421,7 +421,7 @@
    "apps/api/src/modules/organizations/organizations.controller.ts",
    "apps/api/src/modules/organizations/organizations.service.ts",
    "apps/api/src/modules/organizations/dto/create-company.dto.ts",
-   "packages/db/src/seed-demo.ts",
+   "apps/api/src/cli/seed-demo.ts",
    "apps/api/test/integration/organizations.int.spec.ts"
   ]
  },
@@ -3423,7 +3423,7 @@
   "plannedFiles": [
    "apps/api/src/modules/maintenance/maintenance.controller.ts",
    "apps/api/src/modules/maintenance/dto/maintenance-type.dto.ts",
-   "packages/db/src/seed-demo.ts",
+   "apps/api/src/cli/seed-demo.ts",
    "apps/api/test/integration/maintenance.int.spec.ts"
   ]
  },
@@ -3515,7 +3515,7 @@
   "verification": "review",
   "plannedFiles": [
    "apps/api/src/modules/maintenance/maintenance.service.ts",
-   "packages/db/src/seed-demo.ts"
+   "apps/api/src/cli/seed-demo.ts"
   ]
  },
  {
@@ -4184,7 +4184,7 @@
   "plannedFiles": [
    "apps/api/src/modules/documents/documents.controller.ts",
    "apps/api/src/modules/documents/dto/document-type.dto.ts",
-   "packages/db/src/seed-demo.ts",
+   "apps/api/src/cli/seed-demo.ts",
    "apps/api/test/integration/documents.int.spec.ts"
   ]
  },
@@ -12023,7 +12023,7 @@
   "tests": [],
   "verification": "integration",
   "plannedFiles": [
-   "packages/db/src/seed-demo.ts",
+   "apps/api/src/cli/seed-demo.ts",
    "apps/api/test/integration/seed-demo.int.spec.ts"
   ]
  },
@@ -12037,8 +12037,8 @@
   "tests": [],
   "verification": "unit",
   "plannedFiles": [
-   "packages/db/src/seed-demo.ts",
-   "packages/db/src/seed-demo.spec.ts"
+   "apps/api/src/cli/seed-demo.ts",
+   "apps/api/test/integration/seed-demo.int.spec.ts"
   ]
  },
  {

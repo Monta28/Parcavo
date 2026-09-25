@@ -174,6 +174,7 @@ enum TelemetryChannel {
   API
   RAPPORT
   RPA
+  WEBHOOK
 }
 
 enum TelemetryProviderKind {
@@ -182,6 +183,7 @@ enum TelemetryProviderKind {
   RAPPORT_GENERIQUE
   RPA
   SIMULATEUR
+  WEBHOOK_GENERIQUE
 }
 
 enum TelemetryProviderStatus {
@@ -197,6 +199,16 @@ enum TelemetryCredentialKind {
   IMAP
   SFTP
   RPA
+  SIGNATURE_WEBHOOK
+}
+
+/// État d'un lot reçu par webhook (file persistante, D-298).
+enum TelemetryWebhookStatus {
+  EN_ATTENTE
+  EN_COURS
+  TRAITE
+  IGNORE
+  ECHEC
 }
 
 enum TelemetryMappingStatus {
@@ -876,6 +888,7 @@ model Vehicle {
   telemetryMappings      TelemetryVehicleMapping[]
   telemetryCalibrations  TelemetryCalibration[]
   fuelEvents             FuelEvent[]
+  fuelThresholds         VehicleFuelThresholds?
 
   @@unique([organizationId, code])
   @@unique([organizationId, registrationNormalized])
@@ -1898,6 +1911,7 @@ model TelemetryProvider {
   mappings     TelemetryVehicleMapping[]
   syncRuns     TelemetrySyncRun[]
   reportFiles  TelemetryReportFile[]
+  webhookDeliveries TelemetryWebhookDelivery[]
 
   @@unique([organizationId, name])
   @@unique([id, organizationId])
@@ -1929,6 +1943,9 @@ model TelemetryCredential {
   createdAt      DateTime                @default(now()) @db.Timestamptz(3)
   rotatedAt      DateTime?               @db.Timestamptz(3)
   createdById    String?                 @db.Uuid
+  /// Secret de signature webhook remplacé (rotation) : encore accepté jusqu'à cette date, puis supprimé.
+  /// Toujours nul pour un secret actif (CHECK telemetry_credential_expiry_inactive_only).
+  expiresAt      DateTime?               @db.Timestamptz(3)
 
   provider TelemetryProvider @relation(fields: [providerId, organizationId], references: [id, organizationId], onDelete: Cascade)
 
@@ -1937,18 +1954,24 @@ model TelemetryCredential {
 
 /// Unité (boîtier) déclarée par le fournisseur.
 model TelemetryUnit {
-  id                     String   @id @default(uuid(7)) @db.Uuid
-  organizationId         String   @db.Uuid
-  providerId             String   @db.Uuid
+  id                     String    @id @default(uuid(7)) @db.Uuid
+  organizationId         String    @db.Uuid
+  providerId             String    @db.Uuid
   externalId             String
   label                  String
   declaredRegistration   String?
   registrationNormalized String?
-  firstSeenAt            DateTime @db.Timestamptz(3)
-  lastSeenAt             DateTime @db.Timestamptz(3)
-  presentAtProvider      Boolean  @default(true)
-  createdAt              DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt              DateTime @updatedAt @db.Timestamptz(3)
+  firstSeenAt            DateTime  @db.Timestamptz(3)
+  lastSeenAt             DateTime  @db.Timestamptz(3)
+  presentAtProvider      Boolean   @default(true)
+  /// Unité volontairement sans véhicule (remorque, boîtier de rechange ; D-249) : ni proposition ni
+  /// alerte « unité non associée » tant qu'elle est ignorée. L'état est porté par l'unité car une
+  /// association exige un véhicule. CHECK : les trois champs sont nuls, ou date et motif non vide renseignés.
+  ignoredAt              DateTime? @db.Timestamptz(3)
+  ignoredById            String?   @db.Uuid
+  ignoredReason          String?
+  createdAt              DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime  @updatedAt @db.Timestamptz(3)
 
   provider TelemetryProvider         @relation(fields: [providerId, organizationId], references: [id, organizationId], onDelete: Restrict)
   mappings TelemetryVehicleMapping[]
@@ -1961,6 +1984,9 @@ model TelemetryUnit {
 
 /// Association unité ↔ véhicule (14.5). Aucun relevé n'est ingéré avant
 /// confirmation. Un seul mapping CONFIRME ouvert par unité et par véhicule.
+/// SQL (migration lot_f_mapping_overlap_fuel_thresholds, R-14.5-X01) : les périodes [validFrom, validTo[
+/// des associations CONFIRME et CLOTURE ne se chevauchent ni par unité ni par véhicule (contraintes
+/// d'exclusion telemetry_mapping_no_overlap_unit / _vehicle) ; validFrom obligatoire et validFrom ≤ validTo.
 model TelemetryVehicleMapping {
   id             String                 @id @default(uuid(7)) @db.Uuid
   organizationId String                 @db.Uuid
@@ -2044,6 +2070,43 @@ model TelemetrySyncRun {
   @@index([organizationId, companyId, startedAt])
 }
 
+/// Lots reçus par le webhook d'un fournisseur (canal WEBHOOK, CDC 14.4 ; D-298, R-14.4-X01) : file
+/// persistante. L'API vérifie la signature HMAC, borne taille et débit puis dépose le lot normalisé ;
+/// seul le worker l'ingère, par la même ingestion que la synchronisation. Rejeu d'une même requête
+/// signée refusé par l'index unique (fournisseur, horodatage signé, empreinte du corps).
+model TelemetryWebhookDelivery {
+  id             String                 @id @default(uuid(7)) @db.Uuid
+  organizationId String                 @db.Uuid
+  providerId     String                 @db.Uuid
+  status         TelemetryWebhookStatus @default(EN_ATTENTE)
+  /// Horodatage signé par le fournisseur (en-tête X-Webhook-Timestamp).
+  signedAt       DateTime               @db.Timestamptz(3)
+  receivedAt     DateTime               @db.Timestamptz(3)
+  /// SHA-256 hexadécimal du corps brut reçu.
+  bodySha256     String                 @db.Char(64)
+  sizeBytes      Int
+  /// Lot normalisé : seuls les champs du format documenté sont conservés (jamais de secret ni d'en-tête).
+  payload        Json
+  unitCount      Int                    @default(0)
+  odometerCount  Int                    @default(0)
+  fuelCount      Int                    @default(0)
+  attempts       Int                    @default(0)
+  nextAttemptAt  DateTime               @db.Timestamptz(3)
+  lockedBy       String?
+  lockedUntil    DateTime?              @db.Timestamptz(3)
+  processedAt    DateTime?              @db.Timestamptz(3)
+  /// Runs de synchronisation créés par société (identifiants et statuts), sans contenu brut.
+  result         Json?
+  /// Motif expurgé d'un lot ignoré ou en échec.
+  lastError      String?
+
+  provider TelemetryProvider @relation(fields: [providerId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([providerId, signedAt, bodySha256], map: "telemetry_webhook_no_replay")
+  @@index([status, nextAttemptAt])
+  @@index([providerId, receivedAt])
+}
+
 /// Fichiers de rapports déjà traités (canal RAPPORT) : idempotence par empreinte.
 model TelemetryReportFile {
   id             String   @id @default(uuid(7)) @db.Uuid
@@ -2125,6 +2188,36 @@ model FuelLevelSample {
   @@id([id, observedAt])
   @@unique([unitId, kind, observedAt])
   @@index([vehicleId, observedAt])
+}
+
+/// Seuils carburant propres à un véhicule (D-238, D-240 : groupe > société > véhicule ; R-8.5-07,
+/// R-17.1-14). Un champ nul reprend la valeur de la société (surcharge société, sinon groupe, sinon
+/// valeur du produit). Modifiés par le chef de parc ou l'administrateur, avec motif, verrou optimiste et
+/// audit. Bornes SQL identiques aux paramètres correspondants (CHECK).
+model VehicleFuelThresholds {
+  vehicleId         String   @id @db.Uuid
+  organizationId    String   @db.Uuid
+  /// telemetry.fuelDropLiters
+  dropLiters        Decimal? @db.Decimal(9, 3)
+  /// telemetry.fuelDropPercent
+  dropPercent       Decimal? @db.Decimal(9, 3)
+  /// telemetry.fuelDropWindowMinutes
+  dropWindowMinutes Int?
+  /// telemetry.fuelFillMinLiters
+  fillLiters        Decimal? @db.Decimal(9, 3)
+  /// telemetry.fuelFillPercent
+  fillPercent       Decimal? @db.Decimal(9, 3)
+  /// telemetry.fuelFillWindowMinutes
+  fillWindowMinutes Int?
+  reason            String
+  updatedById       String?  @db.Uuid
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(3)
+  version           Int      @default(1)
+
+  vehicle Vehicle @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([vehicleId, organizationId])
 }
 
 /// Événement carburant dérivé (8.5) : anomalie à qualifier, jamais une dépense.

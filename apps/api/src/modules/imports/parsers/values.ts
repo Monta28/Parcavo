@@ -8,8 +8,10 @@ import { DateTime } from 'luxon';
  *    l'heure est locale au groupe ; une date seule vaut 00:00 locale (« heure non fournie »).
  *  - Kilomètres : entiers sans séparateur (« 45.230 » est ambigu : refusé).
  *  - Booléens : oui/non, true/false, 1/0, actif/inactif.
+ * Une cellule date XLSX porte aussi son heure murale (`time`, HH:mm:ss.SSS) quand le classeur en contient
+ * une ; les imports n'utilisent que `date`, le canal télématique RAPPORT (D-184) lit aussi l'heure.
  */
-export type Cell = string | { date: string } | null;
+export type Cell = string | { date: string; time?: string } | null;
 
 export type Parsed<T> = { ok: true; value: T; note?: string } | { ok: false; message: string };
 

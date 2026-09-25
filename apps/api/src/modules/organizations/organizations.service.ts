@@ -116,6 +116,15 @@ export class OrganizationsService {
     const current = await this.prisma.client.company.findFirst({ where: { id, organizationId: ctx.organizationId } });
     if (!current) throw new NotFoundOrOutOfScopeError('Société');
     assertExpectedVersion(current, dto.expectedVersion, 'société');
+    // D-101, D-295 : l'activation du module F11 passe uniquement par /telemetry/companies/:id/enable|disable
+    // (motif audité, résolution des alertes F11, recalcul des unités non associées).
+    if (dto.telemetryEnabled !== undefined && dto.telemetryEnabled !== current.telemetryEnabled) {
+      throw new BusinessRuleError(
+        'ACTIVATION_TELEMETRIE_DEDIEE',
+        'Le module télématique s’active ou se désactive avec un motif via POST /telemetry/companies/:companyId/enable ou /disable (Administration › Télématique).',
+        { fieldErrors: { telemetryEnabled: ['Modification réservée à l’activation télématique motivée.'] } },
+      );
+    }
     if (dto.logoAttachmentId) {
       const att = await this.prisma.client.attachment.findFirst({ where: { id: dto.logoAttachmentId, organizationId: ctx.organizationId, deletedAt: null } });
       if (!att) throw new NotFoundOrOutOfScopeError('Pièce jointe');
@@ -130,7 +139,6 @@ export class OrganizationsService {
           ...(dto.email !== undefined ? { email: dto.email } : {}),
           ...(dto.taxIdentifier !== undefined ? { taxIdentifier: dto.taxIdentifier } : {}),
           ...(dto.logoAttachmentId !== undefined ? { logoAttachmentId: dto.logoAttachmentId } : {}),
-          ...(dto.telemetryEnabled !== undefined ? { telemetryEnabled: dto.telemetryEnabled } : {}),
           version: { increment: 1 },
         },
       });

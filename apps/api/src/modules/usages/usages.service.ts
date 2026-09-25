@@ -27,6 +27,7 @@ import { SettingsService } from '../settings/settings.service.js';
 import { VehiclesService } from '../vehicles/vehicles.service.js';
 import { DepartureChecksService, VEHICLE_NOT_ACTIVE, type DepartureBlocker } from './departure-checks.service.js';
 import type { CheckoutDto, CheckoutPreviewDto, ExtendUsageDto, RegularizeReturnReadingDto, ReturnDto, UsageViewDto, UsagesQueryDto } from './dto/usages.dto.js';
+import { currentTelematicsHint } from '../telemetry/telematics-hint.js';
 
 const usageInclude = {
   vehicle: { select: { code: true, registration: true } },
@@ -98,15 +99,14 @@ export class UsagesService {
       const [v, d] = await Promise.all([tx.vehicle.findUniqueOrThrow({ where: { id: vehicleId } }), tx.driver.findUniqueOrThrow({ where: { id: driverId } })]);
       const blockers = await this.checks.check(tx, v, d, when, { timezone });
       const last = await tx.odometerReading.findFirst({ where: { vehicleId, status: 'ACCEPTE' }, orderBy: [{ observedAt: 'desc' }, { enteredAt: 'desc' }] });
-      const mapping = await tx.telemetryVehicleMapping.findFirst({ where: { vehicleId, status: 'CONFIRME', validTo: null }, include: { unit: { include: { state: true } } } });
-      const state = mapping?.unit.state;
+      const telematicsHint = await currentTelematicsHint(tx, vehicleId);
       // Occupation réelle (D-140) : [départ, max(retour prévu, maintenant)[, comme à la remise.
       const conflicts = expectedReturnAt ? await this.conflictingReservations(tx, vehicleId, driverId, when, occupancyEnd(new Date(expectedReturnAt), this.clock.now())) : [];
       const checklistItems = await this.settings.get(ctx.organizationId, 'usage.checklistItems', vehicle.companyId, tx);
       return {
         blockers,
         lastReading: last ? { physicalKm: last.physicalKm?.toFixed(3) ?? null, observedAt: last.observedAt.toISOString() } : null,
-        telematicsHint: state?.lastOdometerValueKm && state.lastOdometerObservedAt && state.lastOdometerKind ? { valueKm: state.lastOdometerValueKm.toFixed(3), kind: state.lastOdometerKind, observedAt: state.lastOdometerObservedAt.toISOString() } : null,
+        telematicsHint,
         checklistItems: checklistItems,
         conflictingReservations: conflicts,
       };

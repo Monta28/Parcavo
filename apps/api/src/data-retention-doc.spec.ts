@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { IMPORT_ABANDON_AFTER_DAYS, IMPORT_DATA_RETENTION_DAYS } from './modules/imports/import-retention.service.js';
 import { ReportExportPolicy } from './modules/reports/export/report-export.policy.js';
+import { WEBHOOK_RETENTION_DAYS } from './modules/telemetry/sync/telemetry-sync.service.js';
 
 /**
  * CDC 16.2 : la conservation est définie et documentée (docs/conservation-des-donnees.md), sans annoncer
@@ -64,6 +65,18 @@ describe('Conservation des données : document fidèle au code (docs/conservatio
     expect(row('Valeurs brutes des lignes')).toContain(`${IMPORT_DATA_RETENTION_DAYS} jours`);
     expect(constant('apps/worker/src/jobs/daily-purge.job.ts', 'SCHEDULED_RUN_RETENTION_DAYS')).toBe(30);
     expect(row('Traces des traitements planifiés')).toContain('30 jours');
+  });
+
+  it('télématique : échantillons (paramètres 17.1) et webhooks', () => {
+    for (const [label, key] of [
+      ['Échantillons carburant', 'telemetry.fuelSampleRetentionDays'],
+      ['Échantillons d\'odomètre', 'telemetry.odometerSampleRetentionDays'],
+    ] as const) {
+      const d = SETTING_DESCRIPTORS[key];
+      expect(row(label)).toContain(`${SETTING_DEFAULTS[key]} jours, paramètre \`${key}\` (${d.min} à ${d.max} jours)`);
+    }
+    expect(WEBHOOK_RETENTION_DAYS).toBe(7);
+    expect(row('Lots reçus par webhook')).toContain(`${WEBHOOK_RETENTION_DAYS} jours`);
   });
 
   it('sauvegardes : rétention par défaut du script ; aucune conformité juridique annoncée ; points à valider listés', () => {

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useAppScope } from '@/components/layout/session-context';
 import { AttachmentLink, ReadingStatusBadge } from '@/components/odometer/reading-display';
 import { PageHeader } from '@/components/page-header';
+import { TelematicFuelEventsLink } from '@/components/telemetry/fuel-events-link';
 import { ErrorState, LoadingState } from '@/components/states';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -88,6 +89,7 @@ export function FuelDetail({ id }: { id: string }) {
       <div className="space-y-4">
         <StatusNotice entry={e} />
         <FuelWarnings entry={e} money={money} />
+        {session.isDriverOnly ? null : <TelematicFuelEventsLink vehicleId={e.vehicleId} />}
 
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2">

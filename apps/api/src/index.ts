@@ -38,3 +38,21 @@ export { ReservationsService } from './modules/reservations/reservations.service
 export { ImmobilizationsService } from './modules/immobilizations/immobilizations.service.js';
 export { IncidentsService } from './modules/incidents/incidents.service.js';
 export { EMAIL_CHANNEL_NOT_CONFIGURED } from './modules/notifications/notifications.service.js';
+// Télématique F11 (cœur du connecteur) : garde de démarrage (simulateur interdit en production), registre des
+// adaptateurs (secrets déchiffrés le temps d'un appel), découverte des unités, alertes F11, journal masqué.
+export { TelemetryModule } from './modules/telemetry/telemetry.module.js';
+export { TelemetryAdapterRegistry, assertNoActiveSimulatorInProduction, resolveAdapterFactory, sanitizeProviderFailure, type AdapterProviderRow } from './modules/telemetry/telemetry-adapter.registry.js';
+export { TelemetryUnitsService, closeOpenMappingsForVehicle, type DiscoveryProvider } from './modules/telemetry/telemetry-units.service.js';
+export { TelemetryAlertsService, F11_ALERT_TYPES } from './modules/telemetry/telemetry-alerts.service.js';
+export { TelemetryProvidersService, providerErrorMessage } from './modules/telemetry/telemetry-providers.service.js';
+export { SIMULATOR_LABEL } from './modules/telemetry/telemetry-settings.js';
+// Télématique F11 (synchronisation) : passage planifié runDue(now) — runs échus, reprises initiales, source muette —,
+// purge des échantillons, politique de reprise et de coupe-circuit (D-296, D-297).
+export { TelemetrySyncModule } from './modules/telemetry/sync/telemetry-sync.module.js';
+export { TelemetrySyncService, WEBHOOK_MAX_ATTEMPTS, WEBHOOK_RETENTION_DAYS, type RunDueOptions, type RunDueResult, type RunWebhooksResult, type SyncRunOutcome } from './modules/telemetry/sync/telemetry-sync.service.js';
+export { webhookSignatureHeader } from './modules/telemetry/webhook/telemetry-webhook-signature.js';
+export { TelemetryPurgeService, type TelemetryPurgeResult } from './modules/telemetry/sync/telemetry-purge.service.js';
+export { TelemetrySilenceService, type SilenceSummary } from './modules/telemetry/sync/telemetry-silence.service.js';
+export { DEFAULT_SYNC_POLICY, type Sleep, type SyncPolicy } from './modules/telemetry/sync/telemetry-resilience.js';
+export { RedactingConsoleLogger } from './common/redacting-logger.js';
+export { redactSensitiveText, sanitizeUrl, trackSensitiveValues } from './common/secret-redaction.js';

@@ -63,4 +63,11 @@ describe('Socle et adaptations (CDC 14.1, docs/ARCHITECTURE.md)', () => {
       expect(Object.keys(deps(`${pkg}/package.json`)).filter((d) => /redis|bullmq/i.test(d)), pkg).toEqual([]);
     }
   });
+
+  it('les documents cités dans l’arborescence de docs/ existent', () => {
+    const tree = ARCHITECTURE.slice(ARCHITECTURE.indexOf('└── docs/'), ARCHITECTURE.indexOf('```', ARCHITECTURE.indexOf('└── docs/')));
+    const cited = [...tree.matchAll(/([\w.-]+\.(?:md|json))/g)].map((m) => m[1] ?? '');
+    expect(cited.length).toBeGreaterThan(8);
+    expect(cited.filter((name) => !existsSync(join(ROOT, 'docs', name)))).toEqual([]);
+  });
 });

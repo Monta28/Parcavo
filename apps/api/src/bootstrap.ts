@@ -6,19 +6,26 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule, type AppModuleOptions } from './app.module.js';
 import { applyOpenApiSecurity } from './common/openapi-security.js';
+import { RedactingConsoleLogger } from './common/redacting-logger.js';
 import { requestIdMiddleware } from './common/request-id.middleware.js';
 import { APP_ENV, type AppEnv } from './infra/env.js';
+import { WEBHOOK_MAX_BODY_BYTES } from './modules/telemetry/webhook/telemetry-webhook-format.js';
+import { webhookRawBodyMiddleware } from './modules/telemetry/webhook/webhook-raw-body.middleware.js';
 
 export const API_PREFIX = 'api/v1';
 
 /** Crée l'application HTTP complète (utilisée par main.ts et par les tests d'intégration). */
 export async function createApp(options: AppModuleOptions = {}): Promise<NestExpressApplication> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule.register(options), { bufferLogs: false, logger: options.env?.nodeEnv === 'test' ? ['error', 'warn'] : ['log', 'error', 'warn'] });
+  // Journal avec masquage des secrets et jetons (D-304, T44) : motifs sensibles et secrets fournisseur en cours d'usage.
+  const logger = new RedactingConsoleLogger({ logLevels: options.env?.nodeEnv === 'test' ? ['error', 'warn'] : ['log', 'error', 'warn'] });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule.register(options), { bufferLogs: false, logger });
   const env = app.get<AppEnv>(APP_ENV);
   app.setGlobalPrefix(API_PREFIX);
   app.set('trust proxy', env.trustProxy ? 1 : false);
   app.disable('x-powered-by');
   app.use(requestIdMiddleware);
+  // Lots webhook fournisseurs (D-298) : corps brut borné, lu avant les analyseurs JSON (signature HMAC des octets reçus).
+  app.use(`/${API_PREFIX}/telemetry/webhooks`, webhookRawBodyMiddleware(WEBHOOK_MAX_BODY_BYTES));
   app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'same-origin' } }));
   app.use(cookieParser());
   app.enableShutdownHooks();

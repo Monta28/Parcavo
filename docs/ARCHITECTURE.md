@@ -42,7 +42,7 @@ Aucune image Docker `:latest` ; les images sont épinglées par tag et digest da
 │   │   │   │   ├── fuel-events.ts           # remplissage, baisse anormale, écart ticket (8.5)
 │   │   │   │   ├── civil-date.ts            # dates civiles Africa/Tunis, fin de journée locale
 │   │   │   │   └── money.ts                 # décimaux exacts, tolérance litres x prix (8.2)
-│   │   │   ├── cli/               # seed-demo.ts (jeu de démonstration, jamais en production), export OpenAPI
+│   │   │   ├── cli/               # seed-demo.ts (jeu de démonstration, jamais en production), export OpenAPI, rotation des secrets
 │   │   │   ├── infra/             # Prisma (adapter pg), stockage de fichiers, chiffrement, SMTP, audit sink
 │   │   │   └── modules/           # un dossier par module de la section 14.2
 │   │   │       ├── auth/            access-control/   organizations/   users/

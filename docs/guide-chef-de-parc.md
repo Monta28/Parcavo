@@ -12,7 +12,8 @@ Guides thématiques à lire en complément :
 
 - [guide utilisateur : carburant, dépenses, fournisseurs, alertes et transfert](guide-utilisateur.md) ;
 - [guide : catalogue initial, conformité documentaire et dérogations](guide-conformite-entretien.md) ;
-- [guide des imports](guide-imports.md).
+- [guide des imports](guide-imports.md) ;
+- [connecteur télématique (module F11)](connecteur-telematique.md).
 
 ## Ce que l’application ne fait pas
 
@@ -151,6 +152,7 @@ L’en-tête affiche le cycle de vie, l’état opérationnel, la fraîcheur du 
 | « Entretien » | « Plans d’entretien » et « Interventions » du véhicule |
 | « Documents » | « Conformité documentaire » et « Versions enregistrées » |
 | « Carburant » | « Consommation estimée » et « Pleins du véhicule » (section 15) |
+| « Télématique » | Unité associée, dernières données reçues, calibrage (section 19) |
 | « Historique » | « Chronologie du véhicule », filtrable par catégorie |
 
 Dans l’« Historique », un événement marqué « Vue technique · autre société » vient d’une autre société qui a géré le véhicule : il s’affiche sans auteur, texte libre, montant ni fournisseur.
@@ -645,6 +647,37 @@ Menu « Imports », réservé au chef de parc et à l’administrateur. Il sert 
 
 Suivez le [guide des imports](guide-imports.md) : modèles, formats, ordre des imports et garanties.
 
+## 19. Télématique
+
+Menu « Télématique ». Le module est désactivé par défaut. L’administrateur l’active par société et configure les fournisseurs. Sans lui, tout fonctionne en saisie manuelle.
+
+L’écran l’annonce : aucun suivi en direct. Seules les données reçues et leur traitement sont affichés. Le chef de parc et l’administrateur décident ; l’opérateur et le lecteur consultent ; le conducteur n’y a pas accès.
+
+### Associations
+
+Onglet « Associations ». Catégories : « Propositions à confirmer », « Unités non associées », « Associations en cours », « Véhicules sans unité », « Ignorées ».
+
+1. Sur une proposition, cliquez sur « Confirmer ». Choisissez la nature du kilométrage et du carburant d’après la réponse écrite du fournisseur, et la date d’effet si besoin. Aucun relevé n’est lu avant cette confirmation.
+2. Ou cliquez sur « Rejeter » avec un motif.
+3. Pour une unité sans véhicule (remorque, boîtier de rechange), cliquez sur « Ignorer cette unité » et saisissez le motif. Elle ne reçoit plus de proposition ni d’alerte. « Ne plus ignorer » annule ce choix.
+4. « Associer à un véhicule » ou « Associer une unité » crée une association manuelle.
+5. « Clôturer / changer de boîtier » termine une association ou la remplace par un nouveau boîtier.
+
+### Synchronisation
+
+Onglet « Synchronisation » : état du module par société, état des fournisseurs (dernière réussite, échecs, dernière erreur) et « Exécutions ». Pour vos sociétés activées, « Synchroniser maintenant » et « Découvrir les unités ». Un fournisseur en webhook pousse ses données seul.
+
+### Événements carburant
+
+Onglet « Événements carburant ». Ce sont des anomalies à qualifier, jamais des dépenses.
+
+1. Filtrez sur « À qualifier ».
+2. Cliquez sur « Qualifier », choisissez « Justifié », « Anomalie confirmée » ou « Erreur de capteur », et saisissez une note.
+
+Un remplissage rapproché d’un plein saisi est justifié automatiquement. La consommation officielle reste celle des pleins validés.
+
+Sur la fiche du véhicule, l’onglet « Télématique » montre l’unité associée, la « Dernière observation reçue », la dernière estimation GPS et la dérive. Une distance GPS n’est jamais présentée comme la valeur du compteur. Procédures détaillées : [connecteur télématique, guide d’exploitation](connecteur-telematique.md#guide-dexploitation--écrans-procédures-et-qualification).
+
 ## 20. Notifications et préférences
 
 Lien « Mes notifications » en haut de l’écran.
@@ -660,7 +693,7 @@ Seuls les chefs de parc et l’administrateur groupe reçoivent ces e-mails. L�
 
 Cette partie est réservée à l’administrateur groupe (menu « Administration »). Seule exception : le chef de parc ouvre l’onglet « Audit » pour les sociétés qu’il gère.
 
-Les sections : « Sociétés », « Sites et services », « Catégories de véhicules », « Utilisateurs », « Organisation », « Paramètres », « Notifications », « Audit ». Chaque modification est journalisée.
+Les sections : « Sociétés », « Sites et services », « Catégories de véhicules », « Utilisateurs », « Organisation », « Paramètres », « Télématique », « Notifications », « Audit ». Chaque modification est journalisée.
 
 ### Paramètres
 
@@ -698,7 +731,7 @@ Sur la fiche du compte : « Renvoyer l’invitation par e-mail », « Générer 
 
 ### Sociétés
 
-« Nouvelle société » : « Code » (non modifiable ensuite), « Raison sociale », coordonnées et « Identifiant fiscal ». « Archiver » est refusé tant que des véhicules actifs ou hors service, ou des utilisations en cours, sont rattachés.
+« Nouvelle société » : « Code » (non modifiable ensuite), « Raison sociale », coordonnées et « Identifiant fiscal ». « Archiver » est refusé tant que des véhicules actifs ou hors service, ou des utilisations en cours, sont rattachés. L’état du module télématique se change dans l’onglet « Télématique ».
 
 ### Sites et services
 
@@ -711,6 +744,15 @@ Choisissez la société, puis « Nouveau site » (nom, adresse en texte libre, r
 ### Organisation
 
 « Nom de l’organisation » et « Fuseau horaire » (identifiant IANA, par exemple Africa/Tunis). Le code, la devise et les décimales monétaires sont fixés à l’installation.
+
+### Télématique
+
+Onglet « Télématique (F11) » :
+
+- « Activation par société » : « Activer » ou « Désactiver » le module, avec un motif audité.
+- « Fournisseurs » : « Nouveau fournisseur », puis sur sa fiche « Tester la connexion », « Découvrir les unités », « Synchroniser maintenant », dépôt des secrets (« Déposer », « Remplacer », « Révoquer »), « Activer le fournisseur », « Suspendre le fournisseur », « Désactiver le fournisseur », « Supprimer le brouillon ».
+
+Les secrets ne sont jamais réaffichés. Suivez la procédure complète du [connecteur télématique](connecteur-telematique.md#activation--procédure).
 
 ### Notifications
 

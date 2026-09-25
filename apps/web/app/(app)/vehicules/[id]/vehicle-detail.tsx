@@ -28,10 +28,11 @@ import { OdometerPanel } from './odometer-panel';
 import { PhotosPanel } from './photos-panel';
 import { QrPanel } from './qr-panel';
 import { ReservationsPanel } from './reservations-panel';
+import { VehicleTelemetryPanel } from './telemetry-panel';
 import { TransferDialog } from './transfer-dialog';
 
 /** Onglets atteignables par lien (?onglet=…, liens d'alerte) ; les onglets de gestion sont refusés au conducteur. */
-const STAFF_TABS = new Set(['synthese', 'localisation', 'kilometrage', 'photos', 'affectations', 'reservations', 'entretien', 'documents', 'historique', 'carburant']);
+const STAFF_TABS = new Set(['synthese', 'localisation', 'kilometrage', 'photos', 'affectations', 'reservations', 'entretien', 'documents', 'telematique', 'historique', 'carburant']);
 const DRIVER_TABS = new Set(['synthese', 'localisation', 'historique']);
 
 function initialTab(requested: string | null, driverOnly: boolean): string {
@@ -115,6 +116,7 @@ export function VehicleDetail({ id }: { id: string }) {
           {session.isDriverOnly ? null : <TabsTrigger value="entretien">Entretien</TabsTrigger>}
           {session.isDriverOnly ? null : <TabsTrigger value="documents">Documents</TabsTrigger>}
           {session.isDriverOnly ? null : <TabsTrigger value="carburant">Carburant</TabsTrigger>}
+          {session.isDriverOnly ? null : <TabsTrigger value="telematique">Télématique</TabsTrigger>}
           <TabsTrigger value="historique">Historique</TabsTrigger>
         </TabsList>
 
@@ -298,6 +300,12 @@ export function VehicleDetail({ id }: { id: string }) {
         {session.isDriverOnly ? null : (
           <TabsContent value="carburant">
             <ConsumptionPanel vehicleId={id} companyId={v.companyId} />
+          </TabsContent>
+        )}
+
+        {session.isDriverOnly ? null : (
+          <TabsContent value="telematique">
+            <VehicleTelemetryPanel vehicleId={id} companyId={v.companyId} />
           </TabsContent>
         )}
 

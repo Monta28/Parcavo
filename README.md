@@ -38,6 +38,7 @@ pnpm seed:demo -- --reset       # vide d'abord une base de démonstration (hors 
 
 - Mot de passe commun des comptes : `DEMO_PASSWORD` s'il est fourni (12 caractères minimum, minuscules, majuscules et chiffres), sinon généré aléatoirement et affiché **une seule fois** à la fin (seule son empreinte Argon2id est stockée).
 - Contenu, dates relatives au jour d'exécution : organisation `DEMO`, trois sociétés (`ATLAS`, `CARTHAGE`, `OASIS`), douze véhicules, dix conducteurs ; utilisations ouvertes et clôturées, retour en retard et réservation compromise, réservations future et non honorée, responsables habituels, relevés (validé, en attente au-delà du seuil, corrigé, remplacement de compteur, relevé ancien), plans d'entretien à jour / bientôt dus / en retard, interventions ouverte et clôturée, documents valide / à renouveler / expiré bloquant, incidents mineur et critique, immobilisation active, pleins (normal, écart en attente, doublon rejeté), dépenses, alertes, transfert entre sociétés et lot d'import confirmé. Tout passe par les services de l'API (règles, références, audit et alertes).
+- Télématique : un fournisseur « SIMULATEUR — données fictives » n'est créé que si `TELEMETRY_SIMULATOR_ENABLED=true` ; sinon le module F11 reste désactivé.
 - `--reset` ne vide qu'une base qui ne contient que l'organisation `DEMO` : une base portant une autre organisation est refusée sans aucune suppression. Les fichiers déjà présents dans `STORAGE_DIR` ne sont pas supprimés.
 
 | Compte | Rôle |
@@ -74,7 +75,7 @@ pnpm --filter @parc-auto/api openapi:export   # compile l'API puis réécrit doc
 ## Structure
 
 ```
-apps/api        API REST NestJS (/api/v1), OpenAPI, autorisations serveur, CLI (jeu de démonstration)
+apps/api        API REST NestJS (/api/v1), OpenAPI, autorisations serveur, CLI (jeu de démonstration, rotation des secrets)
 apps/worker     Jobs PostgreSQL : alertes, outbox e-mail, synchronisation télématique
 apps/web        Interface Next.js
 packages/db     Schéma Prisma, migrations SQL, client, CLI d'administration (premier administrateur)

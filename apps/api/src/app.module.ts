@@ -38,6 +38,8 @@ import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 import { AlertsModule } from './modules/alerts/alerts.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { AuditModule } from './modules/audit/audit.module.js';
+import { TelemetryModule } from './modules/telemetry/telemetry.module.js';
+import { TelemetrySyncModule } from './modules/telemetry/sync/telemetry-sync.module.js';
 
 export interface AppModuleOptions {
   env?: AppEnv;
@@ -45,7 +47,7 @@ export interface AppModuleOptions {
 }
 
 /** Modules métier chargés dans l'API. Chaque lot ajoute ses modules ici. */
-export const FEATURE_MODULES = [HealthModule, SettingsModule, AlertsCoreModule, UsersModule, OrganizationsModule, AttachmentsModule, DriversModule, VehiclesModule, OdometerModule, UsagesModule, ReservationsModule, AssignmentsModule, MaintenanceModule, ImmobilizationsModule, SuppliersModule, InterventionsModule, DocumentsModule, IncidentsModule, ExpensesModule, FuelModule, ImportsModule, DashboardModule, AlertsModule, NotificationsModule, ReportsModule, VehicleTransferModule, AuditModule];
+export const FEATURE_MODULES = [HealthModule, SettingsModule, AlertsCoreModule, UsersModule, OrganizationsModule, AttachmentsModule, DriversModule, VehiclesModule, OdometerModule, UsagesModule, ReservationsModule, AssignmentsModule, MaintenanceModule, ImmobilizationsModule, SuppliersModule, InterventionsModule, DocumentsModule, IncidentsModule, ExpensesModule, FuelModule, ImportsModule, DashboardModule, AlertsModule, NotificationsModule, ReportsModule, TelemetryModule, TelemetrySyncModule, VehicleTransferModule, AuditModule];
 
 @Module({})
 export class AppModule {

@@ -29,6 +29,7 @@ import { MaintenancePlansService } from '../maintenance/maintenance-plans.servic
 import { OdometerFreshnessService } from '../odometer/odometer-freshness.service.js';
 import { OdometerIngestionService, lockVehicle } from '../odometer/odometer-ingestion.service.js';
 import { parseKm } from '../odometer/odometer.service.js';
+import { closeOpenMappingsForVehicle } from '../telemetry/telemetry-units.service.js';
 import type {
   TransferAssignmentPreviewDto,
   TransferBlockerDto,
@@ -282,6 +283,7 @@ export class VehicleTransferService {
     //    fournisseur actif la couvre et que F11 y est activé (D-124), à confirmer par son chef.
     const closedTelemetryMappingIds = state.mappings.map((m) => m.id);
     const proposedTelemetryMappingIds: string[] = [];
+    await closeOpenMappingsForVehicle(tx, { organizationId: ctx.organizationId, vehicleId, at: transferAt, reason: endReason, userId: ctx.userId });
     for (const m of state.mappings) {
       if (m.status !== 'CONFIRME' || !target.telemetryEnabled) continue;
       const covered = await tx.telemetryProviderCompany.findFirst({ where: { providerId: m.providerId, companyId: target.id, provider: { status: 'ACTIF' } }, select: { providerId: true } });

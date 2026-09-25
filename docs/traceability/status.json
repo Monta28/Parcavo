@@ -801,7 +801,7 @@
    "apps/api/src/data-model-doc.spec.ts › décrit chaque table du schéma Prisma, une fois, avec sa portée et sa fin de vie",
    "apps/api/test/integration/data-model.int.spec.ts › les tables sans organizationId de la base migrée sont exactement les tables globales documentées"
   ],
-  "note": "docs/modele-de-donnees.md liste et justifie les tables globales (Organization racine, JobLease, WorkerHeartbeat, LoginAttempt, _prisma_migrations ; partitions des échantillons avec organizationId) et décrit chacune des 64 tables (rôle, portée, fin de vie) ; en-tête du schéma et renvoi de D-283 corrigés ; contrôlé contre le schéma (unitaire) et contre la base PostgreSQL migrée (intégration). Découpage (complément du lot A) : ligne de la table TelemetryWebhookDelivery (lot F) retirée de docs/modele-de-donnees.md, absente du schéma de cet arbre."
+  "note": "docs/modele-de-donnees.md liste et justifie les tables globales (Organization racine, JobLease, WorkerHeartbeat, LoginAttempt, _prisma_migrations ; partitions des échantillons avec organizationId) et décrit chacune des 64 tables (rôle, portée, fin de vie) ; en-tête du schéma et renvoi de D-283 corrigés ; contrôlé contre le schéma (unitaire) et contre la base PostgreSQL migrée (intégration). Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-13.1-06": {
   "status": "fait",
@@ -850,23 +850,25 @@
   "verification": "review"
  },
  "R-13.1-11": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "docs/modele-de-donnees.md",
    "docs/DECISIONS.md",
    "apps/api/src/modules/vehicles/vehicles.service.ts",
    "apps/api/src/modules/organizations/organizations.service.ts",
    "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-providers.service.ts",
    "apps/api/src/modules/assignments/assignment-exit.ts"
   ],
   "tests": [
+   "apps/api/src/data-model-doc.spec.ts › liste chaque table dont le code de l’API ou du worker supprime physiquement des lignes",
    "apps/api/src/data-model-doc.spec.ts › ne documente comme archivables que des tables sans suppression physique par le code, hors cas listés",
    "apps/api/test/integration/data-model.int.spec.ts › le journal d’audit est en ajout seul : ni modification ni suppression physique",
    "apps/api/test/integration/vehicles.int.spec.ts › refuse l’archivage tant que des opérations sont ouvertes et conserve les dossiers",
    "apps/api/test/integration/attachments.int.spec.ts › supprime logiquement un fichier avec motif et journalise la suppression",
    "apps/api/test/integration/driver-deactivation.int.spec.ts › refuse avec une utilisation en cours, puis exige l’annulation explicite des réservations futures et clôt l’affectation habituelle"
   ],
-  "note": "Politique documentée table par table (archivage/désactivation, clôture par statut, ajout seul, suppression logique) et liste exhaustive des suppressions physiques réellement faites par le code (données techniques expirées, brouillon de fournisseur télématique, lignes dépendantes remplacées, affectations à venir retirées, habilitations remplacées, cascades) ; un test parcourt apps/api/src et apps/worker/src et échoue si une table supprimée physiquement n’est pas documentée, ou si une table métier principale (véhicule, conducteur, relevé, utilisation, dépense…) l’est ; D-283 renvoie à ce document. Découpage (complément du lot A) : politique documentée ; audit en ajout seul, archivage et suppression logique testés ; contrôle des suppressions physiques du code contre le document : test livré avec le lot F (data-model-doc.spec.ts › liste chaque table…, qui exige plus de cinq tables supprimées et les fichiers cités des lots C à F)."
+  "note": "Politique documentée table par table (archivage/désactivation, clôture par statut, ajout seul, suppression logique) et liste exhaustive des suppressions physiques réellement faites par le code (données techniques expirées, brouillon de fournisseur télématique, lignes dépendantes remplacées, affectations à venir retirées, habilitations remplacées, cascades) ; un test parcourt apps/api/src et apps/worker/src et échoue si une table supprimée physiquement n’est pas documentée, ou si une table métier principale (véhicule, conducteur, relevé, utilisation, dépense…) l’est ; D-283 renvoie à ce document. Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-13.2-01": {
   "status": "fait",
@@ -1032,15 +1034,16 @@
   "verification": "review"
  },
  "R-14.1-07": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "docs/ARCHITECTURE.md",
    "docs/DECISIONS.md"
   ],
   "tests": [
-   "apps/api/src/architecture-doc.spec.ts › chaque adaptation du tableau « Adaptations au socle proposé » correspond au dépôt"
+   "apps/api/src/architecture-doc.spec.ts › chaque adaptation du tableau « Adaptations au socle proposé » correspond au dépôt",
+   "apps/api/src/architecture-doc.spec.ts › les documents cités dans l’arborescence de docs/ existent"
   ],
-  "note": "Section « Adaptations au socle proposé (CDC 14.1) » ajoutée à ARCHITECTURE.md : migrations sous packages/db/prisma/migrations, apps/telemetry-rpa absent (RPA non retenu), shadcn vendorisé sans components.json, Tailwind 4 sans tailwind.config, jeu de démonstration dans apps/api/src/cli, Dockerfile unique à cibles et deploy/Caddyfile, pas de Redis ; arborescence corrigée (docs réellement présents, jobs du worker, Dockerfile) ; un test confronte chaque ligne au dépôt et vérifie que les documents cités existent. Revue adversariale : le test ne lisait pas le tableau du document (retirer une ligne ne le faisait pas échouer) ; il analyse désormais chaque ligne « élément proposé → réalisation » et la confronte au dépôt. Découpage (complément du lot A) : architecture-doc.spec.ts › chaque adaptation… (Dockerfile, deploy/Caddyfile, seed-demo) livré avec le lot E ; › les documents cités dans l’arborescence de docs/ (docs/connecteur-telematique.md) : test livré avec le lot F."
+  "note": "Section « Adaptations au socle proposé (CDC 14.1) » ajoutée à ARCHITECTURE.md : migrations sous packages/db/prisma/migrations, apps/telemetry-rpa absent (RPA non retenu), shadcn vendorisé sans components.json, Tailwind 4 sans tailwind.config, jeu de démonstration dans apps/api/src/cli, Dockerfile unique à cibles et deploy/Caddyfile, pas de Redis ; arborescence corrigée (docs réellement présents, jobs du worker, Dockerfile) ; un test confronte chaque ligne au dépôt et vérifie que les documents cités existent. Revue adversariale : le test ne lisait pas le tableau du document (retirer une ligne ne le faisait pas échouer) ; il analyse désormais chaque ligne « élément proposé → réalisation » et la confronte au dépôt. Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-14.1-08": {
   "status": "fait",
@@ -1589,9 +1592,14 @@
    "docs/DECISIONS.md"
   ],
   "tests": [
-   "apps/api/test/integration/attachments.int.spec.ts › supprime logiquement un fichier avec motif et journalise la suppression"
+   "apps/api/test/integration/attachments.int.spec.ts › supprime logiquement un fichier avec motif et journalise la suppression",
+   "apps/api/test/integration/attachments-deletion.int.spec.ts › justificatif de document : lecteur et opérateur sans documents.manage refusés (403) ; suppression par un gestionnaire → « justificatif absent », téléchargement 404, audit motivé",
+   "apps/api/src/data-retention-doc.spec.ts › sessions, liens d’accès, tentatives de connexion et idempotence",
+   "apps/api/src/data-retention-doc.spec.ts › fichiers temporaires, exports, imports et traces du worker",
+   "apps/api/src/data-retention-doc.spec.ts › télématique : échantillons (paramètres 17.1) et webhooks",
+   "apps/api/src/data-retention-doc.spec.ts › sauvegardes : rétention par défaut du script ; aucune conformité juridique annoncée ; points à valider listés"
   ],
-  "note": "Suppressions de fichiers logiques, motivées et auditées (testé) ; docs/conservation-des-donnees.md recense toutes les durées réellement appliquées (sessions, liens d’accès, tentatives de connexion, idempotence, fichiers temporaires 24 h, exports 24 h, imports 7 j/90 j, échantillons télématiques 90 j, webhooks 7 j, traces du worker 30 j, sauvegardes 30 j), les données conservées sans limite en V1 (dont l’outbox) et n’annonce aucune conformité juridique ; chaque durée est comparée au code par un test. Reste une dépendance externe : la validation par le client de ses obligations de conservation (six points listés dans le document). Découpage (complément du lot A) : docs/conservation-des-donnees.md livré ; sa comparaison au code (data-retention-doc.spec.ts, 4 cas) : test livré avec le lot F, les durées des exports, imports, échantillons, webhooks, traces du worker et sauvegardes relevant des lots D à F ; suppression d’un justificatif de document : test livré avec le lot C (attachments-deletion.int.spec.ts)."
+  "note": "Suppressions de fichiers logiques, motivées et auditées (testé) ; docs/conservation-des-donnees.md recense toutes les durées réellement appliquées (sessions, liens d’accès, tentatives de connexion, idempotence, fichiers temporaires 24 h, exports 24 h, imports 7 j/90 j, échantillons télématiques 90 j, webhooks 7 j, traces du worker 30 j, sauvegardes 30 j), les données conservées sans limite en V1 (dont l’outbox) et n’annonce aucune conformité juridique ; chaque durée est comparée au code par un test. Reste une dépendance externe : la validation par le client de ses obligations de conservation (six points listés dans le document). Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-17.1-01": {
   "status": "fait",
@@ -1838,6 +1846,10 @@
    "file": "scripts/ops/backup.sh ; scripts/ops/restore.sh ; scripts/ops/restore-test.sh ; docker-compose.prod.yml",
    "status": "non testé"
   },
+  "T31": {
+   "file": "apps/api/test/integration/telemetry-sync.int.spec.ts ; apps/worker/src/jobs/queue-telemetry-retention.spec.ts ; apps/web/components/telemetry/telemetry-render.spec.ts",
+   "status": "réussi"
+  },
   "T32": {
    "file": "apps/api/test/integration/auth.int.spec.ts",
    "status": "réussi"
@@ -1848,6 +1860,46 @@
   },
   "T34": {
    "file": "apps/api/test/integration/reports.int.spec.ts ; apps/api/src/common/csv-safety.spec.ts",
+   "status": "réussi"
+  },
+  "T35": {
+   "file": "apps/api/test/integration/telemetry-core.int.spec.ts ; apps/api/src/domain/telemetry/unit-matching.spec.ts",
+   "status": "réussi"
+  },
+  "T36": {
+   "file": "apps/api/test/integration/telemetry-sync.int.spec.ts",
+   "status": "réussi"
+  },
+  "T37": {
+   "file": "apps/api/test/integration/telemetry-sync.int.spec.ts",
+   "status": "réussi"
+  },
+  "T38": {
+   "file": "apps/api/test/integration/telemetry-sync.int.spec.ts ; apps/api/src/domain/telemetry/gps-calibration.spec.ts ; apps/api/test/integration/telemetry-vehicle.int.spec.ts ; apps/web/components/telemetry/telemetry-render.spec.ts",
+   "status": "réussi"
+  },
+  "T39": {
+   "file": "apps/api/test/integration/telemetry-sync.int.spec.ts ; apps/api/src/domain/telemetry/gps-calibration.spec.ts ; apps/api/test/integration/telemetry-vehicle.int.spec.ts",
+   "status": "réussi"
+  },
+  "T40": {
+   "file": "apps/api/test/integration/telemetry-sync.int.spec.ts ; apps/api/src/domain/odometer-rules.spec.ts",
+   "status": "réussi"
+  },
+  "T41": {
+   "file": "apps/api/test/integration/telemetry-sync.int.spec.ts",
+   "status": "réussi"
+  },
+  "T42": {
+   "file": "apps/api/test/integration/telemetry-sync.int.spec.ts ; apps/api/src/domain/telemetry/historization.spec.ts",
+   "status": "réussi"
+  },
+  "T43": {
+   "file": "apps/api/test/integration/telemetry-sync.int.spec.ts ; apps/api/src/domain/telemetry/fuel-events.spec.ts",
+   "status": "réussi"
+  },
+  "T44": {
+   "file": "apps/api/test/integration/telemetry-core.int.spec.ts ; apps/api/test/integration/telemetry-sync.int.spec.ts ; apps/api/test/integration/telemetry-vehicle.int.spec.ts",
    "status": "réussi"
   }
  },
@@ -2586,7 +2638,7 @@
   "note": "Champs clients limités par le DTO et la validation whitelist/forbidNonWhitelisted ; société historique, auteur et source fixés par le serveur. Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-5.1-03": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "packages/db/prisma/schema.prisma",
    "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
@@ -2594,9 +2646,10 @@
   ],
   "tests": [
    "apps/api/src/domain/odometer-rules.spec.ts › minute pour MANUAL et IMPORT, seconde pour TELEMATICS",
-   "apps/api/test/integration/imports.int.spec.ts › relevés : INITIAL puis COURANT, formats refusés, hausse implausible en attente, réimport idempotent"
+   "apps/api/test/integration/imports.int.spec.ts › relevés : INITIAL puis COURANT, formats refusés, hausse implausible en attente, réimport idempotent",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant"
   ],
-  "note": "Découpage : sources MANUAL (lot B) et IMPORT (imports.int.spec.ts, lot E) testées ; TELEMATICS (telemetry-sync.int.spec.ts) : test livré avec le lot F."
+  "note": "Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-5.1-04": {
   "status": "partiel",
@@ -2829,9 +2882,10 @@
   "tests": [
    "apps/api/src/domain/odometer-rules.spec.ts › T09 — 89 000 après 89 500 dans le même segment : diminution refusée pour un relevé manuel",
    "apps/api/src/domain/odometer-rules.spec.ts › T40 — la même diminution venant de la télématique passe en attente avec motif",
-   "apps/api/test/integration/imports.int.spec.ts › relevés : INITIAL puis COURANT, formats refusés, hausse implausible en attente, réimport idempotent"
+   "apps/api/test/integration/imports.int.spec.ts › relevés : INITIAL puis COURANT, formats refusés, hausse implausible en attente, réimport idempotent",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée"
   ],
-  "note": "Revue : aucune règle de kilométrage dans apps/web ; evaluateReading unique appelé par l’ingestion pour toutes les sources. Découpage : application identique aux imports testée avec le lot E ; télématique (T40, telemetry-sync.int.spec.ts) : test livré avec le lot F."
+  "note": "Revue : aucune règle de kilométrage dans apps/web ; evaluateReading unique appelé par l’ingestion pour toutes les sources. Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-5.3-01": {
   "status": "fait",
@@ -3015,17 +3069,19 @@
   "note": "« Cumul incomplet » affiché dans la carte du compteur courant et le tableau des compteurs, vérifié par l’e2e compteur.spec.ts (vert)."
  },
  "R-5.4-08": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
    "apps/api/src/modules/odometer/odometer.service.ts",
-   "apps/api/src/modules/imports/import-appliers.service.ts"
+   "apps/api/src/modules/imports/import-appliers.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts"
   ],
   "tests": [
    "apps/api/test/integration/odometer.int.spec.ts › T14 — remplacement à 120 000 par un compteur à 0 puis lecture 500 : physique 500, cumul 120 500",
-   "apps/api/test/integration/imports.int.spec.ts › COURANT sans compteur initialisé et INITIAL sur compteur existant : erreurs, jamais d’initialisation ni de remplacement implicite"
+   "apps/api/test/integration/imports.int.spec.ts › COURANT sans compteur initialisé et INITIAL sur compteur existant : erreurs, jamais d’initialisation ni de remplacement implicite",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée"
   ],
-  "note": "Découpage : aucun remplacement implicite par un relevé inférieur (T09, T14) ni par un import (lot E) ; télématique (T40, telemetry-odometer-sync.service.ts) : fonctionnalité et test livrés avec le lot F."
+  "note": "Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-5.5-01": {
   "status": "fait",
@@ -3291,22 +3347,26 @@
    "apps/api/src/domain/odometer-rules.spec.ts › T10 — un ancien relevé supérieur au suivant rompt la chronologie",
    "apps/api/src/domain/odometer-rules.spec.ts › même instant : même valeur idempotente, valeur différente en conflit",
    "apps/api/src/domain/odometer-rules.spec.ts › refuse une valeur négative, une date future et une valeur sous le début du segment",
-   "apps/api/src/domain/odometer-rules.spec.ts › une hausse au-delà du seuil est proposée à validation sans devenir courante"
+   "apps/api/src/domain/odometer-rules.spec.ts › une hausse au-delà du seuil est proposée à validation sans devenir courante",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée"
   ],
-  "note": "Découpage lot B : décroissance télématique en attente testée avec le lot F."
+  "note": "Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-14.3-01": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
    "apps/api/src/modules/imports/import-appliers.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
    "apps/api/src/modules/odometer/odometer.service.ts"
   ],
   "tests": [
    "apps/api/test/integration/odometer.int.spec.ts › T09 — refuse 89 000 après 89 500 dans le même segment",
-   "apps/api/test/integration/imports.int.spec.ts › relevés : INITIAL puis COURANT, formats refusés, hausse implausible en attente, réimport idempotent"
+   "apps/api/test/integration/imports.int.spec.ts › relevés : INITIAL puis COURANT, formats refusés, hausse implausible en attente, réimport idempotent",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée"
   ],
-  "note": "Découpage : ingestion MANUAL (lot B) et IMPORT (lot E) par le même service testées ; TELEMATICS (telemetry-odometer-sync.service.ts, T36, T37, T40) : fonctionnalité et tests livrés avec le lot F."
+  "note": "Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-15.2-07": {
   "status": "fait",
@@ -6120,15 +6180,16 @@
   "note": "INCONNU → KILOMETRAGE_ABSENT ; aucune observation acceptée depuis plus de odometer.staleAfterDays (7, paramétrable) → KILOMETRAGE_ANCIEN, occurrence « depuis:date » ; véhicule hors service exclu."
  },
  "R-9.1-04": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
    "apps/api/src/modules/odometer/odometer.service.ts"
   ],
   "tests": [
-   "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel"
+   "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée"
   ],
-  "note": "Tout relevé EN_ATTENTE créé par le service d’ingestion unique lève RELEVE_A_VALIDER (schedulePendingAlert) : soumission conducteur (T11) et relevé automatique incohérent (T40) testés ; l’anomalie importante (hausse implausible) suit le même chemin sans assertion sur l’alerte ; résolue à l’approbation. Découpage (lot D) : soumission conducteur (T11) testée ; relevé automatique incohérent (T40, telemetry-sync.int.spec.ts) : test livré avec le lot F."
+  "note": "Tout relevé EN_ATTENTE créé par le service d’ingestion unique lève RELEVE_A_VALIDER (schedulePendingAlert) : soumission conducteur (T11) et relevé automatique incohérent (T40) testés ; l’anomalie importante (hausse implausible) suit le même chemin sans assertion sur l’alerte ; résolue à l’approbation. Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-9.1-05": {
   "status": "fait",
@@ -6338,14 +6399,15 @@
   "note": "Tâche alertes-rattrapage : créneaux de 15 min alignés, bail JobLease (une instance exécute, l’autre reprend à l’expiration), Job dédupliqué par créneau, créneau manqué rattrapé au redémarrage."
  },
  "R-9.3-03": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "apps/api/src/modules/alerts/alerts.service.ts"
   ],
   "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T42 — base 80 000, intervalle 10 000 : synchro CAN 89 500 puis 90 000 → A_PREVOIR puis A_FAIRE sans saisie manuelle, alerte moins d’une minute après l’ingestion (délai mesuré)",
    "apps/api/test/integration/maintenance.int.spec.ts › T15 — base 80 000, intervalle 10 000 : 89 500 A_PREVOIR, 90 000 A_FAIRE, 90 200 EN_RETARD, sans GPS"
   ],
-  "note": "Alerte écrite dans la transaction de validation ou juste après sa validation (AfterCommit) : visible dès la réponse (T15), délai mesuré inférieur à une minute (T42). Découpage (lot D) : alerte visible dès la réponse de la validation (T15) testée ; mesure du délai après synchronisation (T42, telemetry-sync.int.spec.ts) : test livré avec le lot F."
+  "note": "Alerte écrite dans la transaction de validation ou juste après sa validation (AfterCommit) : visible dès la réponse (T15), délai mesuré inférieur à une minute (T42). Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-9.3-04": {
   "status": "fait",
@@ -6985,6 +7047,7 @@
    "docs/plan-de-realisation.md"
   ],
   "tests": [
+   "apps/api/src/lot-d-docs.spec.ts › plan de réalisation (19.1) : contenu du lot D, chaque chemin, écran et test cité existe",
    "apps/api/test/integration/alerts.int.spec.ts › T19 — dix recalculs de la même occurrence : une seule alerte active, aucune ligne d’outbox dupliquée",
    "apps/api/test/integration/alerts.int.spec.ts › T20 — « lu » sur une vidange en retard : l’alerte reste ACTIVE et le plan EN_RETARD ; report motivé visible, statut inchangé",
    "apps/api/test/integration/fuel.int.spec.ts › T24 — plein validé deux fois : même clé → réponse rejouée, autre clé → 409 DEJA_VALIDE, une seule dépense",
@@ -6992,7 +7055,7 @@
    "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés",
    "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (c) arrêt brutal pendant l’envoi puis redémarrage avec SMTP disponible : reprise après expiration du verrou, envoi réel (Mailpit), statut ENVOYE ; droits revérifiés"
   ],
-  "note": "docs/plan-de-realisation.md décrit le lot D (carburant, registre de dépenses, alertes, e-mail, worker et transfert) avec ses emplacements et tests, contrôlé par lot-d-docs.spec.ts (chaque chemin, écran et test cité existe). T19, T20, T24, T25, T26 et T29 verts ; les écarts relevés (écran /fournisseurs, liste et catégories des fournisseurs, réservation compromise par immobilisation, nouvelle occurrence, blocages du transfert, responsable de suivi, index d’unicité des sources, fuseau modifiable, contrôle santé du worker) sont testés ; la validation d’une dépense manuelle reste un écart (D-016, R-15.2-20 partiel). Le rapport de recette (docs/rapport-recette.md) relève du lot E et n’existe pas encore : le plan le dit désormais au lieu d’y renvoyer. Découpage (lot D) : contrôle automatique de chaque chemin, écran et test cité par le plan (lot-d-docs.spec.ts › plan de réalisation, qui cite les écrans et tests des lots E et F) : cas reporté au lot F."
+  "note": "docs/plan-de-realisation.md décrit le lot D (carburant, registre de dépenses, alertes, e-mail, worker et transfert) avec ses emplacements et tests, contrôlé par lot-d-docs.spec.ts (chaque chemin, écran et test cité existe). T19, T20, T24, T25, T26 et T29 verts ; les écarts relevés (écran /fournisseurs, liste et catégories des fournisseurs, réservation compromise par immobilisation, nouvelle occurrence, blocages du transfert, responsable de suivi, index d’unicité des sources, fuseau modifiable, contrôle santé du worker) sont testés ; la validation d’une dépense manuelle reste un écart (D-016, R-15.2-20 partiel). Le rapport de recette (docs/rapport-recette.md) relève du lot E et n’existe pas encore : le plan le dit désormais au lieu d’y renvoyer. Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-2.4-X01": {
   "status": "fait",
@@ -7024,26 +7087,30 @@
   "tests": [
    "apps/api/test/integration/assignments.int.spec.ts › statut A_VENIR / EN_COURS / TERMINEE et canEnd calculés par le serveur, bornes comprises",
    "apps/api/test/integration/vehicles.int.spec.ts › déclare une localisation « dernière localisation déclarée » avec date et auteur, jamais une position",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
    "apps/api/test/integration/dashboard.int.spec.ts › relevés anciens : seuil de la société, mêmes règles que la synthèse du véhicule",
    "apps/api/test/integration/audit.int.spec.ts › trie par date (décroissante par défaut), pagine sans perte et filtre par catégorie",
    "apps/api/test/integration/scope.int.spec.ts › T02 — l’administrateur consolide toutes les sociétés puis filtre sur A avec des totaux justifiables",
    "tests/e2e/specs/vehicules.spec.ts › crée un véhicule, refuse le doublon d’immatriculation et déclare une localisation"
   ],
-  "note": "Synthèse véhicule (GET /vehicles/:id/synthesis : société, responsable, utilisation en cours, dernière localisation déclarée, dernier relevé accepté, échéances à venir) et chronologie (travaux réalisés) implémentées ; responsable, localisation, dernier relevé, fraîcheur et chronologie vérifiés en intégration, la liste des échéances à venir de la synthèse seulement par odometer-dependents.int.spec.ts (hors campagne du 2026-09-24) ; aucun e2e de la fiche véhicule complète (tests/e2e/vehicle-file.spec.ts prévu absent ; vehicules.spec.ts, qui ne couvre que création et localisation, réexécuté au vert sur le code final le 2026-09-24 ; la fiche imprimable du véhicule est couverte par tableau-de-bord-rapports.spec.ts). Découpage (lot E) : T36 et T37 (telemetry-sync.int.spec.ts) : tests livrés avec le lot F."
+  "note": "Synthèse véhicule (GET /vehicles/:id/synthesis : société, responsable, utilisation en cours, dernière localisation déclarée, dernier relevé accepté, échéances à venir) et chronologie (travaux réalisés) implémentées ; responsable, localisation, dernier relevé, fraîcheur et chronologie vérifiés en intégration, la liste des échéances à venir de la synthèse seulement par odometer-dependents.int.spec.ts (hors campagne du 2026-09-24) ; aucun e2e de la fiche véhicule complète (tests/e2e/vehicle-file.spec.ts prévu absent ; vehicules.spec.ts, qui ne couvre que création et localisation, réexécuté au vert sur le code final le 2026-09-24 ; la fiche imprimable du véhicule est couverte par tableau-de-bord-rapports.spec.ts). Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-1.1-02": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "apps/api/src/modules/settings/settings.service.ts",
+   "apps/worker/src/jobs/telemetry-sync.job.ts",
    "apps/worker/src/scheduler/worker-scheduler.service.ts",
    "apps/api/src/modules/usages/usages.service.ts",
    "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
   ],
   "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/worker/src/jobs/queue-telemetry-retention.spec.ts › F11 désactivé : la synchronisation planifiée ne fait aucun appel et ne crée aucun run",
    "apps/api/test/integration/maintenance.int.spec.ts › T15 — base 80 000, intervalle 10 000 : 89 500 A_PREVOIR, 90 000 A_FAIRE, 90 200 EN_RETARD, sans GPS",
    "apps/api/test/integration/dashboard.int.spec.ts › T02 — administrateur : totaux consolidés A+B+C, puis filtre A ; chaque total égale sa liste justificative"
   ],
-  "note": "F11 désactivé : aucune synchronisation ni appel, remise, restitution et relevés manuels acceptés (T31) ; toute la suite d’intégration (dossiers, relevés, entretiens T15 « sans GPS », alertes, tableau de bord, rapports) tourne sans fournisseur GPS ; intégration PostgreSQL au vert le 2026-09-24 (full-int-1.log ; reports relancé au vert après correction), worker 16/16. Pas d’e2e « sans GPS » (tests/e2e/without-gps.spec.ts prévu absent) : l’interface n’est pas vérifiée en navigateur sans F11. Découpage (lot E) : T15 sans GPS et tableau de bord sans fournisseur testés ; T31 (telemetry-sync.int.spec.ts) et tâche de synchronisation du worker (telemetry-sync.job.ts, queue-telemetry-retention.spec.ts › F11 désactivé) : fonctionnalité et tests livrés avec le lot F."
+  "note": "F11 désactivé : aucune synchronisation ni appel, remise, restitution et relevés manuels acceptés (T31) ; toute la suite d’intégration (dossiers, relevés, entretiens T15 « sans GPS », alertes, tableau de bord, rapports) tourne sans fournisseur GPS ; intégration PostgreSQL au vert le 2026-09-24 (full-int-1.log ; reports relancé au vert après correction), worker 16/16. Pas d’e2e « sans GPS » (tests/e2e/without-gps.spec.ts prévu absent) : l’interface n’est pas vérifiée en navigateur sans F11. Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-1.2-09": {
   "status": "fait",
@@ -7134,9 +7201,11 @@
    "apps/worker/src/scheduler/worker-scheduler.service.ts"
   ],
   "tests": [
-   "apps/api/test/integration/auth.int.spec.ts › sans SMTP : aucune file d’envoi, réponse identique, lien d’accès à usage unique généré par l’administrateur (16.1, D-263)"
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/api/test/integration/auth.int.spec.ts › sans SMTP : aucune file d’envoi, réponse identique, lien d’accès à usage unique généré par l’administrateur (16.1, D-263)",
+   "apps/worker/src/jobs/queue-telemetry-retention.spec.ts › refuse de démarrer en production si un fournisseur SIMULATEUR est actif (D-303)"
   ],
-  "note": "Utilisation sans GPS (T31) et sans SMTP testée en intégration ; le compose de production ne dépend d’aucun service hors V1 (Caddy, web, api, worker, PostgreSQL) ; l’installation et le démarrage sans service externe n’ont été vérifiés qu’à la main sur les images du lot A (T30), pas sur le code final. Découpage (lot E) : T31 et refus du simulateur en production au démarrage du worker (queue-telemetry-retention.spec.ts) : tests livrés avec le lot F."
+  "note": "Utilisation sans GPS (T31) et sans SMTP testée en intégration ; le compose de production ne dépend d’aucun service hors V1 (Caddy, web, api, worker, PostgreSQL) ; l’installation et le démarrage sans service externe n’ont été vérifiés qu’à la main sur les images du lot A (T30), pas sur le code final. Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-5.1-14": {
   "status": "fait",
@@ -8899,16 +8968,18 @@
   "note": "scripts/tests/check-production-claim.sh (dans `pnpm check:ops`) refuse dans les fichiers du dépôt toute annonce de mise en production interdite par le CDC 19.3 (formulations anglaise et française), hors lignes qui énoncent l’interdiction ; vert sur 977 fichiers ; s’appliquera au futur rapport de recette. Vérifié le 2026-09-24 (lot E-ops) : intégration PostgreSQL complète 66 fichiers / 456 tests au vert (base parc_auto_test_e2), unitaires API 423/423, web 98/98, worker 18/18, pnpm typecheck (tous paquets) au vert, e2e Playwright sur la pile compilée du code final (build sous verrou : carburant, documents-incidents, imports, mobile-conducteur, releves, tableau-de-bord-rapports, utilisations, vehicules — 16 tests au vert)."
  },
  "R-19.3-08": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "scripts/ops/backup.sh",
    "apps/worker/src/scheduler/worker-scheduler.service.ts",
    "docs/installation.md"
   ],
   "tests": [
-   "apps/api/test/integration/auth.int.spec.ts › sans SMTP : aucune file d’envoi, réponse identique, lien d’accès à usage unique généré par l’administrateur (16.1, D-263)"
+   "apps/api/test/integration/auth.int.spec.ts › sans SMTP : aucune file d’envoi, réponse identique, lien d’accès à usage unique généré par l’administrateur (16.1, D-263)",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/worker/src/jobs/queue-telemetry-retention.spec.ts › refuse de démarrer en production si un fournisseur SIMULATEUR est actif (D-303)"
   ],
-  "note": "Sans SMTP : rien n’est mis en file ni prétendu envoyé ; sans GPS : aucun appel ni donnée fictive, simulateur refusé en production ; sans BACKUP_REMOTE : avertissement explicite, aucune copie prétendue ; intégration PostgreSQL au vert le 2026-09-24 (full-int-1.log ; reports relancé au vert après correction), worker 16/16. Découpage (lot E) : sans SMTP testé ; sans GPS (T31) et refus du simulateur en production par le worker : tests livrés avec le lot F."
+  "note": "Sans SMTP : rien n’est mis en file ni prétendu envoyé ; sans GPS : aucun appel ni donnée fictive, simulateur refusé en production ; sans BACKUP_REMOTE : avertissement explicite, aucune copie prétendue ; intégration PostgreSQL au vert le 2026-09-24 (full-int-1.log ; reports relancé au vert après correction), worker 16/16. Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-18-X01": {
   "status": "à faire",
@@ -8917,5 +8988,1894 @@
   ],
   "tests": [],
   "note": "docs/RECETTE.md absent (le README y renvoie) : aucune entrée par scénario T01–T44 avec commande, résultat réel, date, révision et état."
+ },
+ "R-1.1-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/worker/src/jobs/telemetry-sync.job.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T42 — base 80 000, intervalle 10 000 : synchro CAN 89 500 puis 90 000 → A_PREVOIR puis A_FAIRE sans saisie manuelle, alerte moins d’une minute après l’ingestion (délai mesuré)",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès"
+  ],
+  "note": "Collecte par couple fournisseur ACTIF × société activée (runDue appelé chaque minute par le worker) : kilométrage CAN historisé par l’ingestion unique (T37, T42) et carburant seulement pour les natures déclarées dans l’association (T43, odometerKind AUCUN possible) ; aucune synchronisation si la société n’est pas activée (T31 phase 1)."
+ },
+ "R-1.1-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/domain/freshness.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-silence.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T41 — unité associée sans donnée pendant 25 h : alerte « source GPS muette », saisie manuelle possible, fraîcheur sur la dernière observation, résolution au premier échantillon frais",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › fichiers CSV lus par runDue : relevés CAN historisés par l’ingestion unique, fichiers inscrits au registre et déplacés après ingestion ; fichier rejoué ou lignes répétées sans doublon ; source injoignable sans reprise ni acquittement"
+  ],
+  "note": "Parcours manuels indépendants du connecteur : remise, restitution et relevé acceptés F11 désactivé et fournisseur injoignable (T31), relevé manuel accepté pendant une source muette (T41) et source SFTP arrêtée, remise non bloquée par un relevé automatique en attente (T40)."
+ },
+ "R-1.2-11": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-calibration.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-silence.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-providers.service.ts",
+   "apps/api/src/modules/telemetry/adapters/traccar.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/wialon.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/report-generic.adapter.ts",
+   "apps/worker/src/jobs/telemetry-sync.job.ts",
+   "apps/web/app/(app)/telematique/page.tsx",
+   "apps/web/app/(app)/administration/telematique/telemetry-admin.tsx",
+   "docs/connecteur-telematique.md"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T41 — unité associée sans donnée pendant 25 h : alerte « source GPS muette », saisie manuelle possible, fraîcheur sur la dernière observation, résolution au premier échantillon frais",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T42 — base 80 000, intervalle 10 000 : synchro CAN 89 500 puis 90 000 → A_PREVOIR puis A_FAIRE sans saisie manuelle, alerte moins d’une minute après l’ingestion (délai mesuré)",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T44 — secrets : jamais restitués par l’API, uniquement chiffrés en base, absents des journaux (création, test de connexion en échec d’authentification)",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › getOdometers : dernier état en km, instant fixTime, référence = identifiant de position Traccar",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › fichiers CSV lus par runDue : relevés CAN historisés par l’ingestion unique, fichiers inscrits au registre et déplacés après ingestion ; fichier rejoué ou lignes répétées sans doublon ; source injoignable sans reprise ni acquittement"
+  ],
+  "note": "Livré et testé côté API/worker : activation par société, kilométrage et carburant automatiques, calibrage et rapprochement avec les relevés manuels, alertes source muette (T31, T35 à T44 verts). Manquent : le branchement au fournisseur GPS existant (non identifié, annexe A non conduite — hors périmètre, D-292 ; Wialon jamais éprouvé contre un vrai serveur) ; écran /administration/telematique sans e2e (rendu serveur seulement, telemetry-render.spec.ts) ; /telematique parcouru en e2e seulement pour l'onglet Événements carburant (telematique-complements.spec.ts). La consommation télématique en parallèle (R-8.5-10) est livrée et testée."
+ },
+ "R-1.3-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/adapters/traccar.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/wialon.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/report-generic.adapter.ts",
+   "apps/api/src/modules/telemetry/telemetry-provider.interface.ts",
+   "docs/connecteur-telematique.md"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-read-only.int.spec.ts › Traccar : uniquement des GET sur /api/server, /api/devices et /api/positions, authentifiés par le jeton de lecture ; données ingérées",
+   "apps/api/test/integration/telemetry-read-only.int.spec.ts › Wialon : uniquement les services de lecture (session, recherche, dernier état, messages, capteurs, déchargement, fin de session) ; données ingérées"
+  ],
+  "note": "Cycle complet (test de connexion, activation, découverte, reprise initiale, synchronisations planifiée et manuelle, carburant) contre de faux serveurs HTTP locaux qui enregistrent chaque requête : Traccar → uniquement GET /api/server, /api/devices, /api/positions ; Wialon → uniquement token/login, core/search_items, unit/calc_last, messages/load_interval, unit/calc_sensors, messages/unload, core/logout ; aucune écriture chez le fournisseur, données ingérées. Canal RAPPORT : lecture puis déplacement des fichiers dans la source dédiée (hors plateforme fournisseur)."
+ },
+ "R-1.4-06": {
+  "status": "hors périmètre",
+  "files": [
+   "docs/connecteur-telematique.md",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [],
+  "note": "Qualification du fournisseur par ses réponses écrites : annexe A non conduite (D-292 : « le rapport final classe le branchement au fournisseur réel en dépendance externe à configurer ») ; liste de contrôle prête dans docs/connecteur-telematique.md (« Qualification du fournisseur (annexe A) », toutes les cases ☐). Le lot F a été livré sans elle avec des adaptateurs de référence (Traccar, Wialon, RAPPORT générique) et le simulateur."
+ },
+ "R-5.1-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T42 — base 80 000, intervalle 10 000 : synchro CAN 89 500 puis 90 000 → A_PREVOIR puis A_FAIRE sans saisie manuelle, alerte moins d’une minute après l’ingestion (délai mesuré)",
+   "apps/api/src/domain/odometer-rules.spec.ts › une hausse au-delà du seuil est proposée à validation sans devenir courante"
+  ],
+  "note": "Relevé TELEMATICS cohérent créé ACCEPTE par l’ingestion unique sans intervention (author SYSTEM, createdById nul) : CAN 50 000 et 50 120 (T37), 89 500 / 89 990 / 90 000 (T42)."
+ },
+ "R-5.6-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › fichiers CSV lus par runDue : relevés CAN historisés par l’ingestion unique, fichiers inscrits au registre et déplacés après ingestion ; fichier rejoué ou lignes répétées sans doublon ; source injoignable sans reprise ni acquittement"
+  ],
+  "note": "Relevé automatique : channel (API testé, RAPPORT testé via SFTP), providerId, providerUnitId, sourceReference (référence fournisseur ou clé de repli fp:), receivedAt et measurementKind COMPTEUR_CAN / DISTANCE_GPS vérifiés en base ; canal RPA non activable (D-292)."
+ },
+ "R-5.6-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée"
+  ],
+  "note": "COMPTEUR_CAN ingéré comme compteur physique (physicalKm = valeur, cumul par segment, isEstimate faux) et soumis aux contrôles de chronologie du segment (T37, T40)."
+ },
+ "R-5.6-03": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-vehicle.service.ts",
+   "apps/web/app/(app)/vehicules/[id]/telemetry-panel.tsx",
+   "apps/web/lib/format.ts",
+   "apps/web/components/odometer/reading-display.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960",
+   "apps/api/test/integration/telemetry-vehicle.int.spec.ts › DISTANCE_GPS : unité et nature, dernière observation, estimation « estimé GPS » avec sa référence, calibrage et dérive 4,2 % ; aucun secret restitué (T38, T39, T44)",
+   "apps/web/components/telemetry/telemetry-render.spec.ts › DISTANCE_GPS : estimation « estimé GPS » avec sa référence, distance brute distincte du compteur, dérive 4,2 %, simulateur signalé, lien vers /telematique",
+   "apps/web/lib/format.spec.ts › compteurs tronqués au kilomètre entier, estimation GPS signalée"
+  ],
+  "note": "API : estimation DISTANCE_GPS avec physicalKm nul, isEstimate vrai, distance GPS brute séparée (T38, panneau véhicule) ; rendu web : distance brute distincte du compteur, estimation signalée (telemetry-render.spec, format.spec). Vérification e2e demandée absente : aucun test e2e Playwright ne couvre les écrans télématiques (aucun spec télématique dans tests/e2e/specs)."
+ },
+ "R-5.6-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/gps-calibration.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-calibration.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/gps-calibration.spec.ts › T38 — référence manuelle 80 000 à distanceGps 12 000 ; distanceGps 12 450 → 80 450 estimé",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960"
+  ],
+  "note": "kmEstime = kmManuelReference + (distanceGps − distanceGpsReference) (estimateFromGps, implémentation unique) : 80 000 + (12 450 − 12 000) = 80 450 vérifié en unitaire et en intégration."
+ },
+ "R-5.6-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-calibration.service.ts",
+   "apps/api/src/modules/odometer/odometer-events.service.ts",
+   "apps/api/src/domain/telemetry/gps-calibration.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960",
+   "apps/api/test/integration/telemetry-vehicle.int.spec.ts › DISTANCE_GPS : unité et nature, dernière observation, estimation « estimé GPS » avec sa référence, calibrage et dérive 4,2 % ; aucun secret restitué (T38, T39, T44)"
+  ],
+  "note": "Écouteur des relevés acceptés (calibrage-gps) indépendant du contexte : tout relevé physique MANUAL ou IMPORT accepté d’un véhicule associé en DISTANCE_GPS devient la référence ; testé pour la remise (80 000) et la restitution (80 960 devient la référence, estimation suivante 81 060) ; entretien et relevé libre passent par le même écouteur sans test dédié."
+ },
+ "R-5.6-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/gps-calibration.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-calibration.service.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/gps-calibration.spec.ts › T39 — estimation 81 000 depuis 80 000, restitution manuelle 80 960 : écart 4,2 %, au-delà de 3 %",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960",
+   "apps/api/test/integration/telemetry-vehicle.int.spec.ts › DISTANCE_GPS : unité et nature, dernière observation, estimation « estimé GPS » avec sa référence, calibrage et dérive 4,2 % ; aucun secret restitué (T38, T39, T44)"
+  ],
+  "note": "Écart historisé dans TelemetryCalibration (estimatedKmAtReference 81 000, deviationKm 40, distanceSincePreviousKm 960, deviationPercent 4.167, affiché « 4,2 »)."
+ },
+ "R-5.6-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-calibration.service.ts",
+   "packages/contracts/src/index.ts",
+   "apps/api/src/modules/telemetry/telemetry-alerts.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960",
+   "apps/api/src/domain/telemetry/gps-calibration.spec.ts › T39 — estimation 81 000 depuis 80 000, restitution manuelle 80 960 : écart 4,2 %, au-delà de 3 %",
+   "apps/api/test/integration/settings.int.spec.ts › expose les valeurs initiales du CDC avec leur origine"
+  ],
+  "note": "Alerte GPS_DERIVE sur l’association (société du chef) au-delà de telemetry.driftThresholdPercent (3 %, surcharge société) et d’une distance ≥ telemetry.driftMinDistanceKm (50 km, D-190 à D-192) ; message « 4,2 % » vérifié."
+ },
+ "R-5.6-08": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/domain/period-distance.ts",
+   "apps/api/src/modules/reports/providers/distance-cost-report.service.ts",
+   "apps/web/lib/format.ts",
+   "apps/web/app/(app)/vehicules/[id]/telemetry-panel.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/reports.int.spec.ts › distances (D-276) : bornes physiques par défaut, estimation GPS dans une colonne séparée, coût/km « estimé » à défaut de distance physique",
+   "apps/api/src/domain/period-distance.spec.ts › une borne estimée (GPS) rend la distance estimée",
+   "apps/api/src/domain/period-distance.spec.ts › un coût/km fondé sur une borne estimée est marqué estimé",
+   "apps/api/src/domain/period-distance.spec.ts › la distance par défaut ignore les estimations GPS ; la colonne estimée les inclut et est libellée",
+   "apps/web/lib/format.spec.ts › compteurs tronqués au kilomètre entier, estimation GPS signalée"
+  ],
+  "note": "Rapport distances/coût par km : borne GPS dans une colonne « estimée » séparée, coût/km marqué ESTIME (intégration et unitaires) ; l’export passe par le même rapport mais aucun test n’inspecte un fichier exporté contenant une estimation GPS ; affichage à l’écran non vérifié en e2e (aucun test e2e Playwright ne couvre les écrans télématiques (aucun spec télématique dans tests/e2e/specs))."
+ },
+ "R-5.6-09": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.types.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › D-175, D-186 — véhicule HORS_SERVICE : un seul relevé CAN EN_ATTENTE motivé VEHICULE_NON_ACTIF (ouvert, puis un par jour), compteur courant inchangé ; retour ACTIF : historisation normale",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/src/domain/odometer-rules.spec.ts › une hausse au-delà du seuil est proposée à validation sans devenir courante",
+   "apps/api/src/domain/odometer-rules.spec.ts › T40 — la même diminution venant de la télématique passe en attente avec motif"
+  ],
+  "note": "Acceptation automatique si croissant dans le segment et plausible (evaluate de l’ingestion unique), unité sous association confirmée couvrant l’instant et véhicule actif à cette date (vehicleActiveAt) ; sinon EN_ATTENTE motivé (DIMINUTION, VEHICULE_NON_ACTIF) ou aucun relevé (non associée)."
+ },
+ "R-5.6-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.types.ts",
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/test/integration/telemetry-vehicle.int.spec.ts › proposition en attente : aucune association ni donnée avant confirmation (14.5)",
+   "apps/api/test/integration/telemetry-vehicle.int.spec.ts › boîtier réutilisé : le véhicule suivant n’hérite pas de la dernière observation du véhicule précédent (14.5, D-300)",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › fichiers CSV lus par runDue : relevés CAN historisés par l’ingestion unique, fichiers inscrits au registre et déplacés après ingestion ; fichier rejoué ou lignes répétées sans doublon ; source injoignable sans reprise ni acquittement"
+  ],
+  "note": "12 unités, 10 propositions, 2 non associées : aucun relevé, échantillon, état ni événement avant confirmation (T35) ; unité non associée d’un rapport SFTP sans aucune donnée ; échantillons hors période [validFrom, validTo[ ignorés (coveringMapping), boîtier réutilisé sans héritage."
+ },
+ "R-5.6-11": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée",
+   "apps/api/src/domain/odometer-rules.spec.ts › T40 — la même diminution venant de la télématique passe en attente avec motif",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-300 — changement de boîtier : clôture et nouvelle association, kilométrage cumulé inchangé"
+  ],
+  "note": "Valeur CAN inférieure : relevé EN_ATTENTE motif DIMINUTION, un seul par motif tant qu’il est ouvert (D-322), compteur courant inchangé ; le connecteur ne crée jamais de segment (allowAutoInit faux, D-169) et la clôture pour changement de boîtier ne touche pas le compteur. Le cas « valeur inférieure après changement de boîtier » enchaîné n’a pas de test dédié (voir R-14.5-05)."
+ },
+ "R-5.6-12": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › D-175, D-186 — véhicule HORS_SERVICE : un seul relevé CAN EN_ATTENTE motivé VEHICULE_NON_ACTIF (ouvert, puis un par jour), compteur courant inchangé ; retour ACTIF : historisation normale"
+  ],
+  "note": "Remise acceptée à 60 520 alors qu’un relevé automatique 60 400 est EN_ATTENTE (T40) ; relevé en attente d’un véhicule hors service sans blocage."
+ },
+ "R-5.6-13": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-samples.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/src/modules/telemetry/sync/telemetry-samples.spec.ts › référence de repli déterministe : même unité, nature, instant et valeur → même clé ; valeur différente → autre clé",
+   "apps/api/src/domain/odometer-rules.spec.ts › minute pour MANUAL et IMPORT, seconde pour TELEMATICS",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › fichiers CSV lus par runDue : relevés CAN historisés par l’ingestion unique, fichiers inscrits au registre et déplacés après ingestion ; fichier rejoué ou lignes répétées sans doublon ; source injoignable sans reprise ni acquittement"
+  ],
+  "note": "Idempotence par (fournisseur, unité, sourceReference) et clé de repli fp: SHA-256 (unité, nature, instant, valeur) : lot rejoué en désordre et en double, synchronisation manuelle et reprise d’historique sans aucun doublon de relevé ni d’événement (T36) ; fichier SFTP rejoué sans doublon."
+ },
+ "R-5.6-14": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/src/domain/odometer-rules.spec.ts › retient le dernier relevé selon la date d’observation, pas la date de saisie"
+  ],
+  "note": "CAN 50 000 puis 50 120, manuel 50 130 une heure après : compteur courant 50 130 (source MANUAL) ; compteur courant = dernier relevé accepté selon observedAt toutes sources."
+ },
+ "R-5.6-15": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-calibration.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-vehicle.service.ts",
+   "apps/web/app/(app)/vehicules/[id]/telemetry-panel.tsx",
+   "apps/web/lib/format.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960",
+   "apps/api/test/integration/telemetry-vehicle.int.spec.ts › DISTANCE_GPS : unité et nature, dernière observation, estimation « estimé GPS » avec sa référence, calibrage et dérive 4,2 % ; aucun secret restitué (T38, T39, T44)",
+   "apps/web/components/telemetry/telemetry-render.spec.ts › DISTANCE_GPS : estimation « estimé GPS » avec sa référence, distance brute distincte du compteur, dérive 4,2 %, simulateur signalé, lien vers /telematique"
+  ],
+  "note": "Note « Estimé GPS (réf. manuelle du 24/09/2026, 80 000 km) » portée par le relevé et le panneau véhicule (API), rendu « estimé GPS » avec sa référence vérifié côté serveur ; pas d’e2e (aucun test e2e Playwright ne couvre les écrans télématiques (aucun spec télématique dans tests/e2e/specs))."
+ },
+ "R-5.6-16": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/maintenance/maintenance-plans.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/maintenance.int.spec.ts › plan limité aux relevés manuels ou CAN (MANUEL_OU_CAN) et désactivation",
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-5.6-16 — plan MANUEL_OU_CAN : une estimation DISTANCE_GPS qui franchit l’échéance est ignorée (le plan « toutes sources » est alimenté) ; un relevé manuel le fait avancer"
+  ],
+  "note": "Estimation DISTANCE_GPS 80 400 = échéance : le plan TOUTES passe A_FAIRE (source ESTIME_GPS), le plan MANUEL_OU_CAN reste A_JOUR sur 80 000 (dernier relevé physique), sans alerte ; un relevé manuel 80 150 le fait passer A_PREVOIR."
+ },
+ "R-5.6-17": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telematics-hint.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/web/app/(app)/utilisations/usage-form-parts.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-5.6-17 — aide télématique : valeur de l’association en cours seulement (jamais celle d’un boîtier réutilisé), de la nature retenue ; la valeur enregistrée reste celle saisie",
+   "apps/web/components/telemetry/complements-render.spec.ts › valeur proposée par l’API comme simple indication, la saisie restant celle du tableau de bord",
+   "apps/web/components/telemetry/complements-render.spec.ts › aucune aide quand l’API n’en propose pas (boîtier réutilisé sans donnée depuis sa pose, pas d’association)",
+   "tests/e2e/specs/telematique-complements.spec.ts › aide télématique à la remise et à la restitution pendant une panne ; /carburant → événements du véhicule qualifiés par le chef ; seuils propres au véhicule",
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-5.6-X01 — changement de boîtier DISTANCE_GPS : aucune conversion avec l’ancienne référence (valeur brute dans l’état de l’unité, aucun relevé, compteur et entretien inchangés, absence signalée, aucune aide de saisie) ; estimation dès la première référence manuelle",
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-14.3-X01, R-8.5-12 — désactivation par société : relevés TELEMATICS et événements carburant conservés (non qualifiés toujours à qualifier), régime manuel sans aide télématique ; purge : seuls les échantillons sont supprimés"
+  ],
+  "note": "Règle unique currentTelematicsHint (GET /vehicles/:id/odometer et aperçu de remise) : dernière valeur automatique de la nature retenue par l'association en cours, observée depuis sa date d'effet ; boîtier réutilisé → aucune aide tant qu'aucune donnée depuis la pose, nature non retenue ignorée, aucune aide sans association. Valeur enregistrée = valeur saisie (intégration : 12 063 saisi pour une aide à 12 050 ; e2e : remise et restitution dans le navigateur avec l'aide « 40 110 km (Compteur CAN) » et la valeur saisie enregistrée). Revue adversariale (lot F-compléments) : défaut corrigé — pour une association DISTANCE_GPS l'aide proposait la distance GPS brute du boîtier (12 450 km pour un véhicule à 80 450 km, 25 050 km pour un nouveau boîtier sans référence), contraire à 5.6 « jamais présentée comme la valeur du compteur » ; elle propose désormais la dernière estimation calibrée de l'association en cours ramenée au compteur physique (80 450, puis 80 800 après la nouvelle référence), et rien sans référence du boîtier. Défaut corrigé — l'aide restait proposée avec le module désactivé pour la société (associations conservées) : plus d'aide en régime manuel. E2E rendu indépendant de la minute de départ (la remise tombait parfois dans la même minute que le relevé télématique : conflit « même instant » D-149, échec intermittent constaté)."
+ },
+ "R-5.6-18": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › D-175, D-186 — véhicule HORS_SERVICE : un seul relevé CAN EN_ATTENTE motivé VEHICULE_NON_ACTIF (ouvert, puis un par jour), compteur courant inchangé ; retour ACTIF : historisation normale"
+  ],
+  "note": "TelemetryUnitState mis à jour à chaque synchronisation, sans reculer (updateState) : lastOdometerValueKm 50 120 (T37), 60 410 malgré l’anomalie ouverte (T40), 40 120 pour un véhicule hors service."
+ },
+ "R-5.6-19": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/historization.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/historization.spec.ts › au plus une fois par heure s’il a progressé ; rien sinon",
+   "apps/api/src/domain/telemetry/historization.spec.ts › T42 — le franchissement d’un seuil d’entretien est historisé immédiatement (89 500 puis 90 000)",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T42 — base 80 000, intervalle 10 000 : synchro CAN 89 500 puis 90 000 → A_PREVOIR puis A_FAIRE sans saisie manuelle, alerte moins d’une minute après l’ingestion (délai mesuré)",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant"
+  ],
+  "note": "historizationReason : relevé TELEMATICS seulement si progression et ≥ telemetry.historizeEveryMinutes (60) depuis le dernier historisé (état par unité, une unité ouverte par véhicule) ; exception documentée D-299 : franchissement d’un seuil d’entretien historisé immédiatement (T42 : 90 000 vingt minutes après 89 990)."
+ },
+ "R-5.6-20": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/historization.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/historization.spec.ts › premier échantillon du jour local, même sans progression (00:30 à Tunis = 23:30 UTC la veille)"
+  ],
+  "note": "Relevé quotidien selon l’écart assumé D-016 (« Historisation quotidienne télématique | D-181 / D-188 | Premier échantillon du jour local | Aucun échantillon n’est inventé à minuit exact ») : premier échantillon du jour civil local (Africa/Tunis) historisé même sans progression, testé en unitaire (00:30 à Tunis = 23:30 UTC la veille) ; pas de test d’intégration dédié."
+ },
+ "R-5.6-21": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/freshness.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T41 — unité associée sans donnée pendant 25 h : alerte « source GPS muette », saisie manuelle possible, fraîcheur sur la dernière observation, résolution au premier échantillon frais",
+   "apps/api/src/domain/freshness.spec.ts › relevé de moins de sept jours : A_JOUR ; exactement sept jours : encore A_JOUR ; au-delà : A_ACTUALISER"
+  ],
+  "note": "Fraîcheur calculée sur le dernier relevé accepté toutes sources (computeFreshness) : A_JOUR sur le CAN de la veille pendant la source muette (T41), puis sur le relevé manuel suivant."
+ },
+ "R-5.6-22": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-silence.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-alerts.service.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T41 — unité associée sans donnée pendant 25 h : alerte « source GPS muette », saisie manuelle possible, fraîcheur sur la dernière observation, résolution au premier échantillon frais",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès"
+  ],
+  "note": "GPS_SOURCE_MUETTE par association après telemetry.silentAfterHours (24 h, surcharge société) sans observation : levée à 26 h, résolue au premier échantillon frais (T41) ; fournisseur injoignable : une alerte agrégée sur le fournisseur après 24 h sans synchronisation réussie (T31, D-100/D-194)."
+ },
+ "R-5.6-23": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-silence.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/web/app/(app)/vehicules/[id]/telemetry-panel.tsx",
+   "apps/web/app/(app)/vehicules/[id]/vehicle-detail.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T41 — unité associée sans donnée pendant 25 h : alerte « source GPS muette », saisie manuelle possible, fraîcheur sur la dernière observation, résolution au premier échantillon frais",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-101 / D-295 — désactivation par société : alertes F11 résolues, associations et données conservées ; réactivation",
+   "apps/web/components/telemetry/telemetry-render.spec.ts › DISTANCE_GPS : estimation « estimé GPS » avec sa référence, distance brute distincte du compteur, dérive 4,2 %, simulateur signalé, lien vers /telematique",
+   "apps/web/components/telemetry/telemetry-render.spec.ts › sans unité : régime manuel, propositions en attente, lien vers les propositions ; lecteur : lien de consultation",
+   "apps/api/test/integration/vehicles.int.spec.ts › déclare une localisation « dernière localisation déclarée » avec date et auteur, jamais une position"
+  ],
+  "note": "API : saisie manuelle et parcours manuels possibles avec source muette, sans unité ou F11 désactivé (T31, T41, D-101) ; rendu serveur du panneau : « Aucun suivi en direct », ni position ni carte, régime manuel sans unité. Vérification e2e demandée absente (aucun test e2e Playwright ne couvre les écrans télématiques (aucun spec télématique dans tests/e2e/specs))."
+ },
+ "R-5.6-24": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée",
+   "apps/api/src/domain/odometer-rules.spec.ts › T40 — la même diminution venant de la télématique passe en attente avec motif",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › fichiers CSV lus par runDue : relevés CAN historisés par l’ingestion unique, fichiers inscrits au registre et déplacés après ingestion ; fichier rejoué ou lignes répétées sans doublon ; source injoignable sans reprise ni acquittement"
+  ],
+  "note": "Revue : TELEMATICS passe par OdometerIngestionService.evaluate/ingest/ingestGpsEstimate (mêmes contrôles de valeur, chronologie, plausibilité, idempotence, source SYSTEM exclusive, fraîcheur) que MANUAL et IMPORT ; la règle de diminution est la même fonction (odometer-rules T40), canaux API et RAPPORT compris."
+ },
+ "R-5.6-25": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/domain/telemetry/historization.ts",
+   "apps/api/src/modules/maintenance/maintenance-plans.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T42 — base 80 000, intervalle 10 000 : synchro CAN 89 500 puis 90 000 → A_PREVOIR puis A_FAIRE sans saisie manuelle, alerte moins d’une minute après l’ingestion (délai mesuré)",
+   "apps/api/src/domain/telemetry/historization.spec.ts › T42 — le franchissement d’un seuil d’entretien est historisé immédiatement (89 500 puis 90 000)"
+  ],
+  "note": "Base 80 000, intervalle 10 000 : CAN 89 500 → A_PREVOIR (alerte ATTENTION), 90 000 → A_FAIRE (alerte URGENT) sans saisie manuelle, délai mesuré < 60 s après ingestion."
+ },
+ "R-5.6-26": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "packages/contracts/src/index.ts",
+   "apps/api/src/modules/settings/settings.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/worker/src/jobs/queue-telemetry-retention.spec.ts › F11 désactivé : la synchronisation planifiée ne fait aucun appel et ne crée aucun run",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-101 / D-295 — désactivation par société : alertes F11 résolues, associations et données conservées ; réactivation",
+   "apps/api/test/integration/settings.int.spec.ts › expose les valeurs initiales du CDC avec leur origine",
+   "apps/api/test/integration/settings.int.spec.ts › versionne et audite chaque modification ; surcharge société explicite ; réservé à l’administrateur",
+   "packages/contracts/src/index.spec.ts › reprennent exactement le tableau 17.1"
+  ],
+  "note": "telemetryEnabled @default(false) ; aucun run ni appel sans société activée (worker et T31) ; seuils telemetry.silentAfterHours (24), driftThresholdPercent (3) exposés par /settings et plausibilité (odometer.plausibility*, appliquée aussi à TELEMATICS) paramétrables ; versionnement et audit testés par le mécanisme commun des paramètres (sur une autre clé)."
+ },
+ "R-8.5-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/telemetry/adapters/traccar.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/wialon.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/report-generic.adapter.ts"
+  ],
+  "tests": [
+   "apps/api/src/modules/telemetry/adapters/traccar.adapter.spec.ts › carburant configuré : %, moteur (ignition), vitesse nœuds → km/h ; sans configuration, rien",
+   "apps/api/src/modules/telemetry/adapters/wialon.adapter.spec.ts › natures : kilométrage selon settings.odometerKind, carburant selon les capteurs déclarés",
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-8.5-01 — carburant collecté pour les seules natures déclarées par l’association : nature exposée mais non retenue ignorée ; association sans carburant : aucune donnée carburant"
+  ],
+  "note": "Fournisseur : rien sans attribut, capteur ou colonne configuré (tests adaptateurs) ; association : unité exposant sonde et jauge CAN, association déclarant la sonde → seuls les échantillons NIVEAU_SONDE stockés, NIVEAU_CAN signalé « non retenue » dans le run ; association sans nature carburant → aucun appel ni échantillon carburant, état d'unité sans carburant."
+ },
+ "R-8.5-02": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement",
+   "apps/api/test/integration/telemetry-vehicle.int.spec.ts › alerte carburant → écran : lien d’action servi par /telematique/carburant, événement lu par son identifiant dans le périmètre, dernier niveau affiché par le panneau (8.5, T43)",
+   "apps/api/src/modules/telemetry/sync/telemetry-samples.spec.ts › carburant : litres ou pourcentage exigés, pourcentage ≤ 100, contact et vitesse conservés tels quels"
+  ],
+  "note": "FuelLevelSample et FuelEvent portent measureKind (NIVEAU_CAN, NIVEAU_SONDE, CONSOMMATION_CAN) ; l’API renvoie measureKind et son libellé (« Niveau sonde »)."
+ },
+ "R-8.5-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/fuel-events.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/fuel-events.spec.ts › jauge CAN : jamais de baisse anormale, seuils de remplissage doublés ; CONSOMMATION_CAN : aucun événement"
+  ],
+  "note": "NIVEAU_CAN : jamais de baisse anormale, remplissage seulement avec seuils doublés (D-235) ; CONSOMMATION_CAN : aucun événement."
+ },
+ "R-8.5-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/fuel-events.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/fuel-events.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min → une baisse anormale",
+   "apps/api/src/domain/telemetry/fuel-events.spec.ts › jauge CAN : jamais de baisse anormale, seuils de remplissage doublés ; CONSOMMATION_CAN : aucun événement",
+   "apps/api/src/domain/telemetry/fuel-events.spec.ts › une baisse en roulant n’est pas une baisse anormale ; sans données de contact, la détection est indisponible",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement"
+  ],
+  "note": "Baisse anormale détectée uniquement sur NIVEAU_SONDE (detectFuelEpisodes), moteur coupé et vitesse nulle prouvés."
+ },
+ "R-8.5-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-samples.ts",
+   "apps/api/src/modules/telemetry/adapters/traccar.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/wialon.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/report-generic.adapter.ts",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook-format.ts",
+   "apps/api/src/modules/telemetry/dto/telemetry.dto.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-fuel-complements.int.spec.ts › R-8.5-05, R-21-06 — consommation théorique du fournisseur jamais importée : aucune nature ni configuration ne l’admet (Traccar, Wialon, rapports, webhook, simulateur, association)"
+  ],
+  "note": "Aucune nature « théorique » : configurations Traccar, Wialon, rapports, scénario du simulateur, association et lots webhook refusent toute nature hors NIVEAU_CAN, NIVEAU_SONDE, CONSOMMATION_CAN (422, rien de déposé ni d'échantillon). Limite (D-016) : si l'attribut désigné par l'administrateur est lui-même calculé par la plateforme à partir d'un taux, le logiciel ne peut pas le reconnaître ; la question 5 de l'annexe A en décide."
+ },
+ "R-8.5-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/fuel-events.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/fuel-events.spec.ts › T43 — remplissage de 40 L → un remplissage détecté ; sans ticket, écart à qualifier",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement"
+  ],
+  "note": "Remplissage détecté au-delà de telemetry.fuelFillMinLiters (10 L) ou fuelFillPercent (10 %) en 30 min (médiane de 3 échantillons) : 40 L détectés."
+ },
+ "R-8.5-07": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/migrations/20260924231500_lot_f_mapping_overlap_fuel_thresholds/migration.sql",
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/domain/telemetry/fuel-thresholds.ts",
+   "apps/api/src/modules/telemetry/telemetry-fuel-thresholds.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-vehicle.controller.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "apps/web/app/(app)/vehicules/[id]/fuel-thresholds-card.tsx",
+   "apps/web/app/(app)/vehicules/[id]/telemetry-panel.tsx"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/fuel-events.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min → une baisse anormale",
+   "apps/api/src/domain/telemetry/fuel-thresholds.spec.ts › chaque champ renseigné du véhicule remplace celui de la société ; un champ nul reprend la société ; ticket et pas intacts",
+   "apps/api/test/integration/telemetry-fuel-complements.int.spec.ts › R-8.5-07, R-17.1-14 — seuils carburant par véhicule : lecture dans le périmètre, modification par le chef (motif, bornes, verrou optimiste y compris après un retrait, audit), priorité véhicule > société > groupe > produit",
+   "apps/api/test/integration/telemetry-fuel-complements.int.spec.ts › R-8.5-07, R-17.1-14 — détection : seuils du véhicule prioritaires sur ceux de la société (3 L perdus moteur coupé : anomalie au seuil de 2 L, rien au seuil 10 L ou 5 % ; 25 L perdus : rien au seuil de 30 L ou 50 %) ; seuils appliqués tracés",
+   "apps/web/components/telemetry/complements-render.spec.ts › valeur de la société avec son origine, surcharge du véhicule et valeur appliquée ; modification offerte au chef",
+   "tests/e2e/specs/telematique-complements.spec.ts › aide télématique à la remise et à la restitution pendant une panne ; /carburant → événements du véhicule qualifiés par le chef ; seuils propres au véhicule"
+  ],
+  "note": "Baisse à l'arrêt 10 L ou 5 % en 30 min (société/groupe) ajustable par véhicule : table VehicleFuelThresholds (CHECK des bornes), GET/PUT /telemetry/vehicles/:id/fuel-thresholds (chef ou administrateur, motif, verrou optimiste, audit), règle unique applyVehicleFuelThresholds appliquée par la détection (seuils tracés dans details.seuils) ; 3 L perdus → anomalie au seuil véhicule de 2 L, rien au seuil société ; 25 L → rien au seuil véhicule de 30 L. Écran : carte « Seuils carburant du véhicule » (e2e : modification par le chef). Tolérance du ticket et pas des échantillons restent au niveau société (D-016). Revue adversariale (lot F-compléments) : défaut corrigé — après un retrait de surcharge la version repartait à 0 puis 1 : une saisie préparée sur l'ancienne version 1 écrasait sans conflit une nouvelle surcharge (verrou optimiste contourné) ; une surcharge recréée prend maintenant la version 1 + modifications déjà auditées (4 dans le test), la saisie périmée reçoit 409."
+ },
+ "R-8.5-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/fuel-events.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/fuel-events.spec.ts › rapprochement ticket : fenêtre de 2 h et tolérance max(5 L, 10 %) ; clé de déduplication stable",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › 8.5, D-242 — remplissage dont le ticket est déjà saisi : JUSTIFIE automatiquement (audit, sans alerte) ; ticket hors tolérance : ECART_TICKET à qualifier ; aucune dépense créée par la télématique",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › 8.5 — un plein ne justifie qu’un seul remplissage détecté : second remplissage dans la même fenêtre sans ticket disponible → à qualifier"
+  ],
+  "note": "Rapprochement fenêtre 2 h et tolérance max(5 L, 10 %) : 40 L sans ticket → à qualifier, ticket 15 L pour 40 L → ECART_TICKET, ticket conforme → JUSTIFIE automatiquement (audit), un plein ne justifie qu’un remplissage."
+ },
+ "R-8.5-09": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.controller.ts",
+   "apps/api/src/modules/telemetry/telemetry.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › 8.5, D-242 — remplissage dont le ticket est déjà saisi : JUSTIFIE automatiquement (audit, sans alerte) ; ticket hors tolérance : ECART_TICKET à qualifier ; aucune dépense créée par la télématique"
+  ],
+  "note": "GET /telemetry/fuel-events (périmètre, 403 conducteur, 404 autre société) et POST /telemetry/fuel-events/:id/qualify (chef ou administrateur, note, 409 version, 422 déjà qualifié, audit, alerte résolue) ; expense.count inchangé : aucune dépense, responsabilité ni retenue."
+ },
+ "R-8.5-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/consumption.ts",
+   "apps/api/src/domain/telemetry/telematic-consumption.ts",
+   "apps/api/src/modules/telemetry/telematic-consumption.ts",
+   "apps/api/src/modules/fuel/fuel.service.ts",
+   "apps/api/src/modules/fuel/dto/consumption.dto.ts",
+   "apps/web/lib/fuel-types.ts",
+   "apps/web/components/telemetry/telematic-consumption.tsx",
+   "apps/web/app/(app)/vehicules/[id]/consumption-panel.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/fuel.int.spec.ts › T25 — deux pleins complets, partiel intermédiaire 20 L, dernier 30 L, 400 km : 12,5 L/100 km",
+   "apps/api/src/domain/telemetry/telematic-consumption.spec.ts › nature retenue : compteur de consommation CAN de préférence, puis sonde, parmi les mesures reçues avant les natures seulement déclarées ; jamais la jauge CAN seule",
+   "apps/api/src/domain/telemetry/telematic-consumption.spec.ts › sonde : pic après A − creux avant B + remplissages mesurés entre les deux = 57 L → 14,25 L/100 km, écart +14 %",
+   "apps/api/src/domain/telemetry/telematic-consumption.spec.ts › compteur CAN : différence entre le premier et le dernier échantillon de [A, B], contrôles de trou et de couverture",
+   "apps/api/src/domain/telemetry/telematic-consumption.spec.ts › synthèse : seuls les intervalles comparables (déclaré retenu, télématique disponible), mêmes bornes ; sinon N/D avec les motifs",
+   "apps/api/test/integration/telemetry-fuel-complements.int.spec.ts › R-8.5-10 — consommation télématique en parallèle (sonde : bilan de niveaux et remplissages ; compteur CAN : différence), même intervalle A → B, nature et écart ; N/D motivé ; rien sans mesure exploitable",
+   "apps/web/components/telemetry/complements-render.spec.ts › affiche à côté de la consommation déclarée la nature, le L/100 km et l’écart calculés par l’API",
+   "apps/web/components/telemetry/complements-render.spec.ts › sans mesure télématique exploitable (F11 absent) : consommation déclarée seule, aucune mention télématique",
+   "apps/api/src/domain/telemetry/telematic-consumption.spec.ts › changement de boîtier dans l’intervalle : mesures de deux boîtiers jamais combinées (N/D motivé, aucune valeur fabriquée)"
+  ],
+  "note": "Consommation déclarée inchangée (pleins validés, T25) ; en parallèle, champ telematics de GET /vehicles/:id/consumption (intervalles et totaux), absent sans mesure exploitable : mêmes intervalles A → B et mêmes km, CONSOMMATION_CAN = dernier − premier échantillon, NIVEAU_SONDE = pic du remplissage rapproché de A − creux du remplissage rapproché de B + remplissages intermédiaires ; nature, L/100 km et écart en % ; N/D motivé (trou > 60 min, couverture < 90 %, remplissage non détecté, volume inconnu, bilan négatif) ; jauge CAN jamais utilisée. Vérifié : sonde 57 L → 14,3 L/100 km, écart +14,0 % ; compteur 51 L → 12,8, +2,0 % ; trou de 90 min → N/D. Affiché dans l'onglet Consommation (rendu web). Interprétation des bornes sonde consignée dans D-016. Revue adversariale (lot F-compléments) : défauts corrigés — (1) après un changement de boîtier dans l'intervalle, le compteur CAN était calculé « dernier − premier » sur deux boîtiers (valeur fabriquée, ex. 47 026 L) et la sonde combinait le pic d'un boîtier et le creux d'un autre : désormais N/D motivé (BILAN_INCOHERENT) ; (2) une association déclarant CONSOMMATION_CAN sans jamais en recevoir masquait la sonde effectivement reçue (N/D permanent) : la nature retenue est d'abord celle des mesures reçues. Tests unitaires ajoutés (échec vérifié sur l'ancien code)."
+ },
+ "R-8.5-11": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-samples.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-purge.service.ts",
+   "apps/worker/src/jobs/daily-retention.job.ts",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [
+   "apps/api/src/modules/telemetry/sync/telemetry-samples.spec.ts › sous-échantillonnage : au plus un échantillon par tranche de 5 min, le dernier de la tranche",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › purges pour le worker : échantillons carburant et odomètre au-delà de la rétention, relevés et événements conservés",
+   "apps/worker/src/jobs/queue-telemetry-retention.spec.ts › rétention quotidienne : partitions à venir, abandon des lots à 7 jours, purge des données à 90 jours, une fois par jour"
+  ],
+  "note": "Au plus un échantillon par unité, nature et tranche de 5 min (dernier de la tranche) ; FuelLevelSample PARTITION BY RANGE (observedAt) avec partitions mensuelles créées par la rétention quotidienne du worker ; purge au-delà de telemetry.fuelSampleRetentionDays (90 j)."
+ },
+ "R-8.5-12": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-purge.service.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-14.3-X01, R-8.5-12 — désactivation par société : relevés TELEMATICS et événements carburant conservés (non qualifiés toujours à qualifier), régime manuel sans aide télématique ; purge : seuls les échantillons sont supprimés"
+  ],
+  "note": "Purge au-delà de la rétention (90 j) : les 5 échantillons carburant et l'échantillon d'odomètre supprimés, le relevé TELEMATICS et l'événement carburant (même identifiant, qualification conservée) restent lisibles."
+ },
+ "R-8.5-13": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "apps/api/src/domain/telemetry/fuel-events.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement"
+  ],
+  "note": "Échantillons dédoublonnés par tranche et événements par episodeDedupeKey (unique organizationId, dedupeKey) : lot rejoué sans nouvel échantillon ni événement (T36 : fuelSamples 0, fuelEventsCreated 0 ; T43 rejoué : 2 événements)."
+ },
+ "R-9.1-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-silence.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-alerts.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T41 — unité associée sans donnée pendant 25 h : alerte « source GPS muette », saisie manuelle possible, fraîcheur sur la dernière observation, résolution au premier échantillon frais",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès"
+  ],
+  "note": "Alerte « source GPS muette » à 25 h (seuil 24 h paramétrable), saisie manuelle acceptée pendant l’alerte."
+ },
+ "R-9.1-09": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-calibration.service.ts",
+   "apps/api/src/domain/telemetry/gps-calibration.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960",
+   "apps/api/src/domain/telemetry/gps-calibration.spec.ts › T39 — estimation 81 000 depuis 80 000, restitution manuelle 80 960 : écart 4,2 %, au-delà de 3 %"
+  ],
+  "note": "GPS_DERIVE levée pour 4,2 % (estimation 81 000 depuis 80 000, restitution 80 960), adressée à la société du véhicule (chef)."
+ },
+ "R-9.1-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-alerts.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-249 — unité volontairement sans véhicule : ignorée (alerte résolue, plus de proposition), 409 si associée, reprise"
+  ],
+  "note": "GPS_UNITE_NON_MAPPEE (INFO) par unité sans association ni proposition, pour la société couverte et activée : 2 alertes pour 12 unités dont 2 non associées ; résolue à l’association ou si l’unité est ignorée."
+ },
+ "R-9.1-11": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement"
+  ],
+  "note": "CARBURANT_BAISSE_ANORMALE créée pour la baisse de 25 L et résolue à la qualification par le chef."
+ },
+ "R-9.1-12": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › 8.5, D-242 — remplissage dont le ticket est déjà saisi : JUSTIFIE automatiquement (audit, sans alerte) ; ticket hors tolérance : ECART_TICKET à qualifier ; aucune dépense créée par la télématique"
+  ],
+  "note": "CARBURANT_REMPLISSAGE_DETECTE (sans ticket) et CARBURANT_ECART_TICKET (litres hors tolérance) levées ; résolues au rapprochement tardif ou à la qualification."
+ },
+ "R-9.3-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/domain/telemetry/historization.ts",
+   "apps/api/src/modules/maintenance/maintenance-plans.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T42 — base 80 000, intervalle 10 000 : synchro CAN 89 500 puis 90 000 → A_PREVOIR puis A_FAIRE sans saisie manuelle, alerte moins d’une minute après l’ingestion (délai mesuré)",
+   "apps/api/src/domain/telemetry/historization.spec.ts › T42 — le franchissement d’un seuil d’entretien est historisé immédiatement (89 500 puis 90 000)"
+  ],
+  "note": "Même recalcul d’entretien que la saisie manuelle après un relevé TELEMATICS accepté : A_PREVOIR puis A_FAIRE, alerte < 60 s mesurée."
+ },
+ "R-11.3-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/period-distance.ts",
+   "apps/api/src/modules/reports/providers/distance-cost-report.service.ts",
+   "apps/web/lib/format.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/period-distance.spec.ts › une borne estimée (GPS) rend la distance estimée",
+   "apps/api/src/domain/period-distance.spec.ts › un coût/km fondé sur une borne estimée est marqué estimé",
+   "apps/api/test/integration/reports.int.spec.ts › distances (D-276) : bornes physiques par défaut, estimation GPS dans une colonne séparée, coût/km « estimé » à défaut de distance physique",
+   "apps/web/lib/format.spec.ts › compteurs tronqués au kilomètre entier, estimation GPS signalée"
+  ],
+  "note": "Distance et coût/km fondés sur une borne DISTANCE_GPS marqués estimés (colonne estimée séparée, costPerKmNature ESTIME) ; formatKm signale l’estimation GPS."
+ },
+ "R-13.2-24": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/telemetry/telemetry-providers.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-credentials.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-settings.ts",
+   "apps/api/src/infra/secrets-crypto.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T44 — secrets : jamais restitués par l’API, uniquement chiffrés en base, absents des journaux (création, test de connexion en échec d’authentification)",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › Configuration fournisseur : validation, verrou optimiste, transitions, RPA refusé, suppression d’un brouillon",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-112 — droits : seul l’administrateur configure ; le chef B ne voit rien de A (404) ; lecture sans configuration"
+  ],
+  "note": "TelemetryProvider (type, canal déduit, paramètres non secrets, sociétés couvertes, statut BROUILLON/ACTIF/SUSPENDU/DESACTIVE) et TelemetryCredential (AES-256-GCM, keyId, iv, authTag) ; l’API ne renvoie que { kind, configured, rotatedAt } et aucun secret n’apparaît dans les réponses, les journaux ni aucune table."
+ },
+ "R-13.2-25": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-300 — changement de boîtier : clôture et nouvelle association, kilométrage cumulé inchangé"
+  ],
+  "note": "TelemetryVehicleMapping : unité, véhicule, validFrom/validTo, statut, odometerKind (COMPTEUR_CAN, DISTANCE_GPS, AUCUN) et fuelKinds."
+ },
+ "R-13.2-26": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée",
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-13.2-26 — TelemetryUnitState : dernière valeur reçue et dernière erreur de l’unité, effacée au premier échantillon historisé sans erreur"
+  ],
+  "note": "TelemetryUnitState : dernière valeur, nature et instant reçus ; lastError tenu sur l'unité (compteur non initialisé, relevé incohérent mis en attente) et effacé au premier échantillon historisé sans erreur."
+ },
+ "R-13.2-27": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-14.4-04, R-13.2-27, R-14.4-06 — deux synchronisations concurrentes du même couple : un seul run sous bail, synchronisation manuelle « déjà en cours », reprise après libération ; durée du run tracée"
+  ],
+  "note": "Volumes et résultat (tests existants) ; durée : run avec reprises de 1 s puis 4 s sous horloge contrôlée → durationMs 5 000 = finishedAt − startedAt, exposé par GET /telemetry/sync-runs."
+ },
+ "R-13.2-28": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql",
+   "apps/api/src/modules/telemetry/sync/telemetry-purge.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › purges pour le worker : échantillons carburant et odomètre au-delà de la rétention, relevés et événements conservés",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement"
+  ],
+  "note": "FuelLevelSample partitionnée par mois, rétention bornée (purge au-delà de 90 j testée)."
+ },
+ "R-13.2-29": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › 8.5, D-242 — remplissage dont le ticket est déjà saisi : JUSTIFIE automatiquement (audit, sans alerte) ; ticket hors tolérance : ECART_TICKET à qualifier ; aucune dépense créée par la télématique",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant"
+  ],
+  "note": "FuelEvent : BAISSE_ANORMALE, REMPLISSAGE_DETECTE, ECART_TICKET, fuelEntryId du ticket rapproché, qualification, dedupeKey."
+ },
+ "R-14.1-09": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.ts",
+   "apps/api/src/modules/telemetry/telemetry-settings.ts",
+   "docs/connecteur-telematique.md"
+  ],
+  "tests": [
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.spec.ts › RPA refusé en V1 avec le motif documenté (D-292)",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › Configuration fournisseur : validation, verrou optimiste, transitions, RPA refusé, suppression d’un brouillon"
+  ],
+  "note": "RPA non retenu (annexe A non conduite, D-292) : aucune application apps/telemetry-rpa (apps/ = api, web, worker), type RPA refusé 422 CANAL_RPA_INDISPONIBLE."
+ },
+ "R-14.3-02": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts",
+   "apps/worker/src/jobs/telemetry-sync.job.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/worker/src/jobs/queue-telemetry-retention.spec.ts › F11 désactivé : la synchronisation planifiée ne fait aucun appel et ne crée aucun run",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-101 / D-295 — désactivation par société : alertes F11 résolues, associations et données conservées ; réactivation"
+  ],
+  "note": "telemetryEnabled faux par défaut ; société non activée : aucun run, aucun état d’unité (aucun appel) et chef refusé 422 TELEMETRIE_DESACTIVEE ; aucune proposition ni alerte F11. Remarque : l’administrateur peut encore tester la connexion ou découvrir les unités d’un fournisseur (action manuelle de configuration, sans donnée ni alerte produite)."
+ },
+ "R-14.3-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-provider.interface.ts",
+   "apps/api/src/modules/telemetry/adapters/traccar.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/wialon.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/report-generic.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/simulator.adapter.ts"
+  ],
+  "tests": [
+   "apps/api/src/modules/telemetry/adapters/simulator.adapter.spec.ts › liste les unités présentes, libellées comme simulées, avec natures et immatriculations déclarées",
+   "apps/api/src/modules/telemetry/adapters/traccar.adapter.spec.ts › compteur CAN (odometer) et distance GPS (totalDistance) en km, instant fixTime, référence de position",
+   "apps/api/src/modules/telemetry/adapters/wialon.adapter.spec.ts › unité : identifiant, nom, dernier message, capteurs, compteur, champs de profil et personnalisés",
+   "apps/api/src/modules/telemetry/adapters/report-generic.adapter.spec.ts › CSV : kilométrage et carburant normalisés, heure locale convertie en UTC, valeurs invalides écartées et comptées",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › listUnits : appareils visibles du compte de lecture, immatriculation déclarée et natures constatées",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › getOdometers : dernier état en km, instant fixTime, référence = identifiant de position Traccar"
+  ],
+  "note": "Interface TelemetryProvider unique : listUnits (id, libellé, immatriculation déclarée), getOdometers (valueKm, kind, observedAt), getOdometerHistory facultatif (D-294), getFuel, healthCheck, close ; implémentée par les quatre adaptateurs."
+ },
+ "R-14.3-04": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/telemetry/adapters/traccar.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/wialon.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/adapter-support.ts",
+   "apps/api/src/modules/telemetry/telemetry-settings.ts",
+   "docs/connecteur-telematique.md"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › listUnits : appareils visibles du compte de lecture, immatriculation déclarée et natures constatées",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › getOdometers : dernier état en km, instant fixTime, référence = identifiant de position Traccar",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › getOdometerHistory et getFuel : positions de la période, litres, moteur, vitesse nœuds → km/h",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › authentification Basic (IDENTIFIANTS_API) et contrôle de santé",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › erreurs typées : mot de passe ou jeton refusé, appareil hors droits, serveur injoignable ; aucun secret dans les messages",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › session par jeton, unités, kilométrage calc_last daté du dernier message, miles convertis, core/logout",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › carburant et historique : messages/load_interval (gzip) + unit/calc_sensors, messages/unload",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › erreurs typées : jeton refusé, droits (7), quota HTTP 429 avec Retry-After, délai dépassé ; aucun secret exposé",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant"
+  ],
+  "note": "Traccar (REST) validé contre un vrai serveur Traccar 6.15 en conteneur avec un utilisateur readonly (Bearer et Basic). Wialon Remote API : non testé contre un vrai serveur Wialon (serveur local conforme à la documentation seulement). Variante webhook : réception générique signée livrée et testée (R-14.4-02, R-14.4-X01) au format documenté ; aucun webhook natif de fournisseur (format propriétaire) n’est branché. La priorité API > RAPPORT > RPA est une règle de qualification documentée, pas un contrôle du code."
+ },
+ "R-14.3-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/adapters/report-generic.adapter.ts",
+   "apps/api/src/modules/telemetry/telemetry-report-ledger.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/worker/src/jobs/telemetry-sync.job.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › pièces jointes CSV des messages non lus : lues sans les marquer, puis registre SHA-256 et déplacement à l’acquittement",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › run sans acquittement : le fichier reste à traiter et est relu au run suivant",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › mot de passe IMAP refusé : AUTHENTIFICATION, sans secret dans le message",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › fichier XLSX lu (heure murale du fuseau), valeurs invalides écartées, déplacé dans « traites » à l’acquittement",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › empreinte de clé d’hôte différente : CONFIGURATION ; mot de passe refusé : AUTHENTIFICATION ; aucun secret exposé",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › fichiers CSV lus par runDue : relevés CAN historisés par l’ingestion unique, fichiers inscrits au registre et déplacés après ingestion ; fichier rejoué ou lignes répétées sans doublon ; source injoignable sans reprise ni acquittement",
+   "apps/api/src/modules/telemetry/adapters/report-generic.adapter.spec.ts › CSV : kilométrage et carburant normalisés, heure locale convertie en UTC, valeurs invalides écartées et comptées",
+   "apps/api/src/modules/telemetry/adapters/report-generic.adapter.spec.ts › XLSX : cellule date-heure lue en heure murale du fuseau, date sans heure refusée, nombre XLSX exact"
+  ],
+  "note": "Canal RAPPORT : CSV/XLSX lus par IMAP (GreenMail réel) et SFTP (atmoz/sftp réel), registre SHA-256, acquittement après ingestion ; de bout en bout par runDue (appelé par le worker) avec un vrai SFTP."
+ },
+ "R-14.3-06": {
+  "status": "hors périmètre",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.ts",
+   "apps/api/src/modules/telemetry/telemetry-settings.ts",
+   "docs/connecteur-telematique.md"
+  ],
+  "tests": [
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.spec.ts › RPA refusé en V1 avec le motif documenté (D-292)",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › Configuration fournisseur : validation, verrou optimiste, transitions, RPA refusé, suppression d’un brouillon"
+  ],
+  "note": "D-292 et D-000 : canal RPA livré comme interface documentée non activable (docs/connecteur-telematique.md « RPA … non activable en V1 ») ; vérifié : type RPA refusé par le registre (422 CANAL_RPA_INDISPONIBLE), aucun secret RPA admis (CREDENTIAL_KINDS_BY_PROVIDER.RPA = []), provider-kinds le déclare indisponible, pas d’apps/telemetry-rpa."
+ },
+ "R-14.3-07": {
+  "status": "hors périmètre",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.ts",
+   "docs/connecteur-telematique.md"
+  ],
+  "tests": [
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.spec.ts › RPA refusé en V1 avec le motif documenté (D-292)"
+  ],
+  "note": "D-292 et D-000 : canal RPA livré comme interface documentée non activable (docs/connecteur-telematique.md « RPA … non activable en V1 ») ; vérifié : type RPA refusé par le registre (422 CANAL_RPA_INDISPONIBLE), aucun secret RPA admis (CREDENTIAL_KINDS_BY_PROVIDER.RPA = []), provider-kinds le déclare indisponible, pas d’apps/telemetry-rpa ; conditions d’activation documentées (accord écrit, compte lecture seule, aucun contournement de captcha ni de double authentification) ; aucun code RPA."
+ },
+ "R-14.3-08": {
+  "status": "hors périmètre",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.ts",
+   "docs/connecteur-telematique.md"
+  ],
+  "tests": [
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.spec.ts › RPA refusé en V1 avec le motif documenté (D-292)"
+  ],
+  "note": "D-292 et D-000 : canal RPA livré comme interface documentée non activable (docs/connecteur-telematique.md « RPA … non activable en V1 ») ; vérifié : type RPA refusé par le registre (422 CANAL_RPA_INDISPONIBLE), aucun secret RPA admis (CREDENTIAL_KINDS_BY_PROVIDER.RPA = []), provider-kinds le déclare indisponible, pas d’apps/telemetry-rpa ; l’échec propre si le portail change n’est décrit que dans le contrat prévu."
+ },
+ "R-14.3-09": {
+  "status": "hors périmètre",
+  "files": [
+   "apps/api/src/modules/telemetry/adapters/traccar.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/wialon.adapter.ts",
+   "docs/connecteur-telematique.md"
+  ],
+  "tests": [],
+  "note": "Identification de la plateforme en marque blanche : annexe A non conduite (D-292 : « le rapport final classe le branchement au fournisseur réel en dépendance externe à configurer ») ; liste de contrôle prête dans docs/connecteur-telematique.md (« Qualification du fournisseur (annexe A) », toutes les cases ☐) ; adaptateurs Traccar (OpenAPI 6.15.3) et Wialon (Remote API documentée) prêts."
+ },
+ "R-14.3-10": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/telemetry/adapters/traccar.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/wialon.adapter.ts",
+   "apps/api/src/modules/telemetry/adapters/adapter-support.ts"
+  ],
+  "tests": [
+   "apps/api/src/modules/telemetry/adapters/traccar.adapter.spec.ts › compteur CAN (odometer) et distance GPS (totalDistance) en km, instant fixTime, référence de position",
+   "apps/api/src/modules/telemetry/adapters/traccar.adapter.spec.ts › mètres → km arrondis au mètre (demi vers le haut), bornés à Decimal(15, 3)",
+   "apps/api/src/modules/telemetry/adapters/traccar.adapter.spec.ts › attributs paramétrables : odometer déclaré GPS, nature CAN désactivée, horodatage deviceTime",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › getOdometers : dernier état en km, instant fixTime, référence = identifiant de position Traccar",
+   "apps/api/src/modules/telemetry/adapters/wialon.adapter.spec.ts › calc_last : km (format « 24498.82 km »), miles convertis, unité inconnue refusée",
+   "apps/api/src/modules/telemetry/adapters/wialon.adapter.spec.ts › natures : kilométrage selon settings.odometerKind, carburant selon les capteurs déclarés",
+   "apps/api/src/modules/telemetry/adapters/wialon.adapter.spec.ts › unité : identifiant, nom, dernier message, capteurs, compteur, champs de profil et personnalisés"
+  ],
+  "note": "Traccar : totalDistance (m) → DISTANCE_GPS km et odometer (m) → COMPTEUR_CAN km, vérifié en unitaire et sur vrai serveur. Wialon : compteur calc_last (km/miles) et capteurs via calc_sensors vérifiés sur les structures documentées et un serveur local seulement — non testé contre un vrai serveur Wialon."
+ },
+ "R-14.4-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-settings.ts",
+   "apps/api/src/modules/telemetry/telemetry-providers.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-resilience.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › Configuration fournisseur : validation, verrou optimiste, transitions, RPA refusé, suppression d’un brouillon",
+   "apps/api/src/modules/telemetry/sync/telemetry-resilience.spec.ts › délai entre runs : intervalle × 2^n plafonné à 60 min, jamais sous l’intervalle",
+   "apps/api/src/modules/telemetry/sync/telemetry-resilience.spec.ts › planification : premier run immédiat, puis délai exponentiel ; reprise initiale immédiate si le fournisseur est sain"
+  ],
+  "note": "syncIntervalMinutes 15 par défaut, minimum 5 (4 → 422), délai entre runs intervalle × 2^n plafonné à 60 min ; maxRequestsPerMinute pour le quota."
+ },
+ "R-14.4-02": {
+  "status": "partiel",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924214500_lot_f_webhook_telematique/migration.sql",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook.controller.ts",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook.service.ts",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook-signature.ts",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook-format.ts",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook-inbox.ts",
+   "apps/api/src/modules/telemetry/webhook/webhook-raw-body.middleware.ts",
+   "apps/api/src/modules/telemetry/adapters/webhook.adapter.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-credentials.service.ts",
+   "apps/worker/src/jobs/telemetry-webhook.job.ts",
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.ts",
+   "apps/api/src/modules/telemetry/telemetry-settings.ts",
+   "apps/api/src/modules/telemetry/telemetry-providers.service.ts",
+   "apps/api/src/modules/telemetry/dto/telemetry-webhook.dto.ts",
+   "apps/web/app/(app)/administration/telematique/webhook-section.tsx",
+   "apps/web/lib/webhook-secret.ts",
+   "docs/connecteur-telematique.md",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-webhook.int.spec.ts › signature valide → 202, lot déposé sans ingestion synchrone, puis ingéré par le worker ; même lot rejoué (nouvelle signature) sans doublon ; rejeu exact refusé (409) ; reprise bornée d’un lot interrompu",
+   "apps/api/test/integration/telemetry-webhook.int.spec.ts › fournisseur non actif ou module non activé : lot refusé (422) à la réception, ou ignoré par le worker s’il l’est devenu entre-temps ; aucune ingestion",
+   "apps/worker/src/jobs/telemetry-webhook.job.spec.ts › la tâche planifiée ingère les lots déposés par l’API (run WEBHOOK, ingestion unique), un lot renvoyé sans doublon, un lot d’un fournisseur suspendu jamais ingéré ; sans fournisseur : aucune écriture télématique",
+   "tests/e2e/specs/telematique-webhook.spec.ts › l’administrateur communique l’URL, génère puis fait tourner le secret de signature ; les lots signés sont acceptés et mis en file, les autres refusés",
+   "apps/web/components/telemetry/webhook-render.spec.ts › URL et règles de signature à communiquer, état du secret sans sa valeur, rotation, derniers lots ; aucune synchronisation manuelle",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook-format.spec.ts › normalise un lot conforme : champs prévus seulement, instants en UTC, nombres convertis en décimaux"
+  ],
+  "note": "Chaîne livrée et testée pour le format générique documenté : fournisseur WEBHOOK_GENERIQUE (canal WEBHOOK), lots JSON v1 signés HMAC poussés vers POST /api/v1/telemetry/webhooks/:providerId ; la réception ne fait que déposer le lot normalisé en file (202, aucune ingestion synchrone) ; le worker (tâche telematique-webhooks, 10 s, TelemetrySyncService.runWebhooks) les ingère par la même exécution que la synchronisation (run WEBHOOK par société activée, associations couvrant l’instant, ingestion unique idempotente, carburant, alertes) : relevés CAN créés une fois même quand le lot est renvoyé, rejeu exact 409, fournisseur non actif ou société non activée → aucune ingestion, reprise d’un lot interrompu bornée à 5 tentatives puis ECHEC (T1, T3, worker, e2e au travers du relais web). Partiel (revue adversariale) : la règle vise le webhook « du fournisseur » ; seul un émetteur capable de produire ce lot signé (docs/connecteur-telematique.md, « Webhook générique ») peut l’utiliser. Les envois natifs des plateformes citées au CDC (transfert de positions Traccar : JSON propre et en-têtes statiques, sans HMAC ; Wialon) ne sont pas acceptés tels quels, aucun adaptateur de format n’existe, et aucun envoi push d’un fournisseur réel n’a été exercé ; qualification du fournisseur non conduite (annexe A, D-292, R-21-08). Écarts consignés dans D-016."
+ },
+ "R-14.4-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/domain/telemetry/historization.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/worker/src/jobs/telemetry-sync.job.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T42 — base 80 000, intervalle 10 000 : synchro CAN 89 500 puis 90 000 → A_PREVOIR puis A_FAIRE sans saisie manuelle, alerte moins d’une minute après l’ingestion (délai mesuré)",
+   "apps/api/src/domain/telemetry/historization.spec.ts › T42 — le franchissement d’un seuil d’entretien est historisé immédiatement (89 500 puis 90 000)",
+   "apps/api/src/modules/telemetry/sync/telemetry-resilience.spec.ts › planification : premier run immédiat, puis délai exponentiel ; reprise initiale immédiate si le fournisseur est sain"
+  ],
+  "note": "Interrogation toutes les 15 min (tâche worker chaque minute), franchissement de seuil historisé immédiatement et alerte < 60 s après ingestion (T42) : fraîcheur < 1 h avec un canal API ; la fraîcheur réelle d’un fournisseur (rapport quotidien, latence) reste une donnée externe non mesurée."
+ },
+ "R-14.4-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-lease.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/worker/src/jobs/telemetry-sync.job.ts",
+   "apps/worker/src/scheduler/worker-scheduler.service.ts"
+  ],
+  "tests": [
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › deux instances simultanées : une seule exécute la tâche ; l’autre la reprend quand le bail expire",
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-14.4-04, R-13.2-27, R-14.4-06 — deux synchronisations concurrentes du même couple : un seul run sous bail, synchronisation manuelle « déjà en cours », reprise après libération ; durée du run tracée"
+  ],
+  "note": "Deux instances du worker lancées au même instant sur le même couple fournisseur-société : un seul run sous le bail telemetry-sync:<fournisseur>:<société> ; pendant ce run, bail refusé à un troisième titulaire et synchronisation manuelle répondue « déjà en cours » (alreadyRunning, même run) sans second run ; bail libéré en fin de run, nouvelle synchronisation manuelle sans doublon de relevé."
+ },
+ "R-14.4-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-resilience.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/telemetry/adapters/adapter-support.ts"
+  ],
+  "tests": [
+   "apps/api/src/modules/telemetry/sync/telemetry-resilience.spec.ts › reprises dans un run après 1, 4 puis 16 s pour une erreur transitoire, jamais pour une erreur d’authentification",
+   "apps/api/src/modules/telemetry/sync/telemetry-resilience.spec.ts › un 429 respecte Retry-After ; au-delà du plafond d’attente, aucune reprise dans le run",
+   "apps/api/src/modules/telemetry/sync/telemetry-resilience.spec.ts › délai entre runs : intervalle × 2^n plafonné à 60 min, jamais sous l’intervalle",
+   "apps/api/src/modules/telemetry/sync/telemetry-resilience.spec.ts › coupe-circuit : créneaux ignorés pendant l’ouverture, puis essai unique immédiat",
+   "apps/api/src/modules/telemetry/sync/telemetry-resilience.spec.ts › transition d’échec : ouverture au 5e échec consécutif pour 60 min ; report de quota sans ouverture",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › quota 429 : Retry-After respecté dans le run, plus aucun appel une fois le quota atteint ; au-delà du plafond, appel suivant différé (IGNORE) sans ouvrir le coupe-circuit ; aucun secret dans les journaux, les runs, l’état ni les alertes (T44)"
+  ],
+  "note": "Reprises 1-4-16 s dans le run, Retry-After respecté, délai exponentiel plafonné, coupe-circuit au 5e échec pour 60 min (runs IGNORE), alerte GPS_SYNCHRO_EN_ECHEC à l’ouverture, résolue au premier succès."
+ },
+ "R-14.4-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/common/secret-redaction.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › quota 429 : Retry-After respecté dans le run, plus aucun appel une fois le quota atteint ; au-delà du plafond, appel suivant différé (IGNORE) sans ouvrir le coupe-circuit ; aucun secret dans les journaux, les runs, l’état ni les alertes (T44)",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T44 — secrets : jamais restitués par l’API, uniquement chiffrés en base, absents des journaux (création, test de connexion en échec d’authentification)",
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-14.4-04, R-13.2-27, R-14.4-06 — deux synchronisations concurrentes du même couple : un seul run sous bail, synchronisation manuelle « déjà en cours », reprise après libération ; durée du run tracée"
+  ],
+  "note": "Chaque run tracé avec déclencheur, volumes, résultat et erreurs expurgées (tests existants) ; durée vérifiée (durationMs 5 000 ms, finishedAt = startedAt + 5 s) et restituée par l'API."
+ },
+ "R-14.4-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-providers.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › quota 429 : Retry-After respecté dans le run, plus aucun appel une fois le quota atteint ; au-delà du plafond, appel suivant différé (IGNORE) sans ouvrir le coupe-circuit ; aucun secret dans les journaux, les runs, l’état ni les alertes (T44)"
+  ],
+  "note": "Run REPRISE_INITIALE après confirmation sur [max(validFrom, now − backfillDays), now] (backfillDays 0 à 90, 7 par défaut) via getOdometerHistory, consigné si le canal ne le permet pas ; reprise explicite de l’administrateur (reprise: true) rejouée sans doublon."
+ },
+ "R-14.4-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-14.4-08 — fournisseur en panne puis coupe-circuit ouvert : remise, restitution, relevé et clôture d’entretien aboutissent",
+   "tests/e2e/specs/telematique-complements.spec.ts › aide télématique à la remise et à la restitution pendant une panne ; /carburant → événements du véhicule qualifiés par le chef ; seuils propres au véhicule"
+  ],
+  "note": "Pendant une panne puis coupe-circuit ouvert (5 échecs) : remise, restitution, relevé libre et clôture d'entretien avec relevé aboutissent (intégration) ; e2e : remise et restitution dans le navigateur alors que la dernière synchronisation du fournisseur (serveur Traccar de test) est en échec. Revue adversariale (lot F-compléments) : le parcours e2e échouait par intermittence (remise saisie dans la même minute que le relevé télématique → conflit « même instant », D-149) ; il attend désormais la minute suivante et passe."
+ },
+ "R-14.5-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts",
+   "apps/api/src/domain/telemetry/unit-matching.ts",
+   "apps/api/src/domain/registration.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/src/domain/telemetry/unit-matching.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non mappées",
+   "apps/api/src/domain/telemetry/unit-matching.spec.ts › une immatriculation déclarée par deux unités n’est pas proposée (ambiguë)",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › Découverte : périmètre du chef (rien de l’autre société) et exécutions concurrentes sans doublon"
+  ],
+  "note": "Découverte : proposition sur correspondance exacte et unique de l’immatriculation normalisée (formats « 120 TU 4500 », « 120TU4500 », « 120-tu-4500 », « تونس ») avec un véhicule ACTIF d’une société couverte et activée ; ambiguïté sans proposition."
+ },
+ "R-14.5-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts",
+   "apps/api/src/modules/telemetry/telemetry.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-112 — droits : seul l’administrateur configure ; le chef B ne voit rien de A (404) ; lecture sans configuration"
+  ],
+  "note": "Confirmation par le chef (opérateur 403, chef B 404), date d’effet bornée (D-301), audit ; aucun relevé, échantillon ni état avant confirmation."
+ },
+ "R-14.5-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts",
+   "apps/web/app/(app)/telematique/associations-tab.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/test/integration/telemetry-screens.int.spec.ts › page Télématique : activation avec motif, catégories d’unités, confirmation datée, sélecteurs, changement de boîtier, exécutions, synchronisation et carburant"
+  ],
+  "note": "GET /telemetry/units?category=NON_ASSOCIEES|PROPOSEES|ASSOCIEES|VEHICULES_SANS_UNITE|IGNOREES avec compteurs et motifs."
+ },
+ "R-14.5-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-300 — changement de boîtier : clôture et nouvelle association, kilométrage cumulé inchangé",
+   "apps/api/test/integration/telemetry-vehicle.int.spec.ts › boîtier réutilisé : le véhicule suivant n’hérite pas de la dernière observation du véhicule précédent (14.5, D-300)"
+  ],
+  "note": "Clôture avec replacement : ancienne association CLOTURE à l’instant du changement, nouvelle CONFIRME au même instant ; segment (compteur) inchangé, aucun relevé créé."
+ },
+ "R-14.5-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-300 — changement de boîtier : clôture et nouvelle association, kilométrage cumulé inchangé",
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-14.5-05 — changement de boîtier puis COMPTEUR_CAN inférieur : relevé EN_ATTENTE motivé, compteur et segment inchangés (aucun remplacement implicite), valeur cohérente suivante acceptée"
+  ],
+  "note": "Changement de boîtier puis CAN 120 du nouveau boîtier : relevé EN_ATTENTE motivé DIMINUTION avec alerte à valider, même segment et mêmes valeurs de départ (aucun remplacement de compteur implicite), compteur courant 50 100 inchangé ; valeur cohérente suivante (50 160) acceptée sur le même segment."
+ },
+ "R-14.6-01": {
+  "status": "hors périmètre",
+  "files": [
+   "docs/connecteur-telematique.md",
+   "apps/api/src/modules/telemetry/telemetry-settings.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › Configuration fournisseur : validation, verrou optimiste, transitions, RPA refusé, suppression d’un brouillon"
+  ],
+  "note": "Compte dédié en lecture seule à créer chez le fournisseur (dépendance externe) : prérequis documentés par type (Traccar readonly, Wialon consultation seule) ; l’application exige un secret avant activation (« Jeton API non déposé. ») mais ne peut vérifier le caractère lecture seule."
+ },
+ "R-14.6-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/infra/secrets-crypto.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-credentials.service.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T44 — secrets : jamais restitués par l’API, uniquement chiffrés en base, absents des journaux (création, test de connexion en échec d’authentification)",
+   "apps/api/src/infra/secrets-crypto.service.spec.ts › ancienne clé : déchiffrement seul ; rechiffrement sous la clé active",
+   "apps/api/src/infra/secrets-crypto.service.spec.ts › un chiffré altéré ou une mauvaise clé sous le même identifiant est refusé (GCM)",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-304 — rotation : l’ancienne clé reste déchiffrable, le script rechiffre sous la nouvelle (simulation par défaut)"
+  ],
+  "note": "AES-256-GCM, clé SECRETS_ENCRYPTION_KEY hors base (trousseau avec keyId), secret absent en clair de toutes les tables (T44)."
+ },
+ "R-14.6-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/secret-redaction.ts",
+   "apps/api/src/common/redacting-logger.ts",
+   "apps/api/src/modules/telemetry/telemetry-credentials.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.ts",
+   "apps/api/src/modules/telemetry/telemetry-providers.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T44 — secrets : jamais restitués par l’API, uniquement chiffrés en base, absents des journaux (création, test de connexion en échec d’authentification)",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › quota 429 : Retry-After respecté dans le run, plus aucun appel une fois le quota atteint ; au-delà du plafond, appel suivant différé (IGNORE) sans ouvrir le coupe-circuit ; aucun secret dans les journaux, les runs, l’état ni les alertes (T44)",
+   "apps/api/test/integration/telemetry-vehicle.int.spec.ts › DISTANCE_GPS : unité et nature, dernière observation, estimation « estimé GPS » avec sa référence, calibrage et dérive 4,2 % ; aucun secret restitué (T38, T39, T44)",
+   "apps/api/src/common/secret-redaction.spec.ts › masque les paramètres d’URL sensibles, les identifiants intégrés et les en-têtes",
+   "apps/api/src/common/secret-redaction.spec.ts › secrets suivis pendant un appel : masqués jusqu’à la libération",
+   "apps/api/src/common/redacting-logger.spec.ts › format texte : jeton d’URL, en-tête et secret suivi masqués, y compris dans la pile",
+   "apps/api/src/modules/telemetry/adapters/simulator.adapter.spec.ts › client « bavard » : l’erreur brute cite l’URL avec le jeton, le contrôle de santé renvoie un message expurgé"
+  ],
+  "note": "Secret jamais renvoyé (réponses API, sync-runs, panneau véhicule), absent des journaux capturés, des erreurs expurgées ([expurgé]), des runs, alertes et audit."
+ },
+ "R-14.6-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/cli/rotate-telemetry-secrets.ts",
+   "apps/api/src/infra/secrets-crypto.service.ts",
+   "docs/connecteur-telematique.md"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-304 — rotation : l’ancienne clé reste déchiffrable, le script rechiffre sous la nouvelle (simulation par défaut)"
+  ],
+  "note": "Procédures documentées (docs/connecteur-telematique.md : rotation d’un secret fournisseur et rotation de la clé de chiffrement) ; script telemetry:rotate-secrets (simulation puis --apply, audit) testé."
+ },
+ "R-14.6-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-providers.service.ts",
+   "apps/api/src/modules/telemetry/telemetry.controller.ts",
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-112 — droits : seul l’administrateur configure ; le chef B ne voit rien de A (404) ; lecture sans configuration",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › Configuration fournisseur : validation, verrou optimiste, transitions, RPA refusé, suppression d’un brouillon",
+   "apps/api/test/integration/telemetry-screens.int.spec.ts › administration : types, création et modification par type, liste filtrée, secret en écriture seule, suppression d’un brouillon"
+  ],
+  "note": "Création, modification, secrets, test de connexion, transitions et activation par société : administrateur seul (chef 403) ; chef : lecture de l’état des fournisseurs de ses sociétés sans paramètres ni secret (configurationVisible false), chef B 404."
+ },
+ "R-14.6-06": {
+  "status": "hors périmètre",
+  "files": [
+   "docs/connecteur-telematique.md",
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.ts"
+  ],
+  "tests": [
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.spec.ts › RPA refusé en V1 avec le motif documenté (D-292)"
+  ],
+  "note": "D-292 et D-000 : canal RPA livré comme interface documentée non activable (docs/connecteur-telematique.md « RPA … non activable en V1 ») ; vérifié : type RPA refusé par le registre (422 CANAL_RPA_INDISPONIBLE), aucun secret RPA admis (CREDENTIAL_KINDS_BY_PROVIDER.RPA = []), provider-kinds le déclare indisponible, pas d’apps/telemetry-rpa ; le conteneur isolé n’est décrit que comme condition d’activation future."
+ },
+ "R-14.6-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.ts",
+   "apps/api/src/modules/telemetry/adapters/simulator.adapter.ts",
+   "apps/api/src/modules/telemetry/telemetry-settings.ts",
+   "apps/worker/src/scheduler/worker-scheduler.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.spec.ts › production : le simulateur ne peut pas être demandé (loadEnv) ni résolu (registre), même forcé",
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.spec.ts › production : ouvrir un simulateur existant échoue avant tout déchiffrement ou appel",
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.spec.ts › hors production : simulateur enregistré seulement si TELEMETRY_SIMULATOR_ENABLED",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-303 — simulateur : refusé si non activé sur l’instance ; démarrage du worker refusé en production avec un simulateur actif",
+   "apps/worker/src/jobs/queue-telemetry-retention.spec.ts › refuse de démarrer en production si un fournisseur SIMULATEUR est actif (D-303)",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation"
+  ],
+  "note": "Simulateur libellé « SIMULATEUR — données fictives » partout, enregistré seulement si TELEMETRY_SIMULATOR_ENABLED hors production ; en production refusé par loadEnv et le registre, et le worker refuse de démarrer avec un simulateur actif."
+ },
+ "R-15.2-25": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry.controller.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.controller.ts",
+   "apps/api/src/modules/telemetry/telemetry-vehicle.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › Configuration fournisseur : validation, verrou optimiste, transitions, RPA refusé, suppression d’un brouillon",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-112 — droits : seul l’administrateur configure ; le chef B ne voit rien de A (404) ; lecture sans configuration",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement",
+   "apps/api/test/integration/telemetry-screens.int.spec.ts › administration : types, création et modification par type, liste filtrée, secret en écriture seule, suppression d’un brouillon",
+   "apps/api/test/integration/telemetry-screens.int.spec.ts › page Télématique : activation avec motif, catégories d’unités, confirmation datée, sélecteurs, changement de boîtier, exécutions, synchronisation et carburant"
+  ],
+  "note": "Routes /telemetry : providers (administrateur), units, mappings (confirm/reject/close), sync-runs, providers/:id/sync, fuel-events et qualify, companies enable/disable, vehicles/:id."
+ },
+ "R-17.1-10": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/worker/src/jobs/telemetry-sync.job.ts"
+  ],
+  "tests": [
+   "apps/worker/src/jobs/queue-telemetry-retention.spec.ts › F11 désactivé : la synchronisation planifiée ne fait aucun appel et ne crée aucun run",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-101 / D-295 — désactivation par société : alertes F11 résolues, associations et données conservées ; réactivation"
+  ],
+  "note": "Désactivée par défaut, activable par société par l’administrateur ; sans activation, la tâche planifiée ne fait aucun appel ni run."
+ },
+ "R-17.1-11": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-silence.service.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T41 — unité associée sans donnée pendant 25 h : alerte « source GPS muette », saisie manuelle possible, fraîcheur sur la dernière observation, résolution au premier échantillon frais",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès"
+  ],
+  "note": "Alerte au-delà de 24 h (paramètre telemetry.silentAfterHours, surcharge société) ; saisie manuelle possible, fraîcheur sur la dernière observation."
+ },
+ "R-17.1-12": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/gps-calibration.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-calibration.service.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/gps-calibration.spec.ts › T39 — estimation 81 000 depuis 80 000, restitution manuelle 80 960 : écart 4,2 %, au-delà de 3 %",
+   "apps/api/src/domain/telemetry/gps-calibration.spec.ts › pas de mesure de dérive si l’échantillon est trop éloigné ou la distance trop courte",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960"
+  ],
+  "note": "Écart 4,167 % > 3 % → alerte ; seuil telemetry.driftThresholdPercent paramétrable."
+ },
+ "R-17.1-13": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/historization.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/historization.spec.ts › premier échantillon après confirmation du mapping",
+   "apps/api/src/domain/telemetry/historization.spec.ts › au plus une fois par heure s’il a progressé ; rien sinon",
+   "apps/api/src/domain/telemetry/historization.spec.ts › premier échantillon du jour local, même sans progression (00:30 à Tunis = 23:30 UTC la veille)",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T42 — base 80 000, intervalle 10 000 : synchro CAN 89 500 puis 90 000 → A_PREVOIR puis A_FAIRE sans saisie manuelle, alerte moins d’une minute après l’ingestion (délai mesuré)"
+  ],
+  "note": "Historisation horaire si progression, quotidienne au premier échantillon du jour local (écart D-016), état d’unité à chaque synchronisation."
+ },
+ "R-17.1-14": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/fuel-events.ts",
+   "apps/api/src/domain/telemetry/fuel-thresholds.ts",
+   "apps/api/src/modules/telemetry/telemetry-fuel-thresholds.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/fuel-events.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min → une baisse anormale",
+   "packages/contracts/src/index.spec.ts › reprennent exactement le tableau 17.1",
+   "apps/api/src/domain/telemetry/fuel-thresholds.spec.ts › sans surcharge : politique de la société inchangée",
+   "apps/api/test/integration/telemetry-fuel-complements.int.spec.ts › R-8.5-07, R-17.1-14 — seuils carburant par véhicule : lecture dans le périmètre, modification par le chef (motif, bornes, verrou optimiste y compris après un retrait, audit), priorité véhicule > société > groupe > produit",
+   "apps/api/test/integration/telemetry-fuel-complements.int.spec.ts › R-8.5-07, R-17.1-14 — détection : seuils du véhicule prioritaires sur ceux de la société (3 L perdus moteur coupé : anomalie au seuil de 2 L, rien au seuil 10 L ou 5 % ; 25 L perdus : rien au seuil de 30 L ou 50 %) ; seuils appliqués tracés"
+  ],
+  "note": "Valeurs initiales 10 L ou 5 % en 30 min (paramètres telemetry.fuelDrop*) ; surcharge par société (paramètres) puis par véhicule (VehicleFuelThresholds), priorité véhicule > société > groupe > produit vérifiée par l'API et par la détection."
+ },
+ "R-17.1-15": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-samples.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-purge.service.ts",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/src/modules/telemetry/sync/telemetry-samples.spec.ts › sous-échantillonnage : au plus un échantillon par tranche de 5 min, le dernier de la tranche",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › purges pour le worker : échantillons carburant et odomètre au-delà de la rétention, relevés et événements conservés",
+   "packages/contracts/src/index.spec.ts › reprennent exactement le tableau 17.1"
+  ],
+  "note": "Pas de 5 min maximum (telemetry.fuelSampleStepMinutes), rétention 90 j (telemetry.fuelSampleRetentionDays) purgée."
+ },
+ "R-17.2-02": {
+  "status": "partiel",
+  "files": [
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql",
+   "apps/worker/src/jobs/daily-retention.job.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-purge.service.ts"
+  ],
+  "tests": [
+   "apps/worker/src/jobs/queue-telemetry-retention.spec.ts › rétention quotidienne : partitions à venir, abandon des lots à 7 jours, purge des données à 90 jours, une fois par jour",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › purges pour le worker : échantillons carburant et odomètre au-delà de la rétention, relevés et événements conservés"
+  ],
+  "note": "Tables d’échantillons partitionnées par mois (partitions des trois mois suivants créées chaque jour par le worker) et purgées par la rétention quotidienne (DELETE puis suppression des partitions expirées) ; le mois courant peut rester dans la partition par défaut (D-016) ; volumétrie (2 M relevés/an, 13 M échantillons sur 90 j) jamais exercée (aucun test de charge). Le jeu de dimensionnement du lot E (seed-load.ts, docs/performance.md) ne charge ni relevés automatiques ni échantillons carburant : la volumétrie F11 (2 M relevés/an, 13 M échantillons sur 90 j) reste non mesurée."
+ },
+ "R-18-31": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-silence.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/web/app/(app)/vehicules/[id]/telemetry-panel.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/worker/src/jobs/queue-telemetry-retention.spec.ts › F11 désactivé : la synchronisation planifiée ne fait aucun appel et ne crée aucun run",
+   "apps/web/components/telemetry/telemetry-render.spec.ts › DISTANCE_GPS : estimation « estimé GPS » avec sa référence, distance brute distincte du compteur, dérive 4,2 %, simulateur signalé, lien vers /telematique"
+  ],
+  "note": "Scénario reproduit en intégration (F11 désactivé : aucun appel, remise, restitution, relevé ; fournisseur injoignable : alerte source muette agrégée, relevés manuels acceptés) et « Aucun suivi en direct » vérifié au rendu serveur ; vérification e2e demandée absente (aucun test e2e Playwright ne couvre les écrans télématiques (aucun spec télématique dans tests/e2e/specs)) et, pendant la panne, seuls les relevés manuels sont exercés."
+ },
+ "R-18-35": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts",
+   "apps/api/src/domain/telemetry/unit-matching.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/src/domain/telemetry/unit-matching.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non mappées"
+  ],
+  "note": "T35 vert : 10 propositions, 2 non associées, 0 relevé avant confirmation (simulateur)."
+ },
+ "R-18-36": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-samples.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant"
+  ],
+  "note": "T36 vert : même lot reçu deux fois (et en double dans le lot), aucun doublon de relevé ni d’événement carburant."
+ },
+ "R-18-37": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant"
+  ],
+  "note": "T37 vert : 50 000 et 50 120 acceptés, manuel 50 130 accepté, compteur courant 50 130."
+ },
+ "R-18-38": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/gps-calibration.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-calibration.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/web/app/(app)/vehicules/[id]/telemetry-panel.tsx"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/gps-calibration.spec.ts › T38 — référence manuelle 80 000 à distanceGps 12 000 ; distanceGps 12 450 → 80 450 estimé",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960",
+   "apps/api/test/integration/telemetry-vehicle.int.spec.ts › DISTANCE_GPS : unité et nature, dernière observation, estimation « estimé GPS » avec sa référence, calibrage et dérive 4,2 % ; aucun secret restitué (T38, T39, T44)",
+   "apps/web/components/telemetry/telemetry-render.spec.ts › DISTANCE_GPS : estimation « estimé GPS » avec sa référence, distance brute distincte du compteur, dérive 4,2 %, simulateur signalé, lien vers /telematique"
+  ],
+  "note": "T38 vert : 80 450 « estimé GPS » (unitaire, intégration, panneau et rendu)."
+ },
+ "R-18-39": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/gps-calibration.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-calibration.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/telemetry/gps-calibration.spec.ts › T39 — estimation 81 000 depuis 80 000, restitution manuelle 80 960 : écart 4,2 %, au-delà de 3 %",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960",
+   "apps/api/test/integration/telemetry-vehicle.int.spec.ts › DISTANCE_GPS : unité et nature, dernière observation, estimation « estimé GPS » avec sa référence, calibrage et dérive 4,2 % ; aucun secret restitué (T38, T39, T44)"
+  ],
+  "note": "T39 vert : écart 40/960 = 4,2 %, alerte dérive, nouvelle référence 80 960."
+ },
+ "R-18-40": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée",
+   "apps/api/src/domain/odometer-rules.spec.ts › T40 — la même diminution venant de la télématique passe en attente avec motif"
+  ],
+  "note": "T40 vert : EN_ATTENTE motif DIMINUTION, compteur courant 60 500 inchangé, remise acceptée."
+ },
+ "R-18-41": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-silence.service.ts",
+   "apps/api/src/domain/freshness.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T41 — unité associée sans donnée pendant 25 h : alerte « source GPS muette », saisie manuelle possible, fraîcheur sur la dernière observation, résolution au premier échantillon frais"
+  ],
+  "note": "T41 vert : alerte source muette après 25 h, saisie manuelle acceptée, fraîcheur sur la dernière observation."
+ },
+ "R-18-42": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/domain/telemetry/historization.ts",
+   "apps/api/src/modules/maintenance/maintenance-plans.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T42 — base 80 000, intervalle 10 000 : synchro CAN 89 500 puis 90 000 → A_PREVOIR puis A_FAIRE sans saisie manuelle, alerte moins d’une minute après l’ingestion (délai mesuré)"
+  ],
+  "note": "T42 vert : A_PREVOIR puis A_FAIRE sans saisie manuelle, alerte mesurée < 60 s."
+ },
+ "R-18-43": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/telemetry/fuel-events.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement",
+   "apps/api/src/domain/telemetry/fuel-events.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min → une baisse anormale",
+   "apps/api/src/domain/telemetry/fuel-events.spec.ts › T43 — remplissage de 40 L → un remplissage détecté ; sans ticket, écart à qualifier"
+  ],
+  "note": "T43 vert : baisse 25 L en 20 min moteur coupé et remplissage 40 L sans ticket → deux anomalies A_QUALIFIER, aucune dépense."
+ },
+ "R-18-44": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-credentials.service.ts",
+   "apps/api/src/infra/secrets-crypto.service.ts",
+   "apps/api/src/common/secret-redaction.ts",
+   "apps/api/src/common/redacting-logger.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T44 — secrets : jamais restitués par l’API, uniquement chiffrés en base, absents des journaux (création, test de connexion en échec d’authentification)",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › quota 429 : Retry-After respecté dans le run, plus aucun appel une fois le quota atteint ; au-delà du plafond, appel suivant différé (IGNORE) sans ouvrir le coupe-circuit ; aucun secret dans les journaux, les runs, l’état ni les alertes (T44)"
+  ],
+  "note": "T44 vert : configuration lue via l’API et journaux capturés sans secret ni fragment."
+ },
+ "R-18-48": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/adapters/simulator.adapter.ts",
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T41 — unité associée sans donnée pendant 25 h : alerte « source GPS muette », saisie manuelle possible, fraîcheur sur la dernière observation, résolution au premier échantillon frais",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T42 — base 80 000, intervalle 10 000 : synchro CAN 89 500 puis 90 000 → A_PREVOIR puis A_FAIRE sans saisie manuelle, alerte moins d’une minute après l’ingestion (délai mesuré)",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T44 — secrets : jamais restitués par l’API, uniquement chiffrés en base, absents des journaux (création, test de connexion en échec d’authentification)"
+  ],
+  "note": "Revue des tests : T35 à T44 utilisent un fournisseur SIMULATEUR (T44 ajoute un serveur Traccar local refusant l’authentification) ; tous verts."
+ },
+ "R-19.1-06": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-alerts.service.ts",
+   "docs/connecteur-telematique.md"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T40 — valeur CAN inférieure à la précédente : EN_ATTENTE motivé (un seul par motif), compteur courant inchangé, remise non bloquée",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T41 — unité associée sans donnée pendant 25 h : alerte « source GPS muette », saisie manuelle possible, fraîcheur sur la dernière observation, résolution au premier échantillon frais",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T42 — base 80 000, intervalle 10 000 : synchro CAN 89 500 puis 90 000 → A_PREVOIR puis A_FAIRE sans saisie manuelle, alerte moins d’une minute après l’ingestion (délai mesuré)",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T44 — secrets : jamais restitués par l’API, uniquement chiffrés en base, absents des journaux (création, test de connexion en échec d’authentification)"
+  ],
+  "note": "Livré et testé : connecteur (Traccar, Wialon, RAPPORT, simulateur), mapping, ingestion du kilométrage, carburant, alertes F11, T31 et T35 à T44 verts. Manquent : qualification du fournisseur (annexe A, hors périmètre D-292), donc aucun « canal retenu » ; consommation télématique en parallèle (R-8.5-10) et envoi push d’un fournisseur réel (R-14.4-02 : réception générique signée livrée et testée, aucun format propriétaire accepté)."
+ },
+ "R-19.1-07": {
+  "status": "non testé",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts"
+  ],
+  "tests": [],
+  "note": "Contrainte de planification non vérifiable automatiquement (historique git réduit au commit du lot A) ; le code du lot F s’appuie sur l’ingestion unique et les contrôles des relevés manuels du lot B (OdometerIngestionService), conformément au prérequis."
+ },
+ "R-19.2-08": {
+  "status": "partiel",
+  "files": [
+   "docs/connecteur-telematique.md"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-304 — rotation : l’ancienne clé reste déchiffrable, le script rechiffre sous la nouvelle (simulation par défaut)",
+   "apps/api/test/integration/telemetry-adapters.int.spec.ts › getOdometers : dernier état en km, instant fixTime, référence = identifiant de position Traccar"
+  ],
+  "note": "docs/connecteur-telematique.md décrit tous les canaux candidats, le mapping (procédure du chef), la rotation des secrets et de la clé, et la conduite à tenir sur incident (« Que faire ») ; le « canal retenu » ne peut être décrit tant que l’annexe A n’est pas conduite (D-292). Aucune vérification automatisée de la documentation."
+ },
+ "R-21-01": {
+  "status": "hors périmètre",
+  "files": [
+   "docs/connecteur-telematique.md",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [],
+  "note": "Qualification préalable au lot F : annexe A non conduite (D-292 : « le rapport final classe le branchement au fournisseur réel en dépendance externe à configurer ») ; liste de contrôle prête dans docs/connecteur-telematique.md (« Qualification du fournisseur (annexe A) », toutes les cases ☐)."
+ },
+ "R-21-02": {
+  "status": "hors périmètre",
+  "files": [
+   "docs/connecteur-telematique.md",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [],
+  "note": "Nom et version de la plateforme : annexe A non conduite (D-292 : « le rapport final classe le branchement au fournisseur réel en dépendance externe à configurer ») ; liste de contrôle prête dans docs/connecteur-telematique.md (« Qualification du fournisseur (annexe A) », toutes les cases ☐)."
+ },
+ "R-21-03": {
+  "status": "hors périmètre",
+  "files": [
+   "docs/connecteur-telematique.md",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [],
+  "note": "Ouverture de l’API (documentation, authentification, quotas, coût) : annexe A non conduite (D-292 : « le rapport final classe le branchement au fournisseur réel en dépendance externe à configurer ») ; liste de contrôle prête dans docs/connecteur-telematique.md (« Qualification du fournisseur (annexe A) », toutes les cases ☐)."
+ },
+ "R-21-04": {
+  "status": "hors périmètre",
+  "files": [
+   "docs/connecteur-telematique.md",
+   "apps/api/src/modules/telemetry/telemetry-settings.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › Configuration fournisseur : validation, verrou optimiste, transitions, RPA refusé, suppression d’un brouillon"
+  ],
+  "note": "Compte ou jeton dédié en lecture seule : réponse du fournisseur attendue (annexe A non conduite (D-292 : « le rapport final classe le branchement au fournisseur réel en dépendance externe à configurer ») ; liste de contrôle prête dans docs/connecteur-telematique.md (« Qualification du fournisseur (annexe A) », toutes les cases ☐)) ; l’activation exige le secret du type (« Jeton API non déposé. » testé), le caractère lecture seule reste à garantir chez le fournisseur."
+ },
+ "R-21-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts",
+   "apps/api/src/modules/telemetry/dto/telemetry.dto.ts",
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T36 et T37 — CAN 50 000 puis 50 120, manuel 50 130 une heure après : acceptés, compteur courant 50 130 ; même lot reçu deux fois : aucun doublon de relevé ni d’événement carburant",
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960"
+  ],
+  "note": "Nature du kilométrage choisie à chaque confirmation (odometerKind COMPTEUR_CAN, DISTANCE_GPS ou AUCUN, jamais présélectionnée) et appliquée à l’ingestion (échantillon d’une autre nature conservé sans relevé)."
+ },
+ "R-21-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts",
+   "apps/api/src/modules/telemetry/dto/telemetry.dto.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › T35 — 12 unités, 10 immatriculations reconnues, 2 inconnues : 10 propositions, 2 non associées, aucun relevé avant confirmation",
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-8.5-01 — carburant collecté pour les seules natures déclarées par l’association : nature exposée mais non retenue ignorée ; association sans carburant : aucune donnée carburant",
+   "apps/api/test/integration/telemetry-fuel-complements.int.spec.ts › R-8.5-05, R-21-06 — consommation théorique du fournisseur jamais importée : aucune nature ni configuration ne l’admet (Traccar, Wialon, rapports, webhook, simulateur, association)"
+  ],
+  "note": "Natures carburant enregistrées par association (fuelKinds, lues par le panneau du véhicule) et seules appliquées à l'ingestion ; estimation théorique non importable (aucune nature ni configuration ne l'admet, voir R-8.5-05)."
+ },
+ "R-21-07": {
+  "status": "hors périmètre",
+  "files": [
+   "docs/connecteur-telematique.md",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [],
+  "note": "Fréquence et profondeur d’historique (paramètres syncIntervalMinutes ≥ 5 et backfillDays 0 à 90 prêts) : annexe A non conduite (D-292 : « le rapport final classe le branchement au fournisseur réel en dépendance externe à configurer ») ; liste de contrôle prête dans docs/connecteur-telematique.md (« Qualification du fournisseur (annexe A) », toutes les cases ☐)."
+ },
+ "R-21-08": {
+  "status": "hors périmètre",
+  "files": [
+   "docs/connecteur-telematique.md",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [],
+  "note": "Qualification du webhook : annexe A non conduite (D-292 : « le rapport final classe le branchement au fournisseur réel en dépendance externe à configurer ») ; liste de contrôle prête dans docs/connecteur-telematique.md (question 7 mise à jour). Si le fournisseur propose un envoi push au format documenté, il est désormais utilisable : réception WEBHOOK_GENERIQUE livrée et testée (R-14.4-02, R-14.4-X01) ; seule la qualification reste une dépendance externe."
+ },
+ "R-21-09": {
+  "status": "hors périmètre",
+  "files": [
+   "docs/connecteur-telematique.md",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [],
+  "note": "Rapports planifiés CSV/XLSX (canal RAPPORT générique prêt) : annexe A non conduite (D-292 : « le rapport final classe le branchement au fournisseur réel en dépendance externe à configurer ») ; liste de contrôle prête dans docs/connecteur-telematique.md (« Qualification du fournisseur (annexe A) », toutes les cases ☐)."
+ },
+ "R-21-10": {
+  "status": "hors périmètre",
+  "files": [
+   "docs/connecteur-telematique.md",
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.ts"
+  ],
+  "tests": [
+   "apps/api/src/modules/telemetry/telemetry-adapter.registry.spec.ts › RPA refusé en V1 avec le motif documenté (D-292)"
+  ],
+  "note": "Accord écrit du fournisseur : annexe A non conduite (D-292 : « le rapport final classe le branchement au fournisseur réel en dépendance externe à configurer ») ; liste de contrôle prête dans docs/connecteur-telematique.md (« Qualification du fournisseur (annexe A) », toutes les cases ☐) ; D-292 et D-000 : canal RPA livré comme interface documentée non activable (docs/connecteur-telematique.md « RPA … non activable en V1 ») ; vérifié : type RPA refusé par le registre (422 CANAL_RPA_INDISPONIBLE), aucun secret RPA admis (CREDENTIAL_KINDS_BY_PROVIDER.RPA = []), provider-kinds le déclare indisponible, pas d’apps/telemetry-rpa."
+ },
+ "R-21-11": {
+  "status": "hors périmètre",
+  "files": [
+   "docs/connecteur-telematique.md",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [],
+  "note": "Identifiant stable d’unité (paramètres registrationSource, columns.unit/registration prêts ; rapprochement testé par T35) : annexe A non conduite (D-292 : « le rapport final classe le branchement au fournisseur réel en dépendance externe à configurer ») ; liste de contrôle prête dans docs/connecteur-telematique.md (« Qualification du fournisseur (annexe A) », toutes les cases ☐)."
+ },
+ "R-21-12": {
+  "status": "hors périmètre",
+  "files": [
+   "docs/connecteur-telematique.md",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [],
+  "note": "Arbre de décision du canal (documenté dans docs/connecteur-telematique.md) : annexe A non conduite (D-292 : « le rapport final classe le branchement au fournisseur réel en dépendance externe à configurer ») ; liste de contrôle prête dans docs/connecteur-telematique.md (« Qualification du fournisseur (annexe A) », toutes les cases ☐)."
+ },
+ "R-21-13": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T31 — F11 désactivé : aucun appel, parcours manuels complets ; fournisseur injoignable : reprises 1-4-16 s, délai exponentiel, coupe-circuit, alertes distinctes, parcours manuels intacts, reprise au premier succès",
+   "apps/worker/src/jobs/queue-telemetry-retention.spec.ts › F11 désactivé : la synchronisation planifiée ne fait aucun appel et ne crée aucun run"
+  ],
+  "note": "F11 inactif par défaut : toute la suite d’intégration (parcours manuels des lots A à E) s’exécute sans F11, T31 phase 1 le vérifie explicitement ; vérification e2e demandée : les specs releves, utilisations et carburant existent mais ne sont pas réexécutées sur le code final."
+ },
+ "R-5.6-X01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-calibration.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-odometer-sync.service.ts",
+   "apps/api/src/domain/telemetry/gps-calibration.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T38 et T39 — référence 80 000 à distanceGps 12 000, puis 12 450 → 80 450 « estimé GPS » ; estimation 81 000, restitution 80 960 → écart 4,2 %, alerte dérive, nouvelle référence 80 960",
+   "apps/api/src/domain/telemetry/gps-calibration.spec.ts › sans référence, ou si la distance GPS recule (changement de boîtier), aucune estimation n’est fabriquée",
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-5.6-X01 — changement de boîtier DISTANCE_GPS : aucune conversion avec l’ancienne référence (valeur brute dans l’état de l’unité, aucun relevé, compteur et entretien inchangés, absence signalée, aucune aide de saisie) ; estimation dès la première référence manuelle"
+  ],
+  "note": "Après changement de boîtier DISTANCE_GPS : 25 050 km du nouveau boîtier jamais convertis avec l'ancienne référence (qui donnerait 93 050 km) ; valeur brute dans TelemetryUnitState, aucun relevé ni calibrage, compteur courant et plan d'entretien inchangés, absence signalée dans le run (« distance GPS non calibrée ») ; première restitution manuelle = référence du nouveau boîtier, estimation 80 800 ensuite. Revue adversariale (lot F-compléments) : aucune aide de saisie n'est proposée tant que le nouveau boîtier n'a pas de référence (auparavant la distance brute 25 050 km était proposée comme aide), puis l'estimation 80 800 après la première référence."
+ },
+ "R-8.5-X01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/telemetry/sync/telemetry-fuel.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.controller.ts",
+   "apps/web/components/telemetry/fuel-events-link.tsx",
+   "apps/web/app/(app)/carburant/fuel-list.tsx",
+   "apps/web/app/(app)/carburant/[id]/fuel-detail.tsx",
+   "apps/web/app/(app)/telematique/fuel-events-tab.tsx",
+   "apps/web/app/(app)/telematique/telemetry-workspace.tsx",
+   "apps/web/app/(app)/vehicules/[id]/telemetry-panel.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-sync.int.spec.ts › T43 — sonde : baisse de 25 L moteur coupé en 20 min et remplissage de 40 L sans ticket → deux anomalies à qualifier, aucune dépense ; qualification par le chef ; ticket saisi ensuite → rapprochement",
+   "apps/api/test/integration/telemetry-vehicle.int.spec.ts › alerte carburant → écran : lien d’action servi par /telematique/carburant, événement lu par son identifiant dans le périmètre, dernier niveau affiché par le panneau (8.5, T43)",
+   "apps/web/components/telemetry/complements-render.spec.ts › lien vers l’onglet carburant de /telematique filtré sur le véhicule, avec le nombre à qualifier",
+   "apps/web/components/telemetry/complements-render.spec.ts › aucun événement (module désactivé ou rien détecté) : rien n’est affiché, la page carburant reste complète",
+   "tests/e2e/specs/telematique-complements.spec.ts › aide télématique à la remise et à la restitution pendant une panne ; /carburant → événements du véhicule qualifiés par le chef ; seuils propres au véhicule"
+  ],
+  "note": "Pages /carburant (liste filtrée par véhicule ou périmètre, détail d'un plein) : lien vers /telematique?onglet=carburant&vehicule=… avec le nombre d'événements et ceux à qualifier (rien sans événement) ; onglet Événements carburant filtré par véhicule ; lien aussi depuis le panneau télématique du véhicule. E2E : /carburant → événements du véhicule → qualification « Anomalie confirmée » avec note par le chef, aucune dépense créée. Périmètre, audit et résolution d'alerte vérifiés par T43. Revue adversariale (lot F-compléments) : le parcours e2e échouait par intermittence (remise saisie dans la même minute que le relevé télématique → conflit « même instant », D-149) ; il attend désormais la minute suivante et passe."
+ },
+ "R-14.3-X01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-providers.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/telemetry/telemetry.controller.ts",
+   "apps/api/src/modules/telemetry/telematics-hint.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-101 / D-295 — désactivation par société : alertes F11 résolues, associations et données conservées ; réactivation",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-112 — droits : seul l’administrateur configure ; le chef B ne voit rien de A (404) ; lecture sans configuration",
+   "apps/api/test/integration/telemetry-complements.int.spec.ts › R-14.3-X01, R-8.5-12 — désactivation par société : relevés TELEMATICS et événements carburant conservés (non qualifiés toujours à qualifier), régime manuel sans aide télématique ; purge : seuls les échantillons sont supprimés"
+  ],
+  "note": "Activation/désactivation réservée à l'administrateur, motif et audit ; à la désactivation plus aucun run pour la société, alertes F11 résolues (tests existants), relevés TELEMATICS et compteur courant conservés, événement carburant non qualifié toujours listé à qualifier puis qualifiable, relevé manuel accepté (régime manuel). Revue adversariale (lot F-compléments) : l'aide télématique de remise/restitution n'est plus proposée une fois le module désactivé pour la société (vérifié : association toujours CONFIRME, aide nulle)."
+ },
+ "R-14.4-X01": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924214500_lot_f_webhook_telematique/migration.sql",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook.controller.ts",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook.service.ts",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook-signature.ts",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook-format.ts",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook-inbox.ts",
+   "apps/api/src/modules/telemetry/webhook/webhook-raw-body.middleware.ts",
+   "apps/api/src/modules/telemetry/adapters/webhook.adapter.ts",
+   "apps/api/src/modules/telemetry/sync/telemetry-sync.service.ts",
+   "apps/api/src/modules/telemetry/telemetry-credentials.service.ts",
+   "apps/worker/src/jobs/telemetry-webhook.job.ts",
+   "apps/api/src/modules/auth/auth.decorators.ts",
+   "apps/api/src/modules/auth/auth.guard.ts",
+   "apps/api/src/modules/auth/csrf.guard.ts",
+   "apps/api/src/bootstrap.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "docs/connecteur-telematique.md",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-webhook.int.spec.ts › signature absente, invalide, expirée, corps altéré, fournisseur inconnu ou d’un autre canal → 401 sans rien déposer ; session et CSRF ignorés sur cette route seulement",
+   "apps/api/test/integration/telemetry-webhook.int.spec.ts › corps trop volumineux → 413 (annoncé ou transmis par morceaux), débit par fournisseur ou file pleine → 429 avec Retry-After, type ou contenu non conformes → 415, 400 ou 422",
+   "apps/api/test/integration/telemetry-webhook.int.spec.ts › secret de signature chiffré au repos, jamais restitué par l’API ni journalisé ; rotation avec recouvrement puis expiration ; URL de réception pour l’administrateur seulement",
+   "apps/api/test/integration/telemetry-webhook.int.spec.ts › la limite IP de la route suit le plafond du débit par fournisseur : un débit autorisé n’est pas coupé à 300/min, et les requêtes non authentifiées restent bornées (429 + Retry-After)",
+   "apps/api/test/integration/telemetry-webhook.int.spec.ts › signature valide → 202, lot déposé sans ingestion synchrone, puis ingéré par le worker ; même lot rejoué (nouvelle signature) sans doublon ; rejeu exact refusé (409) ; reprise bornée d’un lot interrompu",
+   "apps/api/test/integration/telemetry-webhook.int.spec.ts › fournisseur non actif ou module non activé : lot refusé (422) à la réception, ou ignoré par le worker s’il l’est devenu entre-temps ; aucune ingestion",
+   "apps/worker/src/jobs/telemetry-webhook.job.spec.ts › la tâche planifiée ingère les lots déposés par l’API (run WEBHOOK, ingestion unique), un lot renvoyé sans doublon, un lot d’un fournisseur suspendu jamais ingéré ; sans fournisseur : aucune écriture télématique",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook-signature.spec.ts › en-têtes absents, horodatage illisible ou hors de la fenêtre de tolérance (passé ou futur)",
+   "apps/api/src/modules/telemetry/webhook/telemetry-webhook-signature.spec.ts › refuse un corps modifié, un horodatage modifié et une signature mal formée",
+   "apps/web/lib/webhook-secret.spec.ts › 32 octets aléatoires en base64url préfixé : 49 caractères imprimables sans espace, conformes au contrôle de l’API",
+   "apps/api/test/integration/odometer-dependents.int.spec.ts › R-15.3-05 / R-5.1-05 — aucune route publique n’accepte la source TELEMATICS : auteur, source et société déterminés par le serveur"
+  ],
+  "note": "Point de réception distinct des routes utilisateur (@SignedWebhook : sans session ni cookie, garde CSRF non applicable à cette seule route ; origine étrangère et absence de jeton toujours refusées ailleurs, testé). Émetteur authentifié par HMAC-SHA256 de « horodatage.corps brut » avec le secret propre au fournisseur (SIGNATURE_WEBHOOK, chiffré AES-256-GCM au repos par le mécanisme des secrets fournisseur, jamais renvoyé ni journalisé, rotation avec recouvrement puis expiration, révocation), comparaison en temps constant (timingSafeEqual), horodatage signé ± 300 s, rejeu exact refusé (index unique) ; 401 motivé sans journaliser le secret. Bornes : 1 Mio (413, annoncé ou par morceaux), débit par fournisseur compté en base sous verrou (429 + Retry-After), 500 lots en attente au plus (429 FILE_WEBHOOK_PLEINE, testé), limite par adresse IP de la route alignée sur le plafond de 600/min (requêtes non authentifiées bornées, débit autorisé non coupé à 300/min, testé avec la limitation active). File persistante TelemetryWebhookDelivery (contraintes CHECK : empreinte, compteurs, cohérence état/verrou) ; seul le worker en tire des relevés TELEMATICS via l’ingestion unique, reprise bornée (5 tentatives, y compris après interruption) ; aucune route utilisateur n’accepte la source TELEMATICS (odometer-dependents, relevé forgé refusé 422 dans le test d’authentification). Chiffrement au repos vérifié sur les lignes brutes pendant que les deux secrets existent (clair absent en texte, hexadécimal et base64 ; déchiffrement aller-retour avec la clé hors base), secret absent des réponses, journaux, audit et file (T5). Écart assumé (D-016) : la file conserve le lot normalisé et contrôlé à la réception (422 immédiat au fournisseur), non la charge brute littérale ; les champs non prévus ne sont pas conservés. Revue adversariale : corrigés la reprise non bornée d’un lot interrompu, la limite IP globale (300/min) qui coupait un débit autorisé jusqu’à 600/min, et un contrôle « chiffré au repos » vide (secrets révoqués avant la lecture de la table)."
+ },
+ "R-14.5-X01": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/migrations/20260924231500_lot_f_mapping_overlap_fuel_thresholds/migration.sql",
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/telemetry/telemetry-units.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-mapping-overlap.int.spec.ts › contraintes d’exclusion : une unité ou un véhicule jamais associé deux fois sur une même période, y compris entre deux transactions concurrentes réelles",
+   "apps/api/test/integration/telemetry-mapping-overlap.int.spec.ts › API : date d’effet chevauchant l’association précédente de l’unité ou du véhicule → 409 ; associations concurrentes du même boîtier → une seule réussit"
+  ],
+  "note": "Contraintes d'exclusion btree_gist telemetry_mapping_no_overlap_unit / _vehicle sur tstzrange(validFrom, validTo, '[)') des associations CONFIRME et CLOTURE, CHECK telemetry_mapping_period_valid ; prouvées par deux transactions PostgreSQL réellement concurrentes (la seconde attend la première puis échoue, aucune paire chevauchante en base). API : date d'effet antérieure à la fin de l'association précédente de l'unité ou du véhicule → 409 PERIODE_UNITE_CHEVAUCHEMENT / PERIODE_VEHICULE_CHEVAUCHEMENT (création et confirmation), violation concurrente → 409, associations simultanées du même boîtier ou du même véhicule → une seule. Écart vs première implémentation (422) consigné dans D-016."
+ },
+ "R-14.6-X01": {
+  "status": "partiel",
+  "files": [
+   "apps/web/app/(app)/administration/telematique/telemetry-admin.tsx",
+   "apps/web/app/(app)/administration/telematique/provider-detail.tsx",
+   "apps/web/app/(app)/administration/telematique/provider-dialog.tsx",
+   "apps/web/app/(app)/telematique/page.tsx",
+   "apps/web/app/(app)/telematique/telemetry-workspace.tsx",
+   "apps/web/app/(app)/telematique/associations-tab.tsx",
+   "apps/web/app/(app)/telematique/sync-tab.tsx",
+   "apps/web/app/(app)/telematique/mapping-dialogs.tsx",
+   "apps/web/components/layout/nav.tsx",
+   "apps/api/src/modules/telemetry/telemetry.controller.ts",
+   "apps/api/src/modules/telemetry/telemetry-providers.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/telemetry-screens.int.spec.ts › administration : types, création et modification par type, liste filtrée, secret en écriture seule, suppression d’un brouillon",
+   "apps/api/test/integration/telemetry-screens.int.spec.ts › page Télématique : activation avec motif, catégories d’unités, confirmation datée, sélecteurs, changement de boîtier, exécutions, synchronisation et carburant",
+   "apps/api/test/integration/telemetry-core.int.spec.ts › D-112 — droits : seul l’administrateur configure ; le chef B ne voit rien de A (404) ; lecture sans configuration",
+   "apps/web/components/telemetry/telemetry-render.spec.ts › simulateur actif : mention obligatoire, secret en écriture seule (« Configuré le … »), actions du statut ACTIF uniquement",
+   "apps/web/components/telemetry/telemetry-render.spec.ts › brouillon : activation et suppression proposées, ni synchronisation ni suspension",
+   "apps/web/components/telemetry/telemetry-render.spec.ts › affiche les échecs, la suspension des appels jusqu’à l’échéance fournie par l’API et l’erreur expurgée",
+   "apps/web/components/telemetry/telemetry-render.spec.ts › chef de la société activée : synchronisation manuelle et découverte ; aucune configuration affichée",
+   "apps/web/components/telemetry/telemetry-render.spec.ts › opérateur : consultation seule ; chef d’une société non activée : aucune action",
+   "apps/web/components/telemetry/telemetry-render.spec.ts › chef de parc d’une société couverte : « Ignorer cette unité » sur une unité non associée, « Ne plus ignorer » avec date et motif",
+   "tests/e2e/specs/telematique-webhook.spec.ts › l’administrateur communique l’URL, génère puis fait tourner le secret de signature ; les lots signés sont acceptés et mis en file, les autres refusés"
+  ],
+  "note": "Écrans livrés (/administration/telematique, /telematique) ; requêtes des écrans et droits vérifiés par l’API (intégration) et rendu serveur (secret « Configuré le … », actions selon le rôle) ; seule la section « Réception webhook » de la fiche fournisseur (/administration/telematique) est couverte par un parcours e2e Playwright (telematique-webhook.spec.ts : URL, génération et rotation du secret, lots reçus) ; /telematique et le reste de l’administration n’en ont pas et la documentation reconnaît que l’interface n’a pas été ouverte dans un navigateur réel."
  }
 }

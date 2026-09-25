@@ -1,15 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DAY_MS, ImportRetentionService, describeErrorSafely, scheduledRunKey, slotStart } from '@parc-auto/api';
+import { DAY_MS, ImportRetentionService, PrismaService, TelemetryPurgeService, describeErrorSafely, scheduledRunKey, slotStart } from '@parc-auto/api';
 import { JobLeaseService } from '../scheduler/job-lease.service.js';
 import { ScheduledRunsService } from '../scheduler/scheduled-runs.service.js';
 import type { ScheduledTask, TaskSummary } from './scheduled-task.js';
 
 export const DAILY_RETENTION_TASK = 'retention-quotidienne';
 export const DAILY_RETENTION_JOB_TYPE = 'planifie.retention-quotidienne';
+/** Partitions mensuelles préparées à l'avance, à partir du mois suivant (17.2). */
+export const PARTITION_MONTHS_AHEAD = 3;
+const PARTITIONED_TABLES = ['TelemetryOdometerSample', 'FuelLevelSample'] as const;
 
 /**
  * Rétention quotidienne (CDC 8.5, 12.1, 17.2 ; D-174, D-279, D-319) — une fois par jour UTC (créneau
- * dédupliqué) : abandon des lots d'import non confirmés depuis 7 jours et purge des données brutes des lots
+ * dédupliqué) : création des partitions mensuelles des trois mois suivants (le mois courant reste dans la
+ * partition par défaut s'il y a déjà des lignes), purge des échantillons télématiques au-delà de leur
+ * rétention, abandon des lots d'import non confirmés depuis 7 jours et purge des données brutes des lots
  * terminés depuis 90 jours. Chaque étape est isolée ; une étape en échec fait échouer le créneau, repris
  * au créneau suivant, sans empêcher les autres étapes.
  */
@@ -21,8 +26,10 @@ export class DailyRetentionJob implements ScheduledTask {
   private readonly logger = new Logger(DailyRetentionJob.name);
 
   constructor(
+    private readonly prisma: PrismaService,
     private readonly runs: ScheduledRunsService,
     private readonly leases: JobLeaseService,
+    private readonly telemetryPurge: TelemetryPurgeService,
     private readonly imports: ImportRetentionService,
   ) {}
 
@@ -44,11 +51,27 @@ export class DailyRetentionJob implements ScheduledTask {
         errors.push(`${label} : ${message}`);
       }
     };
+    await step('partitions', async () => ({ partitionsCreees: await this.ensurePartitions(now) }));
+    await step('echantillons', async () => {
+      const r = await this.telemetryPurge.purgeSamples(now);
+      return { echantillonsCarburant: r.fuelSamples, echantillonsOdometre: r.odometerSamples, partitionsSupprimees: r.droppedPartitions };
+    });
     await step('imports', async () => {
       const r = await this.imports.run(now);
       return { ...r };
     });
     if (errors.length > 0) throw new Error(`Étapes en échec : ${errors.join(' ; ')}`);
     return summary;
+  }
+
+  /** Partitions des mois suivants (fonction SQL ensure_month_partitions, idempotente). */
+  private async ensurePartitions(now: Date): Promise<number> {
+    const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
+    let created = 0;
+    for (const table of PARTITIONED_TABLES) {
+      const rows = await this.prisma.client.$queryRaw<Array<{ created: number }>>`SELECT ensure_month_partitions(${table}, ${nextMonth}::date, ${PARTITION_MONTHS_AHEAD}::integer) AS created`;
+      created += Number(rows[0]?.created ?? 0);
+    }
+    return created;
   }
 }

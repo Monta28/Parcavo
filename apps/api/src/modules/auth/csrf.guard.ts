@@ -5,7 +5,7 @@ import { ForbiddenActionError } from '../../common/errors.js';
 import type { RequestWithContext } from '../../common/request-context.js';
 import { APP_ENV, type AppEnv } from '../../infra/env.js';
 import { PrismaService } from '../../infra/prisma.service.js';
-import { SKIP_CSRF_KEY } from './auth.decorators.js';
+import { SIGNED_WEBHOOK_KEY, SKIP_CSRF_KEY } from './auth.decorators.js';
 import { CSRF_COOKIE, CSRF_HEADER, hashToken } from './session.service.js';
 
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -25,6 +25,9 @@ export class CsrfGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<RequestWithContext>();
     if (!MUTATING.has(req.method)) return true;
+    // Webhook fournisseur signé (HMAC du corps) : aucune authentification par cookie, donc aucune requête
+    // intersite à contrer ; exemption limitée aux routes portant @SignedWebhook().
+    if (this.reflector.getAllAndOverride<boolean>(SIGNED_WEBHOOK_KEY, [context.getHandler(), context.getClass()])) return true;
 
     this.assertOrigin(req);
 

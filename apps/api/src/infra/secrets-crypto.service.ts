@@ -11,8 +11,10 @@ export interface EncryptedSecret {
 }
 
 /**
- * Chiffrement au repos des secrets fournisseur (CDC 14.6) : AES-256-GCM, clé hors base
- * (SECRETS_ENCRYPTION_KEY), identifiant de clé stocké pour la rotation.
+ * Chiffrement au repos des secrets fournisseur (CDC 14.6, D-304) : AES-256-GCM, clé hors base
+ * (SECRETS_ENCRYPTION_KEY), identifiant de clé stocké pour la rotation. Trousseau : la clé active
+ * (SECRETS_ENCRYPTION_KEY_ID) chiffre ; les anciennes clés (SECRETS_ENCRYPTION_PREVIOUS_KEYS) ne servent
+ * qu'au déchiffrement, le temps que le script de rotation rechiffre les secrets sous la clé active.
  */
 @Injectable()
 export class SecretsCryptoService {
@@ -20,6 +22,16 @@ export class SecretsCryptoService {
 
   isConfigured(): boolean {
     return this.env.secretsEncryptionKey !== null;
+  }
+
+  /** Identifiant de la clé active (celle qui chiffre). */
+  activeKeyId(): string {
+    return this.env.secretsEncryptionKeyId;
+  }
+
+  /** Vrai si un secret chiffré sous cet identifiant de clé peut être déchiffré (clé active ou ancienne). */
+  canDecrypt(keyId: string): boolean {
+    return this.keyFor(keyId) !== null;
   }
 
   encrypt(plain: string): EncryptedSecret {
@@ -31,16 +43,27 @@ export class SecretsCryptoService {
   }
 
   decrypt(secret: EncryptedSecret): string {
-    const key = this.requireKey();
-    if (secret.keyId !== this.env.secretsEncryptionKeyId) {
+    this.requireKey();
+    const key = this.keyFor(secret.keyId);
+    if (!key) {
       throw new BusinessRuleError(
         'CLE_SECRET_INCONNUE',
-        'Ce secret a été chiffré avec une autre clé ; suivez la procédure de rotation documentée.',
+        'Ce secret a été chiffré avec une clé absente du trousseau ; suivez la procédure de rotation documentée.',
       );
     }
     const decipher = createDecipheriv('aes-256-gcm', key, secret.iv);
     decipher.setAuthTag(secret.authTag);
     return Buffer.concat([decipher.update(secret.ciphertext), decipher.final()]).toString('utf8');
+  }
+
+  /** Rechiffre un secret sous la clé active (rotation) ; le clair ne quitte pas cette méthode. */
+  reencrypt(secret: EncryptedSecret): EncryptedSecret {
+    return this.encrypt(this.decrypt(secret));
+  }
+
+  private keyFor(keyId: string): Buffer | null {
+    if (keyId === this.env.secretsEncryptionKeyId) return this.env.secretsEncryptionKey;
+    return this.env.secretsPreviousKeys?.find((k) => k.keyId === keyId)?.key ?? null;
   }
 
   private requireKey(): Buffer {

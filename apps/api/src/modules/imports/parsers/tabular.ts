@@ -99,16 +99,24 @@ async function readXlsx(buffer: Buffer): Promise<Table> {
   sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
     const values: Cell[] = [];
     const count = Math.max(row.cellCount, headers.length);
-    for (let c = 1; c <= count; c += 1) values.push(toCell(row.getCell(c).value, rowNumber, c));
+    for (let c = 1; c <= count; c += 1) {
+      const cell = row.getCell(c);
+      values.push(toCell(cell.value, rowNumber, c, cell.numFmt));
+    }
     if (headers.length === 0) headers.push(...values.map((v) => (typeof v === 'string' ? v.trim() : v && typeof v === 'object' ? v.date : '')));
     else rows.push({ line: rowNumber, cells: values });
   });
   return { headers, rows };
 }
 
-function toCell(value: ExcelJS.CellValue, row: number, col: number): Cell {
+function toCell(value: ExcelJS.CellValue, row: number, col: number, numFmt?: string): Cell {
   if (value === null || value === undefined) return null;
-  if (value instanceof Date) return { date: value.toISOString().slice(0, 10) };
+  if (value instanceof Date) {
+    // ExcelJS restitue l'heure murale du classeur en UTC ; minuit n'est une heure que si le format en affiche une.
+    const iso = value.toISOString();
+    const time = iso.slice(11, 23);
+    return time !== '00:00:00.000' || /h/i.test(numFmt ?? '') ? { date: iso.slice(0, 10), time } : { date: iso.slice(0, 10) };
+  }
   if (typeof value === 'number') return String(value);
   if (typeof value === 'boolean') return value ? 'oui' : 'non';
   if (typeof value === 'string') return value;
@@ -116,7 +124,7 @@ function toCell(value: ExcelJS.CellValue, row: number, col: number): Cell {
     if ('formula' in value || 'sharedFormula' in value) {
       const result = (value as { result?: ExcelJS.CellValue }).result;
       if (result === undefined || result === null || typeof result === 'object') throw new BusinessRuleError('FORMULE_SANS_VALEUR', `Formule sans valeur calculée (ligne ${row}, colonne ${col}) : enregistrez les valeurs.`);
-      return toCell(result, row, col);
+      return toCell(result, row, col, numFmt);
     }
     if ('richText' in value) return value.richText.map((t) => t.text).join('');
     if ('text' in value) return String((value as { text: string }).text);

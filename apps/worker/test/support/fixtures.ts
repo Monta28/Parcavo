@@ -41,7 +41,7 @@ export interface TestWorker {
  * Démarre une instance du module worker (nouveau processus logique : identifiant de bail propre) sur la
  * base de test réelle, sans minuteurs (les tâches sont déclenchées par le test), avec l'horloge fournie.
  */
-export async function startWorker(clock: FixedClock, options: { smtp?: SmtpTestConfig | null; storageDir?: string } = {}): Promise<TestWorker> {
+export async function startWorker(clock: FixedClock, options: { smtp?: SmtpTestConfig | null; storageDir?: string; envOverrides?: Record<string, string> } = {}): Promise<TestWorker> {
   const storageDir = options.storageDir ?? (await mkdtemp(join(tmpdir(), 'parc-auto-worker-')));
   const smtp = options.smtp ?? null;
   const env = loadEnv({
@@ -52,6 +52,7 @@ export async function startWorker(clock: FixedClock, options: { smtp?: SmtpTestC
     APP_VERSION: 'test-worker',
     LOG_LEVEL: 'error',
     ...(smtp ? { SMTP_HOST: smtp.host, SMTP_PORT: String(smtp.port), SMTP_FROM: 'parc-auto@test.local', ...(smtp.user ? { SMTP_USER: smtp.user } : {}), ...(smtp.password ? { SMTP_PASSWORD: smtp.password } : {}) } : {}),
+    ...options.envOverrides,
   });
   const moduleRef = await Test.createTestingModule({ imports: [WorkerModule.register({ env, clock, schedule: false })] }).compile();
   moduleRef.useLogger(['error']);

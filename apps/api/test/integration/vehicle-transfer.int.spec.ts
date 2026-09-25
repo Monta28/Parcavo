@@ -279,6 +279,24 @@ describe('Transfert de véhicule entre sociétés (CDC 2.4, 11.3 — T26 ; D-119
     expect((await chefB.get(`/vehicles/${vehicleId}/synthesis`)).body.responsible).toMatchObject({ driverId: f.drivers.b1 });
   });
 
+  it('mapping télématique : clôturé à la date du transfert, proposé à la société cible couverte et activée (D-124)', async () => {
+    await t.prisma.client.company.update({ where: { id: f.companies.B }, data: { telemetryEnabled: true } });
+    const provider = await t.prisma.client.telemetryProvider.create({ data: { organizationId: f.organizationId, name: 'Fournisseur GPS', kind: 'TRACCAR', channel: 'API', status: 'ACTIF' } });
+    await t.prisma.client.telemetryProviderCompany.createMany({ data: [f.companies.A, f.companies.B].map((companyId) => ({ providerId: provider.id, companyId, organizationId: f.organizationId })) });
+    const unit = await t.prisma.client.telemetryUnit.create({ data: { organizationId: f.organizationId, providerId: provider.id, externalId: 'U-1', label: 'Boîtier 1', firstSeenAt: new Date('2026-09-01T00:00:00Z'), lastSeenAt: new Date(NOW) } });
+    const mapping = await t.prisma.client.telemetryVehicleMapping.create({ data: { organizationId: f.organizationId, companyId: f.companies.A, providerId: provider.id, unitId: unit.id, vehicleId, status: 'CONFIRME', odometerKind: 'COMPTEUR_CAN', validFrom: new Date('2026-09-01T00:00:00Z'), proposedAt: new Date('2026-09-01T00:00:00Z') } });
+    const preview = (await admin.get(`/vehicles/${vehicleId}/transfer-preview`)).body;
+    expect(preview.telemetryMappings).toEqual([expect.objectContaining({ id: mapping.id, status: 'CONFIRME', providerName: 'Fournisseur GPS', unitLabel: 'Boîtier 1' })]);
+    const done = await admin.post(`/vehicles/${vehicleId}/transfer`, await minimalBody()).set('Idempotency-Key', randomUUID());
+    expect(done.status, JSON.stringify(done.body)).toBe(200);
+    expect(done.body.closedTelemetryMappingIds).toEqual([mapping.id]);
+    const closed = await t.prisma.client.telemetryVehicleMapping.findUniqueOrThrow({ where: { id: mapping.id } });
+    expect(closed).toMatchObject({ status: 'CLOTURE', companyId: f.companies.A });
+    expect(closed.validTo?.toISOString()).toBe(NOW);
+    const proposed = await t.prisma.client.telemetryVehicleMapping.findUniqueOrThrow({ where: { id: done.body.proposedTelemetryMappingIds[0] } });
+    expect(proposed).toMatchObject({ status: 'PROPOSE', companyId: f.companies.B, unitId: unit.id, vehicleId, odometerKind: 'COMPTEUR_CAN', validTo: null });
+  });
+
   it('refuse un relevé de transfert incohérent (contrôle du service unique) sans rien écrire', async () => {
     const res = await admin.post(`/vehicles/${vehicleId}/transfer`, await minimalBody({ transferReading: { physicalKm: '84000' }, noReadingReason: undefined })).set('Idempotency-Key', randomUUID());
     // Diminution du compteur refusée par le service unique d'ingestion, erreur rapportée sur le champ du relevé de transfert.

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { FieldError } from '@/components/forms/field-error';
@@ -8,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import type { CompanyView } from '@/lib/admin-types';
 import { api } from '@/lib/api-client';
@@ -21,7 +21,6 @@ interface FormState {
   phone: string;
   email: string;
   taxIdentifier: string;
-  telemetryEnabled: boolean;
 }
 
 function initial(company: CompanyView | undefined): FormState {
@@ -32,7 +31,6 @@ function initial(company: CompanyView | undefined): FormState {
     phone: company?.phone ?? '',
     email: company?.email ?? '',
     taxIdentifier: company?.taxIdentifier ?? '',
-    telemetryEnabled: company?.telemetryEnabled ?? false,
   };
 }
 
@@ -54,7 +52,6 @@ export function CompanyDialog({ company, onOpenChange, onSaved }: { company?: Co
               phone: form.phone.trim() || null,
               email: form.email.trim() || null,
               taxIdentifier: form.taxIdentifier.trim() || null,
-              telemetryEnabled: form.telemetryEnabled,
               expectedVersion: company.version,
             },
           })
@@ -167,17 +164,15 @@ export function CompanyDialog({ company, onOpenChange, onSaved }: { company?: Co
             <FieldError errors={fieldErrors} name="taxIdentifier" />
           </div>
           {company ? (
-            <div className="space-y-2 sm:col-span-2">
-              <div className="flex items-start gap-3 rounded-md border p-3">
-                <Switch id="company-telemetry" checked={form.telemetryEnabled} onCheckedChange={(checked) => update({ telemetryEnabled: checked })} aria-describedby="telemetry-hint" />
-                <div className="space-y-1">
-                  <Label htmlFor="company-telemetry">Télématique activée</Label>
-                  <p id="telemetry-hint" className="text-xs text-muted-foreground">
-                    Active le module de télématique (F11) pour cette société.
-                  </p>
-                </div>
-              </div>
-              <FieldError errors={fieldErrors} name="telemetryEnabled" />
+            <div className="space-y-1 rounded-md border p-3 sm:col-span-2">
+              <p className="text-sm font-medium">Télématique (F11) : {company.telemetryEnabled ? 'activée' : 'désactivée'}</p>
+              <p className="text-xs text-muted-foreground">
+                L’activation et la désactivation se font avec un motif audité, depuis{' '}
+                <Link href="/administration/telematique" className="underline underline-offset-4">
+                  Administration › Télématique
+                </Link>
+                .
+              </p>
             </div>
           ) : null}
           <DialogFooter className="sm:col-span-2">

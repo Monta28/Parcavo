@@ -23,6 +23,7 @@ import type { BatchReadingsDto, BatchResultItemDto, CorrectReadingDto, CreateRea
 import { OdometerEventsService } from './odometer-events.service.js';
 import { type IngestResult, OdometerIngestionService, cumulativeFor, dec, isOrdinarySegment, lockVehicle, refreshSegmentLast } from './odometer-ingestion.service.js';
 import { recomputeUsagesForReading } from './usage-distance.js';
+import { currentTelematicsHint } from '../telemetry/telematics-hint.js';
 
 type ReadingRow = OdometerReading & { vehicle: { code: string }; segment: { sequence: number }; replacedBy: { id: string } | null };
 
@@ -203,15 +204,14 @@ export class OdometerService {
   /** Compteur courant (5.3, 5.5) : dernier relevé accepté selon la date d'observation, avec fraîcheur. */
   async current(ctx: RequestContext, vehicleId: string): Promise<CurrentOdometerDto> {
     const v = await this.vehicles.load(ctx, vehicleId);
-    const [last, openSegment, pendingCount, mapping] = await Promise.all([
+    const [last, openSegment, pendingCount, lastTelematicsHint] = await Promise.all([
       this.prisma.client.odometerReading.findFirst({ where: { vehicleId, status: 'ACCEPTE' }, orderBy: [{ observedAt: 'desc' }, { enteredAt: 'desc' }], include: readingInclude }),
       this.prisma.client.odometerSegment.findFirst({ where: { vehicleId, endedAt: null } }),
       this.prisma.client.odometerReading.count({ where: this.readingsWhere(ctx, { vehicleId, status: 'EN_ATTENTE' }) }),
-      this.prisma.client.telemetryVehicleMapping.findFirst({ where: { vehicleId, status: 'CONFIRME', validTo: null }, include: { unit: { include: { state: true } } } }),
+      currentTelematicsHint(this.prisma.client, vehicleId),
     ]);
     const staleAfterDays = await this.settings.get(ctx.organizationId, 'odometer.staleAfterDays', v.companyId);
     const freshness = computeFreshness(last?.observedAt ?? null, this.clock.now(), staleAfterDays);
-    const state = mapping?.unit.state;
     return {
       reading: last ? (await this.views([last]))[0] ?? null : null,
       freshness: freshness.status,
@@ -219,10 +219,7 @@ export class OdometerService {
       cumulativeKnown: openSegment?.cumulativeKnown ?? true,
       openSegmentId: openSegment?.id ?? null,
       pendingCount,
-      lastTelematicsHint:
-        state?.lastOdometerValueKm && state.lastOdometerObservedAt && state.lastOdometerKind
-          ? { valueKm: state.lastOdometerValueKm.toFixed(3), kind: state.lastOdometerKind, observedAt: state.lastOdometerObservedAt.toISOString() }
-          : null,
+      lastTelematicsHint,
     };
   }
 

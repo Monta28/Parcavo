@@ -7,6 +7,7 @@ import { ALL } from '@/components/incidents/ops-helpers';
 import { useAppScope } from '@/components/layout/session-context';
 import { VehicleFilter } from '@/components/odometer/vehicle-filter';
 import { PageHeader } from '@/components/page-header';
+import { TelematicFuelEventsLink } from '@/components/telemetry/fuel-events-link';
 import { PaginationControls } from '@/components/pagination-controls';
 import { EmptyState, ErrorState, LoadingState } from '@/components/states';
 import { Button } from '@/components/ui/button';
@@ -106,6 +107,8 @@ function StaffFuelList() {
           </Button>
         </div>
       ) : null}
+
+      <TelematicFuelEventsLink vehicleId={vehicleId || null} companyId={companyId} className="mb-4" />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {scopeCompanyId === null && session.companies.length > 1 ? (

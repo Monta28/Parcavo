@@ -22,7 +22,7 @@ export interface TestApp {
 export const TEST_ORIGIN = 'http://localhost:3000';
 
 /** Démarre l'API complète contre la base de test, avec une horloge contrôlable. */
-export async function startTestApp(options: { now?: string; smtp?: boolean; rateLimit?: boolean } = {}): Promise<TestApp> {
+export async function startTestApp(options: { now?: string; smtp?: boolean; rateLimit?: boolean; telemetrySimulator?: boolean } = {}): Promise<TestApp> {
   const storageDir = await mkdtemp(join(tmpdir(), 'parc-auto-storage-'));
   const env = loadEnv({
     NODE_ENV: 'test',
@@ -31,7 +31,7 @@ export async function startTestApp(options: { now?: string; smtp?: boolean; rate
     COOKIE_SECURE: 'false',
     STORAGE_DIR: storageDir,
     SECRETS_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
-    TELEMETRY_SIMULATOR_ENABLED: 'true',
+    TELEMETRY_SIMULATOR_ENABLED: options.telemetrySimulator === false ? 'false' : 'true',
     LOG_LEVEL: 'error',
     RATE_LIMIT_ENABLED: options.rateLimit ? 'true' : 'false',
     ...(options.smtp ? { SMTP_HOST: 'localhost', SMTP_PORT: '1025', SMTP_FROM: 'test@parc-auto.local' } : {}),

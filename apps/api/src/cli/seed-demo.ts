@@ -62,6 +62,8 @@ import { OrganizationsService } from '../modules/organizations/organizations.ser
 import { ReservationsService } from '../modules/reservations/reservations.service.js';
 import { SettingsService } from '../modules/settings/settings.service.js';
 import { SuppliersService } from '../modules/suppliers/suppliers.service.js';
+import { TelemetryProvidersService } from '../modules/telemetry/telemetry-providers.service.js';
+import { TelemetryUnitsService } from '../modules/telemetry/telemetry-units.service.js';
 import type { UsageViewDto } from '../modules/usages/dto/usages.dto.js';
 import { UsagesService } from '../modules/usages/usages.service.js';
 import { UsersService } from '../modules/users/users.service.js';
@@ -227,6 +229,7 @@ export interface DemoSeedReport {
   openUsages: number;
   pendingReadings: number;
   activeAlerts: Array<{ type: string; count: number }>;
+  telemetry: { simulator: boolean; providerId: string | null };
   importBatchId: string;
   reset: boolean;
 }
@@ -375,6 +378,8 @@ interface Services {
   expenses: ExpensesService;
   transfer: VehicleTransferService;
   imports: ImportsService;
+  telemetryProviders: TelemetryProvidersService;
+  telemetryUnits: TelemetryUnitsService;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -434,6 +439,8 @@ class DemoSeeder {
       expenses: app.get(ExpensesService),
       transfer: app.get(VehicleTransferService),
       imports: app.get(ImportsService),
+      telemetryProviders: app.get(TelemetryProvidersService),
+      telemetryUnits: app.get(TelemetryUnitsService),
     };
     // Instant de référence : toutes les dates du jeu en découlent (D-324 : dates relatives à l'exécution).
     this.origin = clock.now();
@@ -451,12 +458,13 @@ class DemoSeeder {
     await this.atlasHistory();
     await this.carthageHistory();
     await this.oasisHistory();
-    this.progress('Transfert entre sociétés et import…');
+    this.progress('Transfert entre sociétés, import et télématique…');
     await this.transferBetweenCompanies();
     const importBatchId = await this.importDrivers();
+    const telemetry = await this.telemetry();
     this.progress('Évaluation des alertes (rattrapage)…');
     await this.catchUp();
-    return this.report(importBatchId);
+    return this.report(importBatchId, telemetry);
   }
 
   // --- Amorçage ------------------------------------------------------------------------------
@@ -866,6 +874,34 @@ class DemoSeeder {
     return committed.id;
   }
 
+  /**
+   * F11 : fournisseur « SIMULATEUR — données fictives » seulement si TELEMETRY_SIMULATOR_ENABLED est vrai
+   * (jamais en production, garde du registre) ; sinon le module reste désactivé pour toutes les sociétés.
+   */
+  private async telemetry(): Promise<DemoSeedReport['telemetry']> {
+    if (!this.options.env.telemetrySimulatorEnabled) return { simulator: false, providerId: null };
+    const oasis = this.companyIds.OASIS;
+    const created = await this.step('fournisseur télématique simulé', () =>
+      this.s.telemetryProviders.create(this.admin, {
+        name: 'Simulateur de démonstration',
+        kind: 'SIMULATEUR',
+        companyIds: [oasis],
+        settings: {
+          scenario: {
+            units: [
+              { externalId: 'DEMO-U1', label: 'Boîtier Kia Picanto', declaredRegistration: VEHICLES['VH-12'].registration, odometerKinds: ['COMPTEUR_CAN'], fuelKinds: [] },
+              { externalId: 'DEMO-U2', label: 'Boîtier remorque', declaredRegistration: null, odometerKinds: ['DISTANCE_GPS'], fuelKinds: [] },
+            ],
+          },
+        },
+      }),
+    );
+    const active = await this.step('activation du simulateur', () => this.s.telemetryProviders.transition(this.admin, created.id, 'ACTIF', { expectedVersion: created.version }));
+    await this.step('activation F11 pour OASIS', () => this.s.telemetryProviders.setCompanyEnabled(this.admin, oasis, true, { reason: 'Démonstration du connecteur avec le simulateur (données fictives).' }));
+    await this.step('découverte des unités', () => this.s.telemetryUnits.discover(this.admin, active.id));
+    return { simulator: true, providerId: active.id };
+  }
+
   /** Mêmes évaluations que le rattrapage du worker : les alertes sont à jour dès la fin du chargement. */
   private async catchUp(): Promise<void> {
     const org = this.organizationId;
@@ -877,7 +913,7 @@ class DemoSeeder {
     await this.step('immobilisations actives', () => this.s.immobilizations.evaluateActive(org));
   }
 
-  private async report(importBatchId: string): Promise<DemoSeedReport> {
+  private async report(importBatchId: string, telemetry: DemoSeedReport['telemetry']): Promise<DemoSeedReport> {
     const client = this.s.prisma.client;
     const where = { organizationId: this.organizationId };
     const [companies, vehicles, drivers, openUsages, pendingReadings, alerts] = await Promise.all([
@@ -897,6 +933,7 @@ class DemoSeeder {
       openUsages,
       pendingReadings,
       activeAlerts: alerts.map((a) => ({ type: a.type, count: a._count._all })),
+      telemetry,
       importBatchId,
       reset: this.options.reset,
     };
@@ -1073,6 +1110,7 @@ export function formatReport(report: DemoSeedReport, password: DemoPassword): st
     `Sociétés : ${report.companies.map((c) => `${c.code} (${c.legalName})`).join(', ')}.`,
     `Véhicules : ${report.vehicles} · conducteurs : ${report.drivers} · utilisations en cours : ${report.openUsages} · relevés en attente : ${report.pendingReadings}.`,
     `Alertes actives : ${report.activeAlerts.map((a) => `${a.type} ${a.count}`).join(', ') || 'aucune'}.`,
+    report.telemetry.simulator ? 'Télématique : fournisseur « SIMULATEUR — données fictives » actif pour OASIS (unités découvertes, association à confirmer).' : 'Télématique : module F11 laissé désactivé (TELEMETRY_SIMULATOR_ENABLED non activé).',
     '',
     'Comptes (même mot de passe pour tous) :',
     ...report.accounts.map((a) => `  ${a.email.padEnd(40)} ${ROLE_LABELS[a.role]}${a.companyCode ? ` — ${a.companyCode}` : ''} (${a.name})`),

@@ -138,6 +138,40 @@ describe('Kilométrage — données dépendantes, compteur remplacé et contrats
     expect(inverted.body.code).toBe('CORRECTION_BLOQUEE');
   });
 
+  it('R-5.3-08 — plein et intervention : la date de leur relevé ne se corrige pas hors de l’événement ; la valeur du relevé d’une intervention se corrige, l’intervention et l’échéance suivent', async () => {
+    const patched = await chefA.patch(`/vehicles/${vehicleId}`, { energy: 'DIESEL', tankCapacityLiters: '60', expectedVersion: 1 });
+    expect(patched.status, JSON.stringify(patched.body)).toBe(200);
+    await chefA.post(`/vehicles/${vehicleId}/odometer-segments`, { mode: 'INITIAL', startedAt: '2026-09-01T08:00:00Z', physicalKm: '85000' });
+    const p = await plan({ intervalKm: '10000', noticeKm: '500', base: { baseMode: 'DERNIERE_OPERATION', baseKm: '80000', baseDate: '2026-01-10' } });
+    // Plein avec relevé (contexte CARBURANT) : sa date est celle du plein.
+    const fuel = await chefA.post('/fuel-entries', { vehicleId, filledAt: '2026-09-23T08:00:00Z', liters: '40', unitPrice: '2.525', totalAmount: '101.000', isFullTank: true, odometerKm: '90000' }).set('Idempotency-Key', key());
+    expect(fuel.status, JSON.stringify(fuel.body)).toBe(201);
+    const fuelReading = await t.prisma.client.odometerReading.findUniqueOrThrow({ where: { id: fuel.body.readingId } });
+    const movedFuel = await chefA.post(`/readings/${fuelReading.id}/correct`, { reason: 'Heure du ticket différente', replacementReading: { physicalKm: '90000', observedAt: '2026-09-23T06:00:00Z' }, expectedVersion: fuelReading.version }).set('Idempotency-Key', key());
+    expect(movedFuel.status).toBe(422);
+    expect(movedFuel.body).toMatchObject({ code: 'CORRECTION_BLOQUEE', details: { anomaly: 'DATE_LIEE_A_UN_EVENEMENT', dependents: [{ type: 'plein', id: fuel.body.id }] } });
+    // Intervention clôturée avec un relevé créé dans sa transaction (contexte ENTRETIEN).
+    const created = await chefA.post('/interventions', { vehicleId, kind: 'PREVENTIF', tasks: [{ planId: p.id }] });
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    const done = await chefA
+      .post(`/interventions/${created.body.id}/complete`, { completedTaskIds: created.body.tasks.map((x: { id: string }) => x.id), expectedVersion: created.body.version, performedOn: '2026-09-24', newReading: { physicalKm: '90100', observedAt: '2026-09-24T09:00:00Z' } })
+      .set('Idempotency-Key', key());
+    expect(done.status, JSON.stringify(done.body)).toBe(200);
+    expect((await chefA.get(`/maintenance-plans/${p.id}`)).body.nextDueKm).toBe('100100');
+    const workReading = await t.prisma.client.odometerReading.findUniqueOrThrow({ where: { id: done.body.performedReadingId } });
+    const movedWork = await chefA.post(`/readings/${workReading.id}/correct`, { reason: 'Heure de sortie d’atelier', replacementReading: { physicalKm: '90100', observedAt: '2026-09-24T08:00:00Z' }, expectedVersion: workReading.version }).set('Idempotency-Key', key());
+    expect(movedWork.status).toBe(422);
+    expect(movedWork.body).toMatchObject({ code: 'CORRECTION_BLOQUEE', details: { anomaly: 'DATE_LIEE_A_UN_EVENEMENT', dependents: [{ type: 'intervention', id: created.body.id }] } });
+    expect(await t.prisma.client.odometerReading.count({ where: { vehicleId, status: 'REMPLACE' } })).toBe(0);
+    // Valeur corrigée au même instant : l'intervention suit le remplacement et l'échéance est recalculée.
+    const value = await chefA.post(`/readings/${workReading.id}/correct`, { reason: 'Valeur mal lue en atelier', replacementReading: { physicalKm: '90050' }, expectedVersion: workReading.version }).set('Idempotency-Key', key());
+    expect(value.status, JSON.stringify(value.body)).toBe(200);
+    const intervention = await t.prisma.client.intervention.findUniqueOrThrow({ where: { id: created.body.id } });
+    expect(intervention.performedReadingId).toBe(value.body.id);
+    expect(intervention.performedKm?.toString()).toBe('90050');
+    expect((await chefA.get(`/maintenance-plans/${p.id}`)).body.nextDueKm).toBe('100050');
+  });
+
   it('R-5.3-06 / R-5.3-08 — compteur remplacé : la valeur qui a fixé la base cumulée du compteur suivant ne se corrige pas ; aucun relevé rétroactif ni validation ne dépasse cette base', async () => {
     await chefA.post(`/vehicles/${vehicleId}/odometer-segments`, { mode: 'INITIAL', startedAt: '2026-01-01T08:00:00Z', physicalKm: '100000' });
     const last = await reading(chefA, '120000', '2026-09-20T08:00:00Z');

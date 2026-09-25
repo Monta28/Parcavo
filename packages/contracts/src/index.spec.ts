@@ -42,6 +42,11 @@ describe('Valeurs initiales du CDC 17.1', () => {
     }
     // Synchronisation télématique : minimum 5 minutes (17.1).
     expect(SETTING_DESCRIPTORS['telemetry.syncIntervalMinutes'].min).toBe(5);
+    // Montants en TND : trois décimales au plus (17.1), valeur initiale comprise.
+    for (const key of (Object.keys(SETTING_DESCRIPTORS) as SettingKey[]).filter((k) => SETTING_DESCRIPTORS[k].unit === 'TND')) {
+      expect(SETTING_DESCRIPTORS[key].decimals, key).toBe(3);
+      expect(String(SETTING_DEFAULTS[key]), key).toMatch(/^\d+(\.\d{1,3})?$/);
+    }
   });
 
   it('seules les bornes de pagination de l’API sont des valeurs fixes, non surchargeables, et PAGINATION en découle', () => {

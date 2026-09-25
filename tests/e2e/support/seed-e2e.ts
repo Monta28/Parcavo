@@ -7,10 +7,14 @@ export const E2E = {
   admin: 'admin.e2e@parc-auto.test',
   chefA: 'chef.a.e2e@parc-auto.test',
   conducteur: 'conducteur.e2e@parc-auto.test',
+  /** Conducteur dédié aux parcours carburant, avec une utilisation en cours sur E2E-FUEL2. */
+  conducteurCarburant: 'conducteur.carburant.e2e@parc-auto.test',
   /** Conducteur dédié aux parcours relevés (lot B), avec une utilisation en cours sur E2E-KM1 (relevé de remise 20 000 km). */
   conducteurReleves: 'conducteur.releves.e2e@parc-auto.test',
   /** Conductrice dédiée aux signalements (lot C), avec une utilisation en cours sur E2E-INC1 (relevé de remise 30 000 km). */
   conducteurIncidents: 'conducteur.incidents.e2e@parc-auto.test',
+  /** Opérateur de la société A : saisie des coûts (costs.write) sans leur consultation (pas de costs.read par défaut). */
+  operateurA: 'operateur.a.e2e@parc-auto.test',
   companyA: 'E2E-A',
   companyB: 'E2E-B',
 };
@@ -38,6 +42,80 @@ export async function seedE2E(databaseUrl: string): Promise<void> {
     await mkVehicle(a.id, 'E2E-VA1', '101 TU 2026');
     await mkVehicle(a.id, 'E2E-VA2', '102 TU 2026');
     await mkVehicle(b.id, 'E2E-VB1', '201 TU 2026');
+    // Carburant (specs/carburant.spec.ts) : véhicules diesel dédiés (capacité du réservoir renseignée) et un
+    // conducteur propre à ces parcours, dont l'utilisation en cours ne gêne pas les remises des autres specs.
+    const mkFuelVehicle = (code: string, registration: string, tankCapacityLiters: string) =>
+      prisma.vehicle.create({ data: { organizationId: org.id, companyId: a.id, code, registration, registrationNormalized: registration.replace(/\s/g, '').toUpperCase(), make: 'Renault', model: 'Kangoo', categoryId: category.id, qrToken: `qr-${code}`, energy: 'DIESEL', tankCapacityLiters } });
+    await mkFuelVehicle('E2E-FUEL1', '301 TU 2026', '50');
+    const fuelVehicle = await mkFuelVehicle('E2E-FUEL2', '302 TU 2026', '55');
+    const fuelUser = await prisma.user.create({ data: { organizationId: org.id, email: E2E.conducteurCarburant, firstName: 'Farah', lastName: 'Carburant', passwordHash, memberships: { create: [{ companyId: a.id, role: 'CONDUCTEUR' }] } } });
+    const fuelDriver = await prisma.driver.create({ data: { organizationId: org.id, companyId: a.id, code: 'D-E2E-FUEL', firstName: 'Farah', lastName: 'Carburant', userId: fuelUser.id } });
+    const seededAt = Date.now();
+    await prisma.vehicleUsage.create({
+      data: {
+        organizationId: org.id,
+        companyId: a.id,
+        vehicleId: fuelVehicle.id,
+        driverId: fuelDriver.id,
+        purpose: 'Tournée de livraison',
+        checkedOutAt: new Date(seededAt - 24 * 3600_000),
+        expectedReturnAt: new Date(seededAt + 7 * 24 * 3600_000),
+        checkoutWithoutReading: true,
+        checkoutExceptionReason: 'Données de démonstration des parcours carburant',
+      },
+    });
+    // Dépenses, alertes et transfert (specs/depenses-alertes.spec.ts, specs/transfert.spec.ts) : véhicules
+    // dédiés de la société A ; une alerte « kilométrage inconnu » conforme à l'état réel de E2E-AL1 (aucun
+    // relevé accepté) ; une réservation confirmée future, d'un conducteur dédié, qui bloque le transfert de
+    // E2E-TR1 tant qu'elle n'est pas annulée.
+    await mkVehicle(a.id, 'E2E-DEP1', '401 TU 2026');
+    const alertVehicle = await mkVehicle(a.id, 'E2E-AL1', '402 TU 2026');
+    const transferVehicle = await mkVehicle(a.id, 'E2E-TR1', '403 TU 2026');
+    const transferDriver = await prisma.driver.create({ data: { organizationId: org.id, companyId: a.id, code: 'D-E2E-TR', firstName: 'Tarek', lastName: 'Transfert' } });
+    const fixturesAt = new Date();
+    await prisma.alert.create({
+      data: {
+        organizationId: org.id,
+        companyId: a.id,
+        type: 'KILOMETRAGE_ABSENT',
+        severity: 'ATTENTION',
+        objectType: 'Vehicle',
+        objectId: alertVehicle.id,
+        vehicleId: alertVehicle.id,
+        occurrenceKey: 'aucun',
+        title: 'Kilométrage inconnu — E2E-AL1',
+        message: 'Aucun relevé de compteur accepté : l’état du kilométrage est inconnu.',
+        condition: { freshness: 'INCONNU' },
+        actionPath: `/vehicules/${alertVehicle.id}?onglet=kilometrage`,
+        triggeredAt: fixturesAt,
+        lastEvaluatedAt: fixturesAt,
+      },
+    });
+    await prisma.reservation.create({
+      data: {
+        organizationId: org.id,
+        companyId: a.id,
+        vehicleId: transferVehicle.id,
+        driverId: transferDriver.id,
+        startAt: new Date(fixturesAt.getTime() + 3 * 24 * 3600_000),
+        endAt: new Date(fixturesAt.getTime() + 3 * 24 * 3600_000 + 4 * 3600_000),
+        purpose: 'Mission à reporter avant le transfert',
+      },
+    });
+    // Dépenses validées saisies avant les parcours (états exacts produits par POST /expenses) : une dépense
+    // de E2E-TR1 imputée à la société A, qui doit y rester après le transfert (T26, coûts historiques
+    // inchangés), et une dépense de E2E-AL1 corrigée puis annulée par le chef (D-229), sans véhicule
+    // supplémentaire (la liste des véhicules tient sur une page). Un opérateur de la société A saisit sans
+    // consulter les coûts.
+    const expenseDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Tunis', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(fixturesAt.getTime() - 2 * 24 * 3600_000));
+    const expenseAuthor = await prisma.user.findFirstOrThrow({ where: { organizationId: org.id, email: E2E.chefA } });
+    await prisma.expense.create({
+      data: { organizationId: org.id, companyId: a.id, vehicleId: transferVehicle.id, occurredOn: new Date(`${expenseDay}T00:00:00.000Z`), category: 'ASSURANCE', reference: 'ASSUR-E2E-TR1', amount: '300.000', createdById: expenseAuthor.id },
+    });
+    await prisma.expense.create({
+      data: { organizationId: org.id, companyId: a.id, vehicleId: alertVehicle.id, occurredOn: new Date(`${expenseDay}T00:00:00.000Z`), category: 'ENTRETIEN_REPARATION', reference: 'FACT-E2E-CORR', amount: '120.000', createdById: expenseAuthor.id },
+    });
+    await prisma.user.create({ data: { organizationId: org.id, email: E2E.operateurA, firstName: 'Olfa', lastName: 'Operatrice', passwordHash, memberships: { create: [{ companyId: a.id, role: 'OPERATEUR' }] } } });
     // Lot B (specs/utilisations.spec.ts, specs/releves.spec.ts, specs/reservations.spec.ts) : véhicules et
     // conducteurs dédiés de la société A, conducteurs titulaires d'un permis B valide (aucun blocage ni
     // dérogation au départ ou à la réservation), pour ne dépendre d'aucune autre spec ni la gêner.

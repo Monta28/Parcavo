@@ -361,6 +361,7 @@ enum FuelEntryStatus {
   VALIDE
   REJETE
   ANNULE
+  REMPLACE
 }
 
 enum ExpenseCategory {
@@ -868,6 +869,7 @@ model Vehicle {
   incidents              Incident[]
   immobilizations        Immobilization[]
   fuelEntries            FuelEntry[]
+  fuelPurchaseGaps       FuelPurchaseGap[]
   expenses               Expense[]
   telemetryMappings      TelemetryVehicleMapping[]
   telemetryCalibrations  TelemetryCalibration[]
@@ -1582,35 +1584,41 @@ model Supplier {
 /// Plein / achat de carburant (8.2). Une soumission conducteur (SOUMIS) ne
 /// produit ni dépense ni relevé accepté avant validation.
 model FuelEntry {
-  id                  String          @id @default(uuid(7)) @db.Uuid
-  organizationId      String          @db.Uuid
-  companyId           String          @db.Uuid
-  vehicleId           String          @db.Uuid
-  driverId            String?         @db.Uuid
-  supplierId          String?         @db.Uuid
-  filledAt            DateTime        @db.Timestamptz(3)
-  liters              Decimal         @db.Decimal(18, 3)
-  unitPrice           Decimal?        @db.Decimal(18, 3)
-  totalAmount         Decimal         @db.Decimal(18, 3)
-  energy              EnergyType
-  isFullTank          Boolean
+  id                    String          @id @default(uuid(7)) @db.Uuid
+  organizationId        String          @db.Uuid
+  companyId             String          @db.Uuid
+  vehicleId             String          @db.Uuid
+  driverId              String?         @db.Uuid
+  supplierId            String?         @db.Uuid
+  filledAt              DateTime        @db.Timestamptz(3)
+  liters                Decimal         @db.Decimal(18, 3)
+  unitPrice             Decimal?        @db.Decimal(18, 3)
+  totalAmount           Decimal         @db.Decimal(18, 3)
+  energy                EnergyType
+  isFullTank            Boolean
   /// Compteur saisi (proposition) et relevé lié une fois contrôlé.
-  declaredPhysicalKm  Decimal?        @db.Decimal(15, 3)
-  readingId           String?         @db.Uuid
-  ticketAttachmentId  String?         @db.Uuid
-  status              FuelEntryStatus
+  declaredPhysicalKm    Decimal?        @db.Decimal(15, 3)
+  readingId             String?         @db.Uuid
+  ticketAttachmentId    String?         @db.Uuid
+  status                FuelEntryStatus
   /// Écart litres x prix unitaire / total au-delà de la tolérance : signalé, jamais corrigé.
-  amountMismatch      Boolean         @default(false)
-  amountMismatchValue Decimal?        @db.Decimal(18, 3)
-  submittedById       String?         @db.Uuid
-  decidedAt           DateTime?       @db.Timestamptz(3)
-  decidedById         String?         @db.Uuid
-  decisionReason      String?
-  notes               String?
-  createdAt           DateTime        @default(now()) @db.Timestamptz(3)
-  updatedAt           DateTime        @updatedAt @db.Timestamptz(3)
-  createdById         String?         @db.Uuid
-  version             Int             @default(1)
+  amountMismatch        Boolean         @default(false)
+  amountMismatchValue   Decimal?        @db.Decimal(18, 3)
+  /// Litres supérieurs à 105 % de la capacité connue : exclu de la consommation tant que non confirmé (D-225).
+  tankCapacityExceeded  Boolean         @default(false)
+  capacityConfirmedAt   DateTime?       @db.Timestamptz(3)
+  capacityConfirmedById String?         @db.Uuid
+  /// Correction d'un plein validé : nouvelle ligne qui remplace l'ancienne (D-222).
+  replacesFuelEntryId   String?         @unique @db.Uuid
+  submittedById         String?         @db.Uuid
+  decidedAt             DateTime?       @db.Timestamptz(3)
+  decidedById           String?         @db.Uuid
+  decisionReason        String?
+  notes                 String?
+  createdAt             DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime        @updatedAt @db.Timestamptz(3)
+  createdById           String?         @db.Uuid
+  version               Int             @default(1)
 
   vehicle    Vehicle          @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
   driver     Driver?          @relation(fields: [driverId], references: [id], onDelete: Restrict)
@@ -1621,6 +1629,24 @@ model FuelEntry {
   @@unique([id, organizationId])
   @@index([organizationId, companyId, status])
   @@index([vehicleId, filledAt])
+}
+
+/// Période déclarée « achats incomplets » par le chef (D-227) : les intervalles de consommation qui la
+/// recoupent sont N/D, sans fabriquer de litres manquants.
+model FuelPurchaseGap {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @db.Uuid
+  companyId      String   @db.Uuid
+  vehicleId      String   @db.Uuid
+  startsAt       DateTime @db.Timestamptz(3)
+  endsAt         DateTime @db.Timestamptz(3)
+  reason         String
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  createdById    String?  @db.Uuid
+
+  vehicle Vehicle @relation(fields: [vehicleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@index([vehicleId, startsAt])
 }
 
 /// Registre unique des dépenses (8.4). Une source (plein, intervention) génère
@@ -1642,6 +1668,8 @@ model Expense {
   attachmentId              String?            @db.Uuid
   /// Incident auquel la dépense se rattache (0..n dépenses par incident, D-217).
   relatedIncidentId         String?            @db.Uuid
+  /// Avoir : dépense d'origine facultative (D-229).
+  relatedExpenseId          String?            @db.Uuid
   sourceType                ExpenseSourceType?
   sourceId                  String?            @db.Uuid
   status                    ExpenseStatus      @default(VALIDEE)

@@ -1,4 +1,5 @@
 import { Decimal } from 'decimal.js';
+import { formatLocalDateTime } from './civil-date.js';
 import { kmLabel } from './km-display.js';
 
 /**
@@ -109,6 +110,8 @@ export interface EvaluateInput {
   physicalKm: Decimal;
   observedAt: Date;
   now: Date;
+  /** Fuseau de l'organisation : les dates citées dans les motifs sont affichées en heure locale. */
+  timezone: string;
   /**
    * `ordinary` : segment 1 d'initialisation ordinaire (isOrdinaryFirstSegment) ; son début n'étant que le
    * premier relevé accepté, seuls les voisins acceptés contraignent le relevé (ni AVANT_DEBUT_SEGMENT ni
@@ -159,7 +162,7 @@ export function evaluateReading(input: EvaluateInput): Evaluation {
       : { outcome: 'CONFLICT', code: 'CONFLIT_MEME_INSTANT', reason, existingId: input.sameInstant.id };
   }
   if (input.previous && input.physicalKm.lt(input.previous.physicalKm)) {
-    const reason = `Diminution inexpliquée : ${formatKm(input.physicalKm)} après ${formatKm(input.previous.physicalKm)} relevé le ${input.previous.observedAt.toISOString()}. Une correction ou un remplacement de compteur est nécessaire.`;
+    const reason = `Diminution inexpliquée : ${formatKm(input.physicalKm)} après ${formatKm(input.previous.physicalKm)} relevé le ${formatLocalDateTime(input.previous.observedAt, input.timezone, { sentence: true })}. Une correction ou un remplacement de compteur est nécessaire.`;
     return automatic ? { outcome: 'PENDING', code: 'DIMINUTION', reason } : { outcome: 'REJECT', code: 'DIMINUTION', reason };
   }
   if (!input.segment.ordinary && !input.previous && input.physicalKm.lt(input.segment.startPhysicalKm)) {
@@ -167,7 +170,7 @@ export function evaluateReading(input: EvaluateInput): Evaluation {
     return automatic ? { outcome: 'PENDING', code: 'INFERIEUR_DEBUT_SEGMENT', reason } : { outcome: 'REJECT', code: 'INFERIEUR_DEBUT_SEGMENT', reason };
   }
   if (input.next && input.physicalKm.gt(input.next.physicalKm)) {
-    const reason = `Chronologie rompue : ${formatKm(input.physicalKm)} dépasse le relevé suivant de ${formatKm(input.next.physicalKm)} (${input.next.observedAt.toISOString()}).`;
+    const reason = `Chronologie rompue : ${formatKm(input.physicalKm)} dépasse le relevé suivant de ${formatKm(input.next.physicalKm)} (${formatLocalDateTime(input.next.observedAt, input.timezone, { sentence: true })}).`;
     return automatic ? { outcome: 'PENDING', code: 'CHRONOLOGIE_SUIVANT', reason } : { outcome: 'REJECT', code: 'CHRONOLOGIE_SUIVANT', reason };
   }
   if (input.previous) {

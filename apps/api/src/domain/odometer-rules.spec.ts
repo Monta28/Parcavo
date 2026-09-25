@@ -13,6 +13,7 @@ function base(overrides: Partial<EvaluateInput>): EvaluateInput {
     physicalKm: d(1000),
     observedAt: at('2026-09-24T08:00:00Z'),
     now: at('2026-09-24T10:00:00Z'),
+    timezone: 'Africa/Tunis',
     segment,
     sameInstant: null,
     previous: null,
@@ -35,6 +36,9 @@ describe('contrôles de chronologie (CDC 5.2, T09, T10)', () => {
   it('T09 — 89 000 après 89 500 dans le même segment : diminution refusée pour un relevé manuel', () => {
     const r = evaluateReading(base({ physicalKm: d(89_000), previous: { id: 'p', physicalKm: d(89_500), observedAt: at('2026-09-20T08:00:00Z') } }));
     expect(r).toMatchObject({ outcome: 'REJECT', code: 'DIMINUTION' });
+    // Date citée dans le fuseau de l'organisation (Africa/Tunis, UTC+1), jamais en ISO UTC.
+    expect((r as { reason: string }).reason).toContain('relevé le 20/09/2026 à 09:00');
+    expect((r as { reason: string }).reason).not.toContain('T08:00');
   });
   it('T40 — la même diminution venant de la télématique passe en attente avec motif', () => {
     const r = evaluateReading(base({ origin: 'TELEMATICS', physicalKm: d(89_000), previous: { id: 'p', physicalKm: d(89_500), observedAt: at('2026-09-20T08:00:00Z') } }));

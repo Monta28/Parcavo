@@ -18,7 +18,8 @@ export interface ReplayedResponse<T> {
   body: T;
 }
 
-const RETENTION_HOURS = 48;
+/** Conservation des clés d’idempotence : 24 h (D-286, D-308), purge par le worker. */
+const RETENTION_HOURS = 24;
 
 /**
  * Idempotence des opérations critiques (CDC 15.3) : clé liée à l'utilisateur, à l'organisation et à

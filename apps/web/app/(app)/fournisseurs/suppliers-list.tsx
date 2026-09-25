@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MoreHorizontal, Plus } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { SUPPLIER_CATEGORY_LABELS } from '@parc-auto/contracts';
@@ -31,8 +32,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { api, toQuery } from '@/lib/api-client';
 import { isApiError } from '@/lib/api-error';
 import type { Page, SessionInfo } from '@/lib/api-types';
-import { formatDateTime } from '@/lib/format';
-import { SUPPLIER_STATUS_LABELS, type SupplierStatus, type SupplierView } from '@/lib/suppliers-types';
+import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
+import { SUPPLIER_STATUS_LABELS, type SupplierExpenseRow, type SupplierStatus, type SupplierView } from '@/lib/suppliers-types';
 import { useListParams } from '@/lib/use-list-params';
 import { SupplierDialog } from './supplier-dialog';
 
@@ -268,9 +269,73 @@ function SupplierSheet({ supplier: s, onOpenChange, onEdit, onStatus, onCopy }: 
               </Button>
             ) : null}
           </div>
+          <SupplierExpenses supplier={s} canReadCosts={r.can('costs.read')} />
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/**
+ * Historique autorisé du fournisseur (CDC 10.2) : dépenses validées du registre qui le référencent
+ * (GET /expenses?companyId=&supplierId=), visibles avec la permission costs.read seulement.
+ */
+function SupplierExpenses({ supplier, canReadCosts }: { supplier: SupplierView; canReadCosts: boolean }) {
+  const { session } = useAppScope();
+  const [page, setPage] = useState(1);
+  const query = toQuery({ companyId: supplier.companyId, supplierId: supplier.id, page, pageSize: 10 });
+  const expenses = useQuery({
+    queryKey: ['expenses', 'fournisseur', supplier.id, query],
+    queryFn: () => api<Page<SupplierExpenseRow>>(`/expenses${query}`),
+    enabled: canReadCosts,
+  });
+
+  return (
+    <section aria-labelledby="supplier-history-title" className="space-y-2 border-t pt-4">
+      <h3 id="supplier-history-title" className="font-medium">
+        Historique des dépenses
+      </h3>
+      {!canReadCosts ? (
+        <p className="text-muted-foreground">Coûts non visibles avec vos habilitations : l’historique des dépenses de ce fournisseur n’est pas affiché.</p>
+      ) : expenses.isPending ? (
+        <LoadingState label="Chargement de l’historique…" />
+      ) : expenses.isError ? (
+        <ErrorState error={expenses.error} retry={() => void expenses.refetch()} />
+      ) : expenses.data.total === 0 ? (
+        <EmptyState title="Aucune dépense" description="Aucune dépense validée ne référence ce fournisseur." />
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground">Dépenses validées du registre, de la plus récente à la plus ancienne. Montants fournis par le serveur.</p>
+          <ul className="space-y-2">
+            {expenses.data.items.map((e) => (
+              <li key={e.id} className="rounded-md border p-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <Link href={`/depenses/${e.id}`} className="font-medium underline-offset-4 hover:underline">
+                      {e.categoryLabel}
+                    </Link>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDate(e.occurredOn, session.timezone)} · {e.allocationLabel}
+                      {e.reference ? ` · Réf. ${e.reference}` : ''}
+                    </p>
+                    {e.sourceType === 'INTERVENTION' && e.sourceId ? (
+                      <Link href={`/interventions/${e.sourceId}`} className="text-xs underline underline-offset-4">
+                        Voir l’intervention
+                      </Link>
+                    ) : null}
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="font-medium tabular-nums">{formatMoney(e.signedAmount, e.currency, session.currencyDecimals)}</p>
+                    {e.kind === 'AVOIR' ? <StatusBadge label="Avoir" tone="info" /> : null}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <PaginationControls page={expenses.data.page} pageSize={expenses.data.pageSize} total={expenses.data.total} onPageChange={setPage} />
+        </>
+      )}
+    </section>
   );
 }
 

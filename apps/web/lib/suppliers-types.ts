@@ -24,3 +24,19 @@ export interface SupplierView {
   version: number;
 }
 
+/**
+ * Dépense validée du registre rattachée au fournisseur (GET /expenses?companyId=&supplierId=, permission
+ * costs.read) : champs lus pour l'historique du fournisseur. Montants et libellés fournis par l'API.
+ */
+export interface SupplierExpenseRow {
+  id: string;
+  occurredOn: string;
+  allocationLabel: string;
+  categoryLabel: string;
+  kind: 'DEPENSE' | 'AVOIR';
+  reference: string | null;
+  signedAmount: string;
+  currency: string;
+  sourceType: 'PLEIN' | 'INTERVENTION' | null;
+  sourceId: string | null;
+}

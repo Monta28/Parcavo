@@ -28,15 +28,16 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
    * Transaction Serializable avec reprise bornée sur conflit de sérialisation (CDC 13.3, [R2]).
    * Les opérations critiques (remise, retour, correction, clôture, transfert, ingestion) l'utilisent.
    */
-  async serializable<T>(fn: (tx: Tx) => Promise<T>, options?: { maxRetries?: number }): Promise<T> {
+  async serializable<T>(fn: (tx: Tx) => Promise<T>, options?: { maxRetries?: number; timeoutMs?: number }): Promise<T> {
     const maxRetries = options?.maxRetries ?? 3;
+    const timeout = options?.timeoutMs ?? 20_000;
     let attempt = 0;
     for (;;) {
       try {
         return await this.client.$transaction(fn, {
           isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
           maxWait: 5_000,
-          timeout: 20_000,
+          timeout,
         });
       } catch (error) {
         if (isRetryable(error) && attempt < maxRetries) {

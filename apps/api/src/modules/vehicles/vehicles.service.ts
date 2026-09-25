@@ -121,7 +121,10 @@ export class VehiclesService {
     ]);
     const staleAfterDays = await this.settings.get(ctx.organizationId, 'odometer.staleAfterDays', v.companyId);
     const freshness = computeFreshness(lastReading?.observedAt ?? null, now, staleAfterDays);
-    const authorIds = [lastLocation?.createdById].filter((x): x is string => Boolean(x));
+    // Dernière localisation déclarée par la société précédente d'un véhicule transféré : visible sans auteur
+    // ni commentaire (D-123) ; l'auteur n'est jamais révélé hors de sa société.
+    const lastLocationShown = lastLocation && !this.locationReportReadable(ctx, v, lastLocation.companyId) ? { ...lastLocation, createdById: null, comment: null } : lastLocation;
+    const authorIds = [lastLocationShown?.createdById].filter((x): x is string => Boolean(x));
     const authors = authorIds.length ? await this.prisma.client.user.findMany({ where: { id: { in: authorIds } }, select: { id: true, firstName: true, lastName: true } }) : [];
     // Conformité documentaire : règle unique de document-status.ts, au jour local du groupe (7.1).
     const org = await this.prisma.client.organization.findUniqueOrThrow({ where: { id: ctx.organizationId }, select: { timezone: true } });
@@ -139,7 +142,7 @@ export class VehiclesService {
     const synthesis: VehicleSynthesisDto = {
       ...this.view(v),
       responsible: assignment ? { assignmentId: assignment.id, driverId: assignment.driverId, driverName: `${assignment.driver.firstName} ${assignment.driver.lastName}`, since: assignment.startsAt.toISOString() } : null,
-      lastLocation: lastLocation ? this.locationView(lastLocation, authors) : null,
+      lastLocation: lastLocationShown ? this.locationView(lastLocationShown, authors) : null,
       odometer: lastReading
         ? {
             readingId: lastReading.id,
@@ -341,8 +344,10 @@ export class VehiclesService {
   }
 
   async listLocationReports(ctx: RequestContext, vehicleId: string, query: { page: number; pageSize: number }): Promise<Page<LocationReportViewDto>> {
-    await this.load(ctx, vehicleId);
-    const where = { vehicleId };
+    const v = await this.load(ctx, vehicleId);
+    // Chaque déclaration garde sa société historique (2.4, D-123) : après un transfert, la société
+    // destinataire ne voit pas l'historique (auteurs, commentaires) de la société d'origine, et inversement.
+    const where: Prisma.VehicleLocationReportWhereInput = { vehicleId, ...(ctx.isAdmin ? {} : { companyId: ctx.isDriverOnly ? v.companyId : { in: [...ctx.visibleCompanyIds] } }) };
     const [items, total] = await Promise.all([
       this.prisma.client.vehicleLocationReport.findMany({ where, ...skipTake(query), orderBy: [{ observedAt: 'desc' }, { createdAt: 'desc' }], include: { site: { select: { name: true } } } }),
       this.prisma.client.vehicleLocationReport.count({ where }),
@@ -507,6 +512,11 @@ export class VehiclesService {
       createdAt: v.createdAt.toISOString(),
       version: v.version,
     };
+  }
+
+  /** Déclaration de localisation lisible avec son auteur : société de la déclaration dans le périmètre (société courante pour un conducteur). */
+  private locationReportReadable(ctx: RequestContext, v: { companyId: string }, reportCompanyId: string): boolean {
+    return ctx.isDriverOnly ? reportCompanyId === v.companyId : this.access.canReadCompany(ctx, reportCompanyId);
   }
 
   private locationView(r: { id: string; siteId: string | null; site: { name: string } | null; placeLabel: string | null; observedAt: Date; comment: string | null; context: string; createdById: string | null; createdAt: Date }, authors: Array<{ id: string; firstName: string; lastName: string }>): LocationReportViewDto {

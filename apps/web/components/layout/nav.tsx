@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { AlertTriangle, Calendar, Car, CircleSlash, ClipboardList, FileText, Gauge, Hammer, LayoutDashboard, Settings, Smartphone, Truck, Users, Wrench, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, Bell, Calendar, Car, CircleSlash, ClipboardList, FileText, Fuel, Gauge, Hammer, LayoutDashboard, Receipt, Settings, Smartphone, Truck, Users, Wrench, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCan, useSession } from './session-context';
 
@@ -28,7 +28,10 @@ const STAFF_ITEMS: NavItem[] = [
   { href: '/documents', label: 'Documents', icon: FileText, audience: 'staff' },
   { href: '/incidents', label: 'Incidents', icon: AlertTriangle, audience: 'staff' },
   { href: '/immobilisations', label: 'Immobilisations', icon: CircleSlash, audience: 'staff' },
+  { href: '/carburant', label: 'Carburant', icon: Fuel, audience: 'staff' },
+  { href: '/depenses', label: 'Dépenses', icon: Receipt, audience: 'costs' },
   { href: '/fournisseurs', label: 'Fournisseurs', icon: Truck, audience: 'staff' },
+  { href: '/alertes', label: 'Alertes', icon: Bell, audience: 'staff' },
   { href: '/administration', label: 'Administration', icon: Settings, audience: 'admin' },
 ];
 

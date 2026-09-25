@@ -23,6 +23,7 @@ import type { UsageDetailView } from '@/lib/usages-types';
 import { useOnlineStatus } from '@/lib/use-online-status';
 import type { VehicleView } from '@/lib/vehicles-types';
 import { formatSlot, reservationStatusLabel, toneForReservation } from '../planning/planning-shared';
+import { FuelTicket, MyFuelDeclarations } from './fuel-ticket';
 import { MySubmissions } from './my-submissions';
 import { ReadingForm } from './reading-form';
 import { ReportIncident } from './report-incident';
@@ -123,8 +124,10 @@ function DriverSpace({ driverId }: { driverId: string }) {
         )}
       </section>
 
+      <FuelTicket driverId={driverId} />
       <ReportIncident />
       <MySubmissions />
+      <MyFuelDeclarations />
       <UpcomingReservations driverId={driverId} />
     </div>
   );

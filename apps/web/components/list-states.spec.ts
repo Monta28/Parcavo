@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
@@ -10,6 +12,16 @@ import { ApiRequestError } from '@/lib/api-error';
  * dans sa source : elle traite le chargement, l'erreur (dont l'accès refusé, distingué par ErrorState) et
  * le vide.
  */
+
+const ROOT = resolve(import.meta.dirname, '..');
+
+function tsxFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) return tsxFiles(path);
+    return path.endsWith('.tsx') ? [path] : [];
+  });
+}
 
 describe('États des listes (CDC 10.1)', () => {
   it('chargement annoncé, vide explicite, erreur et accès refusé distincts, avec référence de la requête', () => {
@@ -34,5 +46,21 @@ describe('États des listes (CDC 10.1)', () => {
     expect(failure).toContain('>Erreur<');
     expect(failure).toContain('Réessayer');
     expect(failure).toContain('Référence : req-500');
+  });
+
+  it('chaque liste paginée de l’interface traite le chargement, l’erreur et le vide', () => {
+    const lists = [...tsxFiles(join(ROOT, 'app')), ...tsxFiles(join(ROOT, 'components'))].filter((f) => readFileSync(f, 'utf8').includes('<PaginationControls'));
+    expect(lists.length).toBeGreaterThan(30);
+    const missing: string[] = [];
+    for (const file of lists) {
+      const source = readFileSync(file, 'utf8');
+      const gaps = [
+        /<LoadingState\b/.test(source) ? null : 'chargement',
+        /<ErrorState\b/.test(source) ? null : 'erreur',
+        /<EmptyState\b|\b(total|length) === 0\b/.test(source) ? null : 'vide',
+      ].filter(Boolean);
+      if (gaps.length > 0) missing.push(`${relative(ROOT, file)} : ${gaps.join(', ')}`);
+    }
+    expect(missing).toEqual([]);
   });
 });

@@ -224,6 +224,8 @@ export function validateSettingValue(key: SettingKey, value: unknown): unknown {
     case 'number':
       if (typeof value !== 'number' || !Number.isFinite(value)) fail('un nombre est attendu.');
       inRange(value as number);
+      // Écriture décimale la plus courte (0.125 → « 0.125 ») ; une notation exponentielle dépasse toute limite utile.
+      if (d.decimals !== undefined && !new RegExp(`^-?\\d+(\\.\\d{1,${d.decimals}})?$`).test(String(value))) fail(`${d.decimals} décimales au plus.`);
       return value;
     case 'boolean':
       if (typeof value !== 'boolean') fail('vrai ou faux attendu.');

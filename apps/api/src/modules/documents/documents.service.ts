@@ -467,7 +467,11 @@ export class DocumentsService {
   /** Périmètre de lecture : personnel dans ses sociétés ; conducteur limité à ses documents et au véhicule de son utilisation en cours (D-209). */
   private async readScope(ctx: RequestContext, vehicleId?: string, driverId?: string): Promise<Prisma.DocumentVersionWhereInput> {
     if (!ctx.isDriverOnly) {
-      return { ...this.access.companyWhere(ctx), ...(vehicleId ? { vehicleId } : {}), ...(driverId ? { driverId } : {}) };
+      const owner = { ...(vehicleId ? { vehicleId } : {}), ...(driverId ? { driverId } : {}) };
+      if (ctx.isAdmin) return { ...this.access.companyWhere(ctx), ...owner };
+      // Versions de documents véhicule partagées lors d'un transfert (2.4, D-123) : lisibles par la société destinataire.
+      const companies = [...ctx.visibleCompanyIds];
+      return { organizationId: ctx.organizationId, ...owner, OR: [{ companyId: { in: companies } }, { ownerType: 'VEHICULE', sharedWithCompanyIds: { hasSome: companies } }] };
     }
     if (!ctx.driverId) return { id: '00000000-0000-0000-0000-000000000000' };
     if (vehicleId) {
@@ -486,7 +490,7 @@ export class DocumentsService {
       const scope = await this.readScope(ctx, v.vehicleId ?? undefined, v.driverId ?? undefined);
       const visible = await this.prisma.client.documentVersion.count({ where: { AND: [{ id }, scope] } });
       if (!visible) throw new NotFoundOrOutOfScopeError('Document');
-    } else if (!this.access.canReadCompany(ctx, v.companyId)) {
+    } else if (!this.access.canReadCompany(ctx, v.companyId) && !(v.ownerType === 'VEHICULE' && v.sharedWithCompanyIds.some((c) => this.access.canReadCompany(ctx, c)))) {
       throw new NotFoundOrOutOfScopeError('Document');
     }
     return v;

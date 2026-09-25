@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -43,7 +43,8 @@ export function SearchPicker<T>({ id, value, loadingValue, onChange, queryKey, s
     return () => clearTimeout(timer);
   }, [term]);
 
-  const results = useQuery({ queryKey: [...queryKey, debounced], queryFn: () => search(debounced), enabled: open });
+  // Les résultats précédents restent affichés pendant une nouvelle recherche : la liste ne clignote pas à chaque frappe.
+  const results = useQuery({ queryKey: [...queryKey, debounced], queryFn: () => search(debounced), enabled: open, placeholderData: keepPreviousData });
   const selectedKey = value ? itemKey(value) : null;
   const triggerText = value ? itemLabel(value) : loadingValue ? 'Chargement…' : placeholder;
 

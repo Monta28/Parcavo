@@ -317,11 +317,13 @@ export class OdometerIngestionService {
       this.settings.get(input.organizationId, 'odometer.plausibilityMaxKmPerDay', vehicleCompany, tx),
       this.settings.get(input.organizationId, 'odometer.plausibilityMinKm', vehicleCompany, tx),
     ]);
+    const { timezone } = await tx.organization.findUniqueOrThrow({ where: { id: input.organizationId }, select: { timezone: true } });
     return evaluateReading({
       origin: input.origin,
       physicalKm: input.physicalKm,
       observedAt: input.observedAt,
       now: this.clock.now(),
+      timezone,
       segment: { startPhysicalKm: dec(segment.startPhysicalKm), startCumulativeKm: dec(segment.startCumulativeKm), startedAt: segment.startedAt, ordinary: await isOrdinarySegment(tx, segment) },
       sameInstant: neighbor(sameInstant),
       previous: neighbor(previous),

@@ -624,13 +624,14 @@
    "apps/web/app/(app)/administration/utilisateurs/[id]/user-detail.tsx",
    "apps/web/app/(app)/conducteurs/[id]/deactivate-dialog.tsx",
    "apps/web/app/(app)/vehicules/[id]/lifecycle-dialog.tsx",
+   "apps/web/app/(app)/vehicules/[id]/transfer-dialog.tsx",
    "apps/web/app/(app)/administration/parametres/setting-dialogs.tsx"
   ],
   "tests": [
    "tests/e2e/specs/conducteurs.spec.ts › crée un conducteur, renseigne puis modifie son permis, le désactive avec motif et le réactive",
    "tests/e2e/specs/parametres.spec.ts › modifie une valeur groupe avec motif, affiche les erreurs du serveur, l’historique et une surcharge société retirée"
   ],
-  "note": "Les actions sensibles (désactivation de compte ou de conducteur, révocation de sessions, cycle de vie et archivage, transfert, dérogations, clôtures, modification et retrait de surcharge d’un paramètre) passent par une confirmation ou un dialogue motivé ; vérifié : désactivation d’un conducteur (dialogue, motif obligatoire) et réactivation (alertdialog de confirmation), modification et retrait de surcharge d’un paramètre (dialogue motivé). e2e exécuté au vert le 2026-09-24 sur le code actuel (build API et web sous verrou, base parc_auto_test_e5, ports 3980/3981). Découpage (complément du lot A) : dialogue de transfert (transfer-dialog.tsx) livré avec le lot D."
+  "note": "Les actions sensibles (désactivation de compte ou de conducteur, révocation de sessions, cycle de vie et archivage, transfert, dérogations, clôtures, modification et retrait de surcharge d’un paramètre) passent par une confirmation ou un dialogue motivé ; vérifié : désactivation d’un conducteur (dialogue, motif obligatoire) et réactivation (alertdialog de confirmation), modification et retrait de surcharge d’un paramètre (dialogue motivé). e2e exécuté au vert le 2026-09-24 sur le code actuel (build API et web sous verrou, base parc_auto_test_e5, ports 3980/3981). Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-10.1-06": {
   "status": "fait",
@@ -690,9 +691,10 @@
   ],
   "tests": [
    "apps/web/components/list-states.spec.ts › chargement annoncé, vide explicite, erreur et accès refusé distincts, avec référence de la requête",
+   "apps/web/components/list-states.spec.ts › chaque liste paginée de l’interface traite le chargement, l’erreur et le vide",
    "tests/e2e/specs/vehicules.spec.ts › un identifiant de véhicule hors périmètre affiche un accès refusé"
   ],
-  "note": "LoadingState (role=status), EmptyState et ErrorState (accès refusé distinct pour 403/404, erreur avec référence et « Réessayer ») rendus et vérifiés ; un test parcourt les 42 listes paginées (PaginationControls) et exige chargement, erreur et vide ; accès refusé vérifié à l’écran (véhicule hors périmètre, onglet Paramètres pour le chef). e2e exécuté au vert le 2026-09-24 sur le code actuel (build API et web sous verrou, base parc_auto_test_e5, ports 3980/3981). Découpage (complément du lot A) : composants d’état rendus et testés, accès refusé testé à l’écran (véhicule hors périmètre) ; contrôle de chaque liste paginée : test livré avec le lot D (list-states.spec.ts › chaque liste paginée…, qui exige plus de 30 listes : 14 dans cet arbre) ; onglet Paramètres refusé au chef de parc : test livré avec le lot E (parametres.spec.ts, message de l’onglet Audit)."
+  "note": "LoadingState (role=status), EmptyState et ErrorState (accès refusé distinct pour 403/404, erreur avec référence et « Réessayer ») rendus et vérifiés ; un test parcourt les 42 listes paginées (PaginationControls) et exige chargement, erreur et vide ; accès refusé vérifié à l’écran (véhicule hors périmètre, onglet Paramètres pour le chef). e2e exécuté au vert le 2026-09-24 sur le code actuel (build API et web sous verrou, base parc_auto_test_e5, ports 3980/3981). Découpage (complément du lot A) : composants d’état rendus et testés, accès refusé testé à l’écran (véhicule hors périmètre), contrôle de chaque liste paginée testé (list-states.spec.ts, lot D) ; onglet Paramètres refusé au chef de parc : test livré avec le lot E (parametres.spec.ts, message de l’onglet Audit)."
  },
  "R-10.2-01": {
   "status": "fait",
@@ -797,7 +799,7 @@
    "apps/api/src/data-model-doc.spec.ts › décrit chaque table du schéma Prisma, une fois, avec sa portée et sa fin de vie",
    "apps/api/test/integration/data-model.int.spec.ts › les tables sans organizationId de la base migrée sont exactement les tables globales documentées"
   ],
-  "note": "docs/modele-de-donnees.md liste et justifie les tables globales (Organization racine, JobLease, WorkerHeartbeat, LoginAttempt, _prisma_migrations ; partitions des échantillons avec organizationId) et décrit chacune des 64 tables (rôle, portée, fin de vie) ; en-tête du schéma et renvoi de D-283 corrigés ; contrôlé contre le schéma (unitaire) et contre la base PostgreSQL migrée (intégration). Découpage (complément du lot A) : lignes des tables FuelPurchaseGap (lot D) et TelemetryWebhookDelivery (lot F) retirées de docs/modele-de-donnees.md, absentes du schéma de cet arbre."
+  "note": "docs/modele-de-donnees.md liste et justifie les tables globales (Organization racine, JobLease, WorkerHeartbeat, LoginAttempt, _prisma_migrations ; partitions des échantillons avec organizationId) et décrit chacune des 64 tables (rôle, portée, fin de vie) ; en-tête du schéma et renvoi de D-283 corrigés ; contrôlé contre le schéma (unitaire) et contre la base PostgreSQL migrée (intégration). Découpage (complément du lot A) : ligne de la table TelemetryWebhookDelivery (lot F) retirée de docs/modele-de-donnees.md, absente du schéma de cet arbre."
  },
  "R-13.1-06": {
   "status": "fait",
@@ -943,9 +945,10 @@
    "apps/api/src/common/idempotency.decorator.ts"
   ],
   "tests": [
-   "apps/api/test/integration/usages.int.spec.ts › T33 — même clé et même corps : réponse initiale rejouée ; même clé et corps différent : 409"
+   "apps/api/test/integration/usages.int.spec.ts › T33 — même clé et même corps : réponse initiale rejouée ; même clé et corps différent : 409",
+   "apps/api/test/integration/expenses.int.spec.ts › création manuelle idempotente : même clé → même réponse ; autre corps → 409 ; clé obligatoire"
   ],
-  "note": "IdempotencyRecord : unicité (organizationId, userId, operation, key), empreinte du corps, statut EN_COURS/TERMINE, réponse (statut et corps) rejouée ; enregistrement hors transaction métier (écart assumé D-016). Découpage (complément du lot A) : création manuelle de dépense idempotente : test livré avec le lot D (expenses.int.spec.ts)."
+  "note": "IdempotencyRecord : unicité (organizationId, userId, operation, key), empreinte du corps, statut EN_COURS/TERMINE, réponse (statut et corps) rejouée ; enregistrement hors transaction métier (écart assumé D-016). Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-13.3-01": {
   "status": "fait",
@@ -1303,9 +1306,11 @@
    "apps/api/src/modules/usages/usages.service.ts"
   ],
   "tests": [
-   "apps/api/test/integration/usages.int.spec.ts › T33 — même clé et même corps : réponse initiale rejouée ; même clé et corps différent : 409"
+   "apps/api/test/integration/usages.int.spec.ts › T33 — même clé et même corps : réponse initiale rejouée ; même clé et corps différent : 409",
+   "apps/api/test/integration/expenses.int.spec.ts › création manuelle idempotente : même clé → même réponse ; autre corps → 409 ; clé obligatoire",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › idempotent (même clé et même corps : même résultat ; corps différent : 409) et versionné"
   ],
-  "note": "vehicle-transfer.int.spec.ts a été relancé au vert après correction (échec initial dans full-int-1.log). Découpage (complément du lot A) : dépenses et transfert idempotents : tests livrés avec le lot D."
+  "note": "vehicle-transfer.int.spec.ts a été relancé au vert après correction (échec initial dans full-int-1.log). Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-15.3-11": {
   "status": "fait",
@@ -1664,12 +1669,15 @@
   "status": "fait",
   "files": [
    "apps/api/src/common/idempotency.service.ts",
-   "apps/api/src/modules/usages/usages.service.ts"
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/expenses/expenses.service.ts"
   ],
   "tests": [
-   "apps/api/test/integration/usages.int.spec.ts › T33 — même clé et même corps : réponse initiale rejouée ; même clé et corps différent : 409"
+   "apps/api/test/integration/usages.int.spec.ts › T33 — même clé et même corps : réponse initiale rejouée ; même clé et corps différent : 409",
+   "apps/api/test/integration/expenses.int.spec.ts › création manuelle idempotente : même clé → même réponse ; autre corps → 409 ; clé obligatoire",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › idempotent (même clé et même corps : même résultat ; corps différent : 409) et versionné"
   ],
-  "note": "Découpage (complément du lot A) : dépenses et transfert : tests livrés avec le lot D."
+  "note": "Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-18-47": {
   "status": "fait",
@@ -1777,6 +1785,14 @@
    "file": "apps/api/test/integration/interventions.int.spec.ts ; apps/api/src/domain/maintenance-schedule.spec.ts",
    "status": "réussi"
   },
+  "T19": {
+   "file": "apps/api/test/integration/alerts.int.spec.ts ; apps/worker/src/scheduler/worker-scheduler.service.spec.ts ; apps/api/test/integration/maintenance.int.spec.ts",
+   "status": "réussi"
+  },
+  "T20": {
+   "file": "apps/api/test/integration/alerts.int.spec.ts ; tests/e2e/specs/depenses-alertes.spec.ts",
+   "status": "réussi"
+  },
   "T21": {
    "file": "apps/api/test/integration/documents.int.spec.ts ; apps/api/src/domain/document-status.spec.ts",
    "status": "réussi"
@@ -1789,8 +1805,24 @@
    "file": "apps/api/test/integration/incidents.int.spec.ts ; apps/api/test/integration/usages.int.spec.ts",
    "status": "réussi"
   },
+  "T24": {
+   "file": "apps/api/test/integration/fuel.int.spec.ts ; apps/api/test/integration/expenses.int.spec.ts ; apps/api/test/integration/interventions.int.spec.ts ; tests/e2e/specs/carburant.spec.ts",
+   "status": "réussi"
+  },
+  "T25": {
+   "file": "apps/api/src/domain/consumption.spec.ts ; apps/api/test/integration/fuel.int.spec.ts ; tests/e2e/specs/carburant.spec.ts",
+   "status": "réussi"
+  },
+  "T26": {
+   "file": "apps/api/test/integration/vehicle-transfer.int.spec.ts ; apps/api/test/integration/vehicle-transfer-preconditions.int.spec.ts ; apps/api/test/integration/expenses.int.spec.ts ; tests/e2e/specs/transfert.spec.ts",
+   "status": "réussi"
+  },
   "T28": {
    "file": "apps/api/test/integration/attachments.int.spec.ts",
+   "status": "réussi"
+  },
+  "T29": {
+   "file": "apps/api/test/integration/alerts.int.spec.ts ; apps/worker/src/jobs/outbox-dispatcher.job.spec.ts ; tests/e2e/specs/alertes-notifications.spec.ts",
    "status": "réussi"
   },
   "T32": {
@@ -2521,7 +2553,7 @@
   ]
  },
  "R-5.1-02": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "apps/api/src/modules/odometer/dto/odometer.dto.ts",
    "apps/api/src/modules/odometer/odometer.service.ts",
@@ -2530,9 +2562,11 @@
   ],
   "tests": [
    "apps/api/test/integration/odometer-workflow.int.spec.ts › GET /readings?mine=true : relevés dont l’utilisateur courant est l’auteur",
-   "apps/api/test/integration/odometer-workflow.int.spec.ts › pendingCount suit exactement le filtre de GET /vehicles/:id/readings?status=EN_ATTENTE (périmètre de sociétés)"
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › pendingCount suit exactement le filtre de GET /vehicles/:id/readings?status=EN_ATTENTE (périmètre de sociétés)",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › événements datés après le transfert : un relevé rétroactif appartient à la société d’origine ; la cible ne peut pas écrire dans son historique (D-121)",
+   "apps/api/test/integration/fuel.int.spec.ts › saisie directe : plein VALIDE, relevé CARBURANT accepté et dépense de synthèse dans la même transaction"
   ],
-  "note": "Champs clients limités par le DTO et la validation whitelist/forbidNonWhitelisted ; société historique, auteur et source fixés par le serveur. Découpage lot B : société historique après transfert et relevé de plein : tests livrés avec le lot D (vehicle-transfer.int.spec.ts, fuel.int.spec.ts)."
+  "note": "Champs clients limités par le DTO et la validation whitelist/forbidNonWhitelisted ; société historique, auteur et source fixés par le serveur. Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-5.1-03": {
   "status": "partiel",
@@ -2619,9 +2653,10 @@
   "tests": [
    "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel",
    "apps/api/test/integration/usages.int.spec.ts › retour contesté : relevé en attente, distance non validée jusqu’à la validation, puis régularisée",
-   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées"
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées",
+   "apps/api/test/integration/fuel.int.spec.ts › compteur non validé : coût compté, plein exclu de la consommation jusqu’à régularisation (8.2, D-222)"
   ],
-  "note": "Découpage lot B : exclusion de la consommation testée avec le lot D (fuel.int.spec.ts)."
+  "note": "Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-5.1-12": {
   "status": "fait",
@@ -3211,15 +3246,18 @@
   "note": "Revue : aucune double affectation, même par une remise saisie après coup (409 lisible)."
  },
  "R-13.3-14": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/maintenance/maintenance-plans.service.ts",
    "apps/api/src/modules/odometer/odometer-ingestion.service.ts"
   ],
   "tests": [
-   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées"
+   "apps/api/test/integration/alerts.int.spec.ts › T19 — dix recalculs de la même occurrence : une seule alerte active, aucune ligne d’outbox dupliquée",
+   "apps/api/test/integration/odometer.int.spec.ts › T13 — correction motivée : original conservé, remplacement créé, audit et utilisations recalculées",
+   "apps/api/test/integration/odometer-dependents.int.spec.ts › R-5.3-06 / R-5.3-08 — compteur remplacé : la valeur qui a fixé la base cumulée du compteur suivant ne se corrige pas ; aucun relevé rétroactif ni validation ne dépasse cette base"
   ],
-  "note": "Compteur courant calculé à la lecture ; statut d’entretien matérialisé recalculable (recomputeAll). Revue : le cumul d’un compteur remplacé reste recalculable depuis les relevés validés (base du compteur suivant protégée). Découpage lot B : compteur courant recalculable testé ; prochaines échéances : lot C, idempotence des alertes : lot D."
+  "note": "Compteur courant calculé à la lecture ; statut d’entretien matérialisé recalculable (recomputeAll). Revue : le cumul d’un compteur remplacé reste recalculable depuis les relevés validés (base du compteur suivant protégée). Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-14.2-02": {
   "status": "fait",
@@ -3254,9 +3292,10 @@
    "apps/api/src/modules/vehicles/vehicles.service.ts"
   ],
   "tests": [
-   "apps/api/test/integration/vehicles.int.spec.ts › déclare une localisation « dernière localisation déclarée » avec date et auteur, jamais une position"
+   "apps/api/test/integration/vehicles.int.spec.ts › déclare une localisation « dernière localisation déclarée » avec date et auteur, jamais une position",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › après le transfert : localisations, alertes et fournisseur de contrat restent à la société d’origine (aucune fuite ni référence croisée)"
   ],
-  "note": "Découpage lot B : localisations après transfert testées avec le lot D."
+  "note": "Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-15.2-08": {
   "status": "fait",
@@ -3386,7 +3425,7 @@
   "note": "Contrat Reading exercé via POST /vehicles/:id/readings : physicalKm, observedAt, odometerSegmentId (relevé rétroactif sur l’ancien compteur, chronologie de ce segment contrôlée), context (liste fermée, REMISE refusé), attachmentId et note ; source, auteur et société déterminés par le serveur. Revue : un relevé rétroactif sur l’ancien compteur au-delà de la base cumulée du compteur suivant était accepté (cumul décroissant) ; il est désormais refusé (CHRONOLOGIE_SUIVANT), à valeur égale il reste accepté. Découpage lot B : physicalKm, observedAt, attachmentId et note testés ; odometerSegmentId (relevé rétroactif sur l’ancien compteur) et context : test livré avec le lot C (odometer-dependents.int.spec.ts)."
  },
  "R-15.3-05": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
    "apps/api/src/modules/odometer/odometer.service.ts",
@@ -3395,9 +3434,11 @@
   ],
   "tests": [
    "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel",
-   "apps/api/test/integration/odometer-workflow.int.spec.ts › GET /readings?mine=true : relevés dont l’utilisateur courant est l’auteur"
+   "apps/api/test/integration/odometer-workflow.int.spec.ts › GET /readings?mine=true : relevés dont l’utilisateur courant est l’auteur",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › événements datés après le transfert : un relevé rétroactif appartient à la société d’origine ; la cible ne peut pas écrire dans son historique (D-121)",
+   "apps/api/test/integration/odometer-dependents.int.spec.ts › R-15.3-05 / R-5.1-05 — aucune route publique n’accepte la source TELEMATICS : auteur, source et société déterminés par le serveur"
   ],
-  "note": "Source TELEMATICS, auteur ou société transmis sur POST /vehicles/:id/readings, /readings/batch ou /usages/checkout : refus 422 (champs non déclarés) ; saisie légitime enregistrée MANUAL, auteur et société (à la date d’observation) fixés par le serveur. Découpage lot B : auteur, société et source MANUAL fixés par le serveur testés ; refus de TELEMATICS (lot C) et société historique après transfert (lot D) : tests livrés avec ces lots."
+  "note": "Source TELEMATICS, auteur ou société transmis sur POST /vehicles/:id/readings, /readings/batch ou /usages/checkout : refus 422 (champs non déclarés) ; saisie légitime enregistrée MANUAL, auteur et société (à la date d’observation) fixés par le serveur. Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-15.3-06": {
   "status": "fait",
@@ -3657,7 +3698,7 @@
    "tests/e2e/specs/parametres.spec.ts › modifie une valeur groupe avec motif, affiche les erreurs du serveur, l’historique et une surcharge société retirée",
    "apps/web/lib/settings-admin.spec.ts › indique les bornes du descripteur partagé avec l’API"
   ],
-  "note": "Écran Administration › Paramètres livré (onglet « Paramètres », /administration/parametres) : valeur groupe et surcharges par société quand companyOverride, validation et messages du serveur sous les champs, motif obligatoire, verrou optimiste (expectedVersion, 409), historique par niveau avec auteur, retrait motivé d’une surcharge ; réservé à l’administrateur (API 403, onglet masqué). session.ttlHours a désormais un effet réel (lu à chaque connexion, SESSION_TTL_HOURS supprimée) ; pagination.* rendus non modifiables (valeurs fixes du contrat d’API, 422 PARAMETRE_NON_MODIFIABLE) : écart assumé D-016, de même que langue fr, devise TND et 3 décimales portées par l’organisation (fuseau modifiable dans Administration › Organisation) et l’activation F11 par société (Administration › Télématique). e2e parametres.spec.ts vert le 2026-09-24 (build sous verrou). Reste : surcharge par véhicule des seuils de baisse carburant (« ajustable par véhicule », 17.1), absente — code télématique d’une autre mission. Revue adversariale : la part fixe en TND (fuel.amountToleranceTnd) acceptait un nombre à décimales illimitées ; borne « 3 décimales au plus » ajoutée au descripteur partagé et contrôlée par le serveur (422 par champ, rien n’enregistré ; 0.125 accepté), rappelée sous le champ. expectedVersion reste facultatif dans PUT /settings (l’écran l’envoie toujours ; des tests d’autres modules appellent l’API sans) : une écriture sans version n’est protégée que par l’index « une version courante ». Découpage (complément du lot A) : cas « pagination : bornes fixes… » (settings.int.spec.ts, lit GET /audit) et e2e « le chef de parc n’accède pas à l’onglet Paramètres » : tests livrés avec le lot E ; borne de trois décimales des montants en TND (paramètre fuel.amountToleranceTnd) livrée avec le lot D."
+  "note": "Écran Administration › Paramètres livré (onglet « Paramètres », /administration/parametres) : valeur groupe et surcharges par société quand companyOverride, validation et messages du serveur sous les champs, motif obligatoire, verrou optimiste (expectedVersion, 409), historique par niveau avec auteur, retrait motivé d’une surcharge ; réservé à l’administrateur (API 403, onglet masqué). session.ttlHours a désormais un effet réel (lu à chaque connexion, SESSION_TTL_HOURS supprimée) ; pagination.* rendus non modifiables (valeurs fixes du contrat d’API, 422 PARAMETRE_NON_MODIFIABLE) : écart assumé D-016, de même que langue fr, devise TND et 3 décimales portées par l’organisation (fuseau modifiable dans Administration › Organisation) et l’activation F11 par société (Administration › Télématique). e2e parametres.spec.ts vert le 2026-09-24 (build sous verrou). Reste : surcharge par véhicule des seuils de baisse carburant (« ajustable par véhicule », 17.1), absente — code télématique d’une autre mission. Revue adversariale : la part fixe en TND (fuel.amountToleranceTnd) acceptait un nombre à décimales illimitées ; borne « 3 décimales au plus » ajoutée au descripteur partagé et contrôlée par le serveur (422 par champ, rien n’enregistré ; 0.125 accepté), rappelée sous le champ. expectedVersion reste facultatif dans PUT /settings (l’écran l’envoie toujours ; des tests d’autres modules appellent l’API sans) : une écriture sans version n’est protégée que par l’index « une version courante ». Découpage (complément du lot A) : cas « pagination : bornes fixes… » (settings.int.spec.ts, lit GET /audit) et e2e « le chef de parc n’accède pas à l’onglet Paramètres » : tests livrés avec le lot E."
  },
  "R-1.2-05": {
   "status": "fait",
@@ -4166,9 +4207,10 @@
    "apps/api/test/integration/interventions.int.spec.ts › attribue une référence INT-AAAA-NNNNNN séquentielle et refuse un plan d’un autre véhicule",
    "apps/api/test/integration/interventions-coherence.int.spec.ts › fiche : relevé d’exécution et kilomètres tronqués (jamais arrondis), pièces jointes avec métadonnées",
    "apps/api/test/integration/interventions.int.spec.ts › T24 — clôture rejouée : même clé → même résultat ; autre clé → 409 ; une seule dépense",
-   "apps/api/test/integration/interventions-coherence.int.spec.ts › historique d’un fournisseur : filtre supplierId, y compris après archivage"
+   "apps/api/test/integration/interventions-coherence.int.spec.ts › historique d’un fournisseur : filtre supplierId, y compris après archivage",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés"
   ],
-  "note": "Découpage (lot C) : T26 (intervention ouverte bloquant un transfert) : test livré avec le lot D (vehicle-transfer.int.spec.ts)."
+  "note": "Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-6.3-02": {
   "status": "fait",
@@ -4223,19 +4265,23 @@
   ]
  },
  "R-6.3-06": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "apps/api/src/modules/interventions/interventions.service.ts",
    "apps/api/src/modules/suppliers/suppliers.service.ts",
    "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts",
    "docs/DECISIONS.md"
   ],
   "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés",
    "apps/api/test/integration/interventions.int.spec.ts › attribue une référence INT-AAAA-NNNNNN séquentielle et refuse un plan d’un autre véhicule",
+   "apps/api/test/integration/suppliers.int.spec.ts › fournisseur archivé choisi dans un formulaire : 422 FOURNISSEUR_ARCHIVE (et non 404) ; hors société : 404",
    "apps/api/test/integration/interventions-closure-scope.int.spec.ts › R-15.3-08 — fournisseur, ligne de travail, relevé et pièces jointes hors périmètre de l’intervention : 404, rien n’est clôturé",
-   "apps/api/test/integration/interventions-closure-scope.int.spec.ts › R-6.3-06 — société historique : après transfert du véhicule, une pièce de la nouvelle société est refusée sur l’intervention de l’ancienne"
+   "apps/api/test/integration/interventions-closure-scope.int.spec.ts › R-6.3-06 — société historique : après transfert du véhicule, une pièce de la nouvelle société est refusée sur l’intervention de l’ancienne",
+   "apps/api/test/integration/interventions-closure-scope.int.spec.ts › R-6.3-06 — transfert réel du véhicule : l’intervention terminée garde sa société historique ; facture et dépense contrôlées sur cette société"
   ],
-  "note": "Pièces jointes (rapport, photo du relevé d’exécution, facture) rattachées à une intervention contrôlées sur la société historique de l’intervention (attach sameCompany) en plus du périmètre utilisateur : un fichier téléversé pour une autre société est refusé (404) même pour un chef des deux sociétés ou l’administrateur ; plan, fournisseur, relevé et ligne de travail hors intervention refusés (404) ; société historique conservée après transfert (T26 + test dédié). Écart consigné dans D-016 (« Pièces jointes d’une intervention »). Revue adversariale : le test « société historique » modifiait la société du véhicule par écriture directe en base et ne vérifiait pas que la pièce était la seule cause du refus ; ajout d’un contrôle positif (même clôture acceptée avec une pièce de la société historique) et d’un test par transfert réel via l’API (intervention terminée restée à A, invisible du chef B, facture de B refusée 404, dépense imputée à A). Découpage (lot C) : société historique contrôlée à la clôture et pièces jointes d’une autre société refusées (testé) ; transfert réel du véhicule par l’API (vehicle-transfer.service.ts) et ses tests, ainsi que le refus d’un fournisseur archivé dans les formulaires (suppliers.int.spec.ts, cas qui passe par POST /expenses et /fuel-entries) : livrés avec le lot D."
+  "note": "Pièces jointes (rapport, photo du relevé d’exécution, facture) rattachées à une intervention contrôlées sur la société historique de l’intervention (attach sameCompany) en plus du périmètre utilisateur : un fichier téléversé pour une autre société est refusé (404) même pour un chef des deux sociétés ou l’administrateur ; plan, fournisseur, relevé et ligne de travail hors intervention refusés (404) ; société historique conservée après transfert (T26 + test dédié). Écart consigné dans D-016 (« Pièces jointes d’une intervention »). Revue adversariale : le test « société historique » modifiait la société du véhicule par écriture directe en base et ne vérifiait pas que la pièce était la seule cause du refus ; ajout d’un contrôle positif (même clôture acceptée avec une pièce de la société historique) et d’un test par transfert réel via l’API (intervention terminée restée à A, invisible du chef B, facture de B refusée 404, dépense imputée à A). Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-6.3-07": {
   "status": "fait",
@@ -4665,7 +4711,7 @@
   "note": "Les sept types (PANNE, DOMMAGE, ACCIDENT, CREVAISON, ANOMALIE_COMPTEUR, CONTRAVENTION, AUTRE) acceptés par l’API, type hors liste refusé (422), déclaration conducteur d’une anomalie compteur et d’un « autre » sur son utilisation."
  },
  "R-7.3-02": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "apps/api/src/modules/incidents/incidents.service.ts",
    "apps/api/src/modules/incidents/dto/incidents.dto.ts",
@@ -4674,10 +4720,11 @@
   "tests": [
    "apps/api/test/integration/incidents.int.spec.ts › le conducteur déclare sur son utilisation ; véhicule et utilisation fixés par le serveur ; il ne modifie pas le dossier",
    "apps/api/test/integration/incidents-suivi.int.spec.ts › vue : nom du site et du responsable du suivi ; candidats au suivi (nom seulement) pour le personnel de la société",
+   "apps/api/test/integration/expenses.int.spec.ts › D-217 — coût lié à un incident : dépenses rattachées et interventions issues, avoirs soustraits",
    "apps/api/test/integration/attachments-deletion.int.spec.ts › photos du véhicule et de l’incident : lecteur et conducteur refusés, rôle opérationnel autorisé ; la photo disparaît de la fiche",
    "apps/api/test/integration/immobilizations-lieu-durees.int.spec.ts › POST /incidents/:id/immobilize renvoie l’immobilisation créée puis complétée ; lieu et fin prévue appliqués explicitement"
   ],
-  "note": "Découpage (lot C) : coût lié calculé par la définition unique du registre (apps/api/src/modules/expenses/expense-links.ts et apps/api/src/domain/expense-ledger.ts, inclus par anticipation) ; test du coût lié livré avec le lot D (expenses.int.spec.ts › D-217)."
+  "note": "Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-7.3-03": {
   "status": "fait",
@@ -5061,9 +5108,10 @@
   ],
   "tests": [
    "apps/api/test/integration/interventions.int.spec.ts › attribue une référence INT-AAAA-NNNNNN séquentielle et refuse un plan d’un autre véhicule",
+   "apps/api/test/integration/suppliers.int.spec.ts › fournisseur archivé choisi dans un formulaire : 422 FOURNISSEUR_ARCHIVE (et non 404) ; hors société : 404",
    "apps/api/test/integration/interventions-closure-scope.int.spec.ts › R-15.3-08 — fournisseur, ligne de travail, relevé et pièces jointes hors périmètre de l’intervention : 404, rien n’est clôturé"
   ],
-  "note": "La transaction de clôture refuse (404, rien n’est clôturé : statut, travaux, base du plan, dépense, pièces inchangés) un fournisseur d’une autre société, une ligne de travail d’une autre intervention, un relevé d’un autre véhicule, un fichier téléversé pour une autre société (rapport ou photo du relevé, y compris pour l’administrateur) ou illisible ; même contrôle pour la facture de la saisie de coût ; les objets de la société de l’intervention sont acceptés. Découpage (lot C) : cas « fournisseur archivé choisi dans un formulaire » (suppliers.int.spec.ts, passe par les routes du lot D) : test livré avec le lot D."
+  "note": "La transaction de clôture refuse (404, rien n’est clôturé : statut, travaux, base du plan, dépense, pièces inchangés) un fournisseur d’une autre société, une ligne de travail d’une autre intervention, un relevé d’un autre véhicule, un fichier téléversé pour une autre société (rapport ou photo du relevé, y compris pour l’administrateur) ou illisible ; même contrôle pour la facture de la saisie de coût ; les objets de la société de l’intervention sont acceptés. Requalification (lot D) : preuves livrées avec le lot D présentes dans l’arbre et vertes."
  },
  "R-17.1-04": {
   "status": "fait",
@@ -5245,5 +5293,1664 @@
    "apps/api/test/integration/driver-documents-permit.int.spec.ts › R-3.3-X01 — justificatif conducteur paramétré bloquant (type CONDUCTEUR) : départ refusé tant qu’il manque, accepté une fois valide ; restitution toujours possible"
   ],
   "note": "Réservation (existant) et départ : permis absent, expiré ou d’une autre catégorie → PERMIS_NON_CONFORME ; dérogation exceptions.override motivée et auditée (chef), refusée à l’opérateur, sans modifier le permis ; justificatif conducteur bloquant (type CONDUCTEUR) manquant ou expiré → DOCUMENT_BLOQUANT, restitution toujours possible ; sans paramétrage, aucun contrôle inventé."
+ },
+ "R-1.2-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/fuel/fuel.controller.ts",
+   "apps/api/src/modules/expenses/expenses.controller.ts",
+   "apps/api/src/modules/suppliers/suppliers.controller.ts",
+   "apps/web/app/(app)/carburant/page.tsx",
+   "apps/web/app/(app)/depenses/page.tsx",
+   "apps/web/app/(app)/fournisseurs/page.tsx",
+   "apps/web/app/(app)/depenses/[id]/expense-detail.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/carburant.spec.ts › le chef saisit un plein avec anomalies : avertissements de l’API, confirmation de la capacité, consommation N/D motivée puis 12,5 L/100 km (T25)",
+   "tests/e2e/specs/carburant.spec.ts › le conducteur déclare un plein depuis Mon véhicule ; le chef le voit en attente, le valide, et une seconde validation est refusée",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef saisit une dépense avec justificatif, la retrouve dans la synthèse puis l’exclut du coût d’exploitation",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef corrige une dépense validée (nouvelle version, ancienne remplacée) puis l’annule avec motif",
+   "apps/api/test/integration/fuel.int.spec.ts › T24 — plein validé deux fois : même clé → réponse rejouée, autre clé → 409 DEJA_VALIDE, une seule dépense",
+   "apps/api/test/integration/expenses.int.spec.ts › T24 — la dépense de synthèse d’une intervention apparaît une seule fois ; elle se corrige par sa source",
+   "apps/api/test/integration/suppliers.int.spec.ts › unicité par société sur le nom normalisé (casse, accents, espaces), parmi les fournisseurs actifs seulement",
+   "apps/api/test/integration/suppliers-directory.int.spec.ts › GET /suppliers : actifs par défaut, filtres société, catégorie, statut et recherche (nom ou contact), total exact et pagination",
+   "tests/e2e/specs/depenses-fournisseurs.spec.ts › le chef tient le répertoire : création, recherche, fiche avec contacts et historique des dépenses, archivage puis réactivation",
+   "tests/e2e/specs/depenses-fournisseurs.spec.ts › chaîne des corrections navigable depuis le registre ; synthèse filtrée comme la liste ; le registre ne remplace pas la comptabilité"
+  ],
+  "note": "F06 livré et testé : carburant (saisie, soumission conducteur, validation, correction, consommation, lien vers la dépense de synthèse), registre des dépenses (saisie, correction, annulation, avoir, synthèse filtrée comme la liste, détail /depenses/:id et chaîne des corrections) et fournisseurs (liste filtrée et cloisonnée GET /suppliers, unicité, copie, archivage ; écran /fournisseurs en e2e : création, recherche, fiche, historique des dépenses, archivage, réactivation, copie). Sans comptabilité générale (guide utilisateur, test lot-d-docs)."
+ },
+ "R-1.2-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/alerts/alerts.service.ts",
+   "apps/api/src/modules/alerts/alert-center.service.ts",
+   "apps/api/src/modules/notifications/notifications.service.ts",
+   "apps/worker/src/jobs/alert-catch-up.job.ts",
+   "apps/worker/src/jobs/outbox-dispatcher.job.ts",
+   "apps/web/app/(app)/alertes/page.tsx",
+   "apps/web/app/(app)/alertes/alerts-center.tsx",
+   "apps/web/app/(app)/administration/notifications/notifications-admin.tsx",
+   "apps/api/src/modules/health/health.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T19 — dix recalculs de la même occurrence : une seule alerte active, aucune ligne d’outbox dupliquée",
+   "apps/api/test/integration/alerts.int.spec.ts › T20 — « lu » sur une vidange en retard : l’alerte reste ACTIVE et le plan EN_RETARD ; report motivé visible, statut inchangé",
+   "apps/api/test/integration/alerts.int.spec.ts › alertes internes disponibles, aucune ligne d’outbox, statut exact « Canal e-mail non configuré »",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (c) arrêt brutal pendant l’envoi puis redémarrage avec SMTP disponible : reprise après expiration du verrou, envoi réel (Mailpit), statut ENVOYE ; droits revérifiés",
+   "apps/worker/src/jobs/daily-jobs.spec.ts › dû à 08:00 heure de Tunis, rattrapé le jour même après un arrêt, jamais deux fois",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › rattrapage : alertes temporelles et réservations non honorées, une fois par créneau ; créneau manqué rattrapé au redémarrage",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef marque une alerte comme lue puis la reporte : elle reste active",
+   "tests/e2e/specs/alertes-notifications.spec.ts › incident critique : l’alerte affiche son responsable de suivi et mène à l’action ; résolue à la prise en charge",
+   "tests/e2e/specs/alertes-notifications.spec.ts › sans SMTP : « Canal e-mail non configuré » pour l’administrateur et dans les préférences, file vide, aucun envoi annoncé",
+   "apps/api/test/integration/alerts-occurrences.int.spec.ts › R-9.1-06 — immobilisation : réservation proche compromise (date locale dans le texte), réservation lointaine au rattrapage, résolution à la fin de l’immobilisation",
+   "apps/api/test/integration/alerts-occurrences.int.spec.ts › R-9.1-06 — retard de retour : retour dépassé et réservation suivante compromise, textes datés dans le fuseau du groupe (jamais en UTC brut)",
+   "apps/api/test/integration/alerts-occurrences.int.spec.ts › R-6.4-13 / R-9.2-06 — plan : la clôture résout l’occurrence, l’échéance suivante crée une nouvelle alerte (nouvelle ligne, ancienne conservée résolue)"
+  ],
+  "note": "Centre d’alertes (lecture, report, compteurs, cloisonnement, responsable, action de résolution) et e-mails (outbox, envoi réel au serveur SMTP de test Mailpit, reprises, récapitulatif 08:00) testés en intégration, dans le worker et en e2e (/alertes, /administration/notifications et /profil/notifications sans SMTP : « Canal e-mail non configuré », compteurs de l’outbox à 0). Réservation compromise par une immobilisation, nouvelle occurrence à la récurrence suivante et contrôle du battement du worker par /health/worker testés. Découpage (lot D) : contrôle du battement du worker par /health/worker (health.int.spec.ts) livré avec le lot E."
+ },
+ "R-2.3-03": {
+  "status": "partiel",
+  "files": [
+   "apps/worker/src/jobs/outbox-dispatcher.job.ts",
+   "apps/worker/src/jobs/daily-digest.job.ts",
+   "apps/api/src/modules/notifications/notifications.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › revérification avant envoi (D-261) : report, habilitation retirée, compte désactivé ou alerte résolue → refus motivé",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (c) arrêt brutal pendant l’envoi puis redémarrage avec SMTP disponible : reprise après expiration du verrou, envoi réel (Mailpit), statut ENVOYE ; droits revérifiés",
+   "apps/api/test/integration/alerts.int.spec.ts › récapitulatif quotidien : une ligne par utilisateur et date locale, jamais avant l’heure ni pour un autre jour, sans alerte reportée"
+  ],
+  "note": "Jobs d’export portant organisation et demandeur : droits relus à l’exécution (job ABANDONNE si reports.export est retiré) et au téléchargement (403) ; e-mails revérifiés juste avant l’envoi (compte actif, habilitation sur la société de l’alerte, préférence, report) ; récapitulatif calculé par destinataire sur ses seules sociétés. Aucun cache partagé dans l’API (seul un cache local à une requête dans usage-report.service.ts). Le fichier prévu apps/api/test/integration/notifications.int.spec.ts n’existe pas : la couverture est dans alerts.int.spec.ts et outbox-dispatcher.job.spec.ts. Découpage (lot D) : notifications revérifiées avant envoi et récapitulatif par destinataire testés ; exports asynchrones (job-queue.job.ts, report-export.job-handler.ts, reports.int.spec.ts) : fonctionnalité et tests livrés avec le lot E."
+ },
+ "R-2.4-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicle-transfer.controller.ts",
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts",
+   "apps/api/src/modules/vehicles/dto/transfer-vehicle.dto.ts",
+   "apps/web/app/(app)/vehicules/[id]/transfer-dialog.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › réservé à l’administrateur : 403 pour le chef ou l’opérateur de la société, 404 hors périmètre",
+   "tests/e2e/specs/transfert.spec.ts › le chef de parc ne voit pas l’action de transfert (réservée à l’administrateur)"
+  ],
+  "note": "requireAdmin sur l’aperçu (GET /vehicles/:id/transfer-preview) et le transfert : chef et opérateur de la société 403, chef d’une autre société 404, companyId jamais modifiable par PATCH (422) ; action « Transférer » absente pour le chef (e2e). Le lecteur et le conducteur sont refusés par le même contrôle requireAdmin, sans test dédié à ces deux rôles."
+ },
+ "R-2.4-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts",
+   "apps/api/src/domain/vehicle-transfer.ts",
+   "apps/web/app/(app)/vehicules/[id]/transfer-dialog.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › bloque aussi une utilisation, une immobilisation et une réservation future ; l’incident ouvert n’est qu’un avertissement",
+   "apps/api/test/integration/vehicle-transfer-preconditions.int.spec.ts › R-2.4-02 — utilisation EN_COURS : aperçu bloqué et 409 TRANSFERT_BLOQUE ; transfert possible après la restitution, utilisation restée à A",
+   "apps/api/test/integration/vehicle-transfer-preconditions.int.spec.ts › R-2.4-02 — immobilisation ACTIVE : aperçu bloqué et 409 TRANSFERT_BLOQUE ; transfert possible après la fin de l’immobilisation",
+   "apps/api/test/integration/vehicle-transfer-preconditions.int.spec.ts › les quatre causes réunies sont toutes listées ; chacune doit être traitée avant le transfert",
+   "apps/api/src/domain/vehicle-transfer.spec.ts › réservation bloquante : CONFIRMEE dont la fin est postérieure à l’instant du transfert",
+   "tests/e2e/specs/transfert.spec.ts › aperçu bloqué par une réservation future, puis transfert après son annulation ; véhicule visible dans la société cible"
+  ],
+  "note": "409 TRANSFERT_BLOQUE avec liste typée et liens (libellés datés dans le fuseau du groupe). Testés pour les quatre causes : utilisation EN_COURS (refus puis transfert après la restitution, utilisation restée à A), immobilisation ACTIVE (refus puis transfert après la fin), intervention ouverte (T26) et réservation future confirmée (intégration et e2e) ; les quatre réunies sont toutes listées. Relevés en attente, pleins soumis et incidents ouverts sont des avertissements à acquitter (D-016, D-125)."
+ },
+ "R-2.4-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts",
+   "apps/api/src/domain/vehicle-transfer.ts",
+   "apps/api/src/modules/vehicles/dto/transfer-vehicle.dto.ts",
+   "apps/web/app/(app)/vehicules/[id]/transfer-dialog.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › relevé de transfert (contexte TRANSFERT, société d’origine) et décisions explicites : affectation, plans, site, service, documents, alertes",
+   "apps/api/src/domain/vehicle-transfer.spec.ts › une décision par plan actif, ni plus ni moins",
+   "apps/api/src/domain/vehicle-transfer.spec.ts › affectation active non clôturée : refus",
+   "tests/e2e/specs/transfert.spec.ts › aperçu bloqué par une réservation future, puis transfert après son annulation ; véhicule visible dans la société cible"
+  ],
+  "note": "Décision explicite exigée pour l’affectation en cours (closeCurrent) et pour chaque plan actif (KEEP avec responsable de la société cible, ou DEACTIVATE) : 422 DECISIONS_TRANSFERT avec erreurs par champ sinon ; affectation clôturée à l’instant du transfert, nouveau responsable créé dans la cible, plans conservés ou désactivés, alertes recalculées. Écrit directement par vehicle-transfer.service.ts (assignments.service.ts et maintenance.service.ts prévus non sollicités)."
+ },
+ "R-2.4-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts",
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/vehicles/event-company.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés",
+   "apps/api/test/integration/expenses.int.spec.ts › T26 — une dépense datée avant un transfert reste imputée à la société historique ; coûts historiques inchangés",
+   "tests/e2e/specs/transfert.spec.ts › aperçu bloqué par une réservation future, puis transfert après son annulation ; véhicule visible dans la société cible"
+  ],
+  "note": "Aucun companyId réécrit par le transfert : dépense, intervention et relevé restent à la société d’origine (T26), dépense datée avant le transfert non visible par la cible ; une saisie antidatée par la cible est refusée (PERIODE_HORS_PERIMETRE) ; rapport coûts/distances ventilé par société détentrice ; e2e : dépense ASSUR-E2E-TR1 toujours imputée à la société A. Découpage (lot D) : ventilation du rapport coûts/distances par société détentrice (reports.int.spec.ts › 11.3) livrée avec le lot E."
+ },
+ "R-2.4-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts",
+   "apps/api/src/modules/documents/documents.service.ts",
+   "apps/api/src/modules/vehicles/vehicles.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › relevé de transfert (contexte TRANSFERT, société d’origine) et décisions explicites : affectation, plans, site, service, documents, alertes",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés",
+   "tests/e2e/specs/transfert.spec.ts › aperçu bloqué par une réservation future, puis transfert après son annulation ; véhicule visible dans la société cible"
+  ],
+  "note": "La société cible voit le véhicule (fiche, liste, synthèse avec son responsable), les plans conservés (société B, alerte recalculée pour B) et seulement la version de document partagée (version expirée 404) ; la version partagée garde sa société historique (sharedWithCompanyIds)."
+ },
+ "R-2.4-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/expenses/expenses.service.ts",
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › après le transfert : localisations, alertes et fournisseur de contrat restent à la société d’origine (aucune fuite ni référence croisée)",
+   "apps/api/test/integration/expenses.int.spec.ts › CDC 2.4 — coût lié à un incident d’un véhicule transféré : la dépense d’une autre société n’est ni additionnée ni révélée"
+  ],
+  "note": "Anciens coûts invisibles pour la cible (dépense 404, coût lié d’un incident non additionné ni révélé, rapport limité à sa part) ; localisations de la société d’origine, auteur et commentaire masqués pour la cible (D-123). Découpage (lot D) : rapport limité à la part de la société (reports.int.spec.ts › 11.3) livré avec le lot E."
+ },
+ "R-2.4-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts",
+   "apps/api/src/modules/access-control/access-control.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › après le transfert : localisations, alertes et fournisseur de contrat restent à la société d’origine (aucune fuite ni référence croisée)",
+   "apps/api/test/integration/expenses.int.spec.ts › CDC 2.4 — coût lié à un incident d’un véhicule transféré : la dépense d’une autre société n’est ni additionnée ni révélée"
+  ],
+  "note": "L’administrateur voit les deux parts du rapport coûts/distances, l’historique complet des localisations avec auteur et commentaire, et le coût lié complet d’un incident (140 = 100 + 40) toutes sociétés confondues. Découpage (lot D) : deux parts du rapport coûts/distances vues par l’administrateur (reports.int.spec.ts › 11.3) livrées avec le lot E."
+ },
+ "R-2.4-08": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts",
+   "apps/api/src/infra/audit.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › refuse un relevé de transfert incohérent (contrôle du service unique) sans rien écrire",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › deux transferts concurrents : verrou du véhicule, un seul aboutit (l’autre reçoit 409)",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › idempotent (même clé et même corps : même résultat ; corps différent : 409) et versionné"
+  ],
+  "note": "Transaction sérialisable avec verrou du véhicule : relevé incohérent ou en attente → rien n’est écrit ; deux transferts concurrents → un seul aboutit ; idempotent et versionné. VehicleCompanyHistory (effectiveAt, motif, auteur, instantané technique : compteur, plans, documents, affectation de distance) et audit vehicule.transfert vérifiés. Audit par apps/api/src/infra/audit.service.ts (modules/audit/audit.service.ts prévu)."
+ },
+ "R-4.5-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/worker/src/jobs/alert-catch-up.job.ts",
+   "apps/api/src/domain/return-delay.ts",
+   "apps/api/src/common/clock.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T07 — retour dépassé avec réservation suivante : alerte, utilisation ouverte, départ suivant bloqué",
+   "apps/api/test/integration/usages-rules.int.spec.ts › retard : isLate, filtre late=true et alerte RETOUR_DEPASSE appliquent la même tolérance, par société",
+   "apps/api/src/domain/return-delay.spec.ts › retour réel après le retour prévu au-delà de la tolérance : retard en minutes"
+  ],
+  "note": "RETOUR_DEPASSE levée par UsagesService.evaluateLateReturns (étape « retours » du rattrapage worker) dès le dépassement au-delà de usage.lateReturnToleranceMinutes (par société, bornes exactes testées) ; utilisation laissée EN_COURS ; résolue au retour."
+ },
+ "R-5.5-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-freshness.service.ts",
+   "apps/api/src/domain/freshness.ts",
+   "apps/worker/src/jobs/alert-catch-up.job.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T12 — alertes de fraîcheur : kilométrage inconnu, puis ancien au-delà du seuil, résolues par un relevé ; aucune alerte hors service",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › rattrapage : alertes temporelles et réservations non honorées, une fois par créneau ; créneau manqué rattrapé au redémarrage",
+   "apps/api/src/domain/freshness.spec.ts › respecte un seuil configuré différent",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef marque une alerte comme lue puis la reporte : elle reste active"
+  ],
+  "note": "KILOMETRAGE_ABSENT (INCONNU) et KILOMETRAGE_ANCIEN (A_ACTUALISER) évaluées par le rattrapage (créée par le worker au premier créneau) et à chaque relevé accepté ; résolues par un relevé récent ; visibles du chef (e2e /alertes)."
+ },
+ "R-6.2-14": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/maintenance/maintenance-plans.service.ts",
+   "apps/api/src/modules/alerts/alerts.service.ts",
+   "apps/worker/src/jobs/alert-catch-up.job.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/maintenance.int.spec.ts › T15 — base 80 000, intervalle 10 000 : 89 500 A_PREVOIR, 90 000 A_FAIRE, 90 200 EN_RETARD, sans GPS",
+   "apps/api/test/integration/maintenance.int.spec.ts › T16 — date atteinte avant le kilométrage : à faire le jour local de l’échéance, en retard le lendemain",
+   "apps/api/test/integration/alerts.int.spec.ts › T19 — dix recalculs de la même occurrence : une seule alerte active, aucune ligne d’outbox dupliquée",
+   "apps/api/test/integration/interventions.int.spec.ts › T17 — une batterie terminée n’a aucun effet sur la vidange ; vidange à 90 300 → suivante à 100 300",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › rattrapage : alertes temporelles et réservations non honorées, une fois par créneau ; créneau manqué rattrapé au redémarrage"
+  ],
+  "note": "ENTRETIEN_ECHEANCE : ATTENTION (A_PREVOIR), URGENT (A_FAIRE), CRITIQUE (EN_RETARD), recalculée à la validation d’un relevé ou d’un entretien et par le rattrapage (recomputeAll) pour les échéances de date ; une seule alerte par occurrence dont la gravité monte."
+ },
+ "R-6.2-15": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/alerts/alert-center.service.ts",
+   "apps/api/src/domain/maintenance-schedule.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T20 — « lu » sur une vidange en retard : l’alerte reste ACTIVE et le plan EN_RETARD ; report motivé visible, statut inchangé",
+   "apps/api/test/integration/interventions.int.spec.ts › T17 — une batterie terminée n’a aucun effet sur la vidange ; vidange à 90 300 → suivante à 100 300",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef marque une alerte comme lue puis la reporte : elle reste active"
+  ],
+  "note": "Lu et report (il n’existe pas d’action de masquage distincte du report) laissent le plan EN_RETARD et l’alerte ACTIVE, y compris après recalcul ; seule la clôture d’une intervention réalisée change la base et résout l’alerte."
+ },
+ "R-6.4-12": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/interventions/interventions.service.ts",
+   "apps/api/src/modules/expenses/expenses.service.ts",
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql"
+  ],
+  "tests": [
+   "apps/api/test/integration/expenses.int.spec.ts › T24 — la dépense de synthèse d’une intervention apparaît une seule fois ; elle se corrige par sa source",
+   "apps/api/test/integration/interventions.int.spec.ts › T24 — clôture rejouée : même clé → même résultat ; autre clé → 409 ; une seule dépense",
+   "apps/api/test/integration/interventions-closure-scope.int.spec.ts › R-6.4-06 — les alertes des plans sont réévaluées dans la transaction de clôture : un échec d’écriture d’alerte annule toute la clôture"
+  ],
+  "note": "Clôture d’intervention : une seule dépense de synthèse (INTERVENTION, sourceId), rejeu même clé = même résultat, autre clé = 409, lignes pièces et main-d’œuvre non recomptées dans la synthèse. Index partiel expense_one_active_per_source dans la migration initiale (0002_integrity_constraints prévue absente)."
+ },
+ "R-6.4-13": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/maintenance/maintenance-plans.service.ts",
+   "apps/api/src/modules/interventions/interventions.service.ts",
+   "apps/api/src/modules/alerts/alerts.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/interventions-closure-scope.int.spec.ts › R-6.4-06 — les alertes des plans sont réévaluées dans la transaction de clôture : un échec d’écriture d’alerte annule toute la clôture",
+   "apps/api/test/integration/interventions.int.spec.ts › T17 — une batterie terminée n’a aucun effet sur la vidange ; vidange à 90 300 → suivante à 100 300",
+   "apps/api/test/integration/interventions-closure-scope.int.spec.ts › R-13.3-09 — réouverture : dépense annulée, base recalculée et alerte réactivée dans la même transaction",
+   "apps/api/test/integration/alerts-occurrences.int.spec.ts › R-6.4-13 / R-9.2-06 — plan : la clôture résout l’occurrence, l’échéance suivante crée une nouvelle alerte (nouvelle ligne, ancienne conservée résolue)"
+  ],
+  "note": "Clôture : alertes des plans réalisés résolues dans la transaction (échec d’écriture d’alerte = clôture annulée), réactivées à la réouverture. Récurrence suivante testée : après la clôture, l’échéance suivante dépassée crée une nouvelle alerte (nouvelle ligne, occurrence echeance:91200), l’ancienne reste RESOLUE, le rattrapage ne duplique rien."
+ },
+ "R-7.1-14": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/documents/documents.service.ts",
+   "apps/api/src/domain/document-status.ts",
+   "apps/worker/src/jobs/alert-catch-up.job.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/documents.int.spec.ts › absence d’un document requis : MANQUANT et alerte dédiée, résolue à l’enregistrement",
+   "apps/api/test/integration/documents.int.spec.ts › T21 — fin de validité aujourd’hui : valable jusqu’à la fin du jour local, expiré le lendemain, puis valide à l’entrée en vigueur du renouvellement futur",
+   "apps/api/test/integration/documents.int.spec.ts › paliers de préavis 30/15/7 : une seule alerte dont la gravité monte ; renouvellement sans trou → alerte résolue"
+  ],
+  "note": "DOCUMENT_MANQUANT et DOCUMENT_ECHEANCE (paliers de préavis, expiré CRITIQUE), évaluées par le rattrapage et à l’enregistrement ; résolues dès qu’une version valide existe (enregistrement, renouvellement entré en vigueur)."
+ },
+ "R-7.3-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/incidents/incidents.service.ts",
+   "apps/api/src/modules/alerts/alerts.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/incidents.int.spec.ts › incident critique : alerte immédiate, résolue à la prise en charge ; transitions et rôles ; clôture après résolution",
+   "apps/api/test/integration/alerts-occurrences.int.spec.ts › R-7.3-10 — incident critique non traité : alerte adressée au responsable de suivi, qui suit ses changements ; résolue à la prise en charge",
+   "tests/e2e/specs/alertes-notifications.spec.ts › incident critique : l’alerte affiche son responsable de suivi et mène à l’action ; résolue à la prise en charge"
+  ],
+  "note": "INCIDENT_CRITIQUE levée dès qu’un incident CRITIQUE est OUVERT (D-218), adressée au responsable de suivi (responsibleUserId = followUpUserId, affiché « responsable : … » au centre d’alertes) ; un changement de responsable de suivi met à jour la même alerte (AlertsService.raise met désormais à jour le responsable fourni) ; sans responsable : « Non attribué » ; résolue à la prise en charge. Intégration et e2e."
+ },
+ "R-8.1-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/suppliers/suppliers.controller.ts",
+   "apps/api/src/modules/suppliers/suppliers.service.ts",
+   "apps/api/src/modules/suppliers/dto/suppliers.dto.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/suppliers.int.spec.ts › « Copier vers une autre société » : chef des deux sociétés ou administrateur ; nouvelle fiche sans historique ni montants",
+   "apps/api/test/integration/suppliers.int.spec.ts › fournisseur archivé choisi dans un formulaire : 422 FOURNISSEUR_ARCHIVE (et non 404) ; hors société : 404",
+   "apps/api/test/integration/suppliers-directory.int.spec.ts › cloisonnement de la liste : chaque chef ne voit que ses sociétés, société hors périmètre → 404, conducteur → 403, administrateur : toutes",
+   "apps/api/test/integration/suppliers-directory.int.spec.ts › GET /suppliers : actifs par défaut, filtres société, catégorie, statut et recherche (nom ou contact), total exact et pagination",
+   "apps/api/test/integration/expenses.int.spec.ts › D-230 — dépense sans véhicule limitée à assurance, taxes, location et autre ; ligne « Non ventilé »",
+   "apps/api/test/integration/fuel.int.spec.ts › cloisonnement : chef B ne voit rien de A (404), lecteur sans costs.read sans montants"
+  ],
+  "note": "Fiche rattachée à une société (nom, catégorie, contact, téléphone, e-mail, adresse, notes) ; périmètre par access.companyWhere (liste) et load (fiche). Testés : liste cloisonnée (chef A ne voit ni ne compte B, même par la recherche ; companyId hors périmètre → 404 ; conducteur 403 ; administrateur : toutes), fiche et actions hors périmètre 404, fournisseur d’une autre société introuvable dans les formulaires."
+ },
+ "R-8.1-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/suppliers/dto/suppliers.dto.ts",
+   "packages/db/prisma/schema.prisma",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/suppliers-directory.int.spec.ts › catégorie hors liste fermée (garage, station, assurance, loueur, autre) : 422 à la création et à la modification, rien n’est écrit",
+   "tests/e2e/specs/depenses-fournisseurs.spec.ts › le chef tient le répertoire : création, recherche, fiche avec contacts et historique des dépenses, archivage puis réactivation",
+   "apps/api/src/lot-d-docs.spec.ts › guide utilisateur (8.1) : répertoire seulement — ni commandes, ni stock, ni comptes fournisseurs, dans le guide comme dans le code"
+  ],
+  "note": "@IsIn(GARAGE, STATION, ASSURANCE, LOUEUR, AUTRE) dans les DTO et enum SupplierCategory en base ; libellés dans packages/contracts/src/index.ts (labels.fr.ts prévu absent). Testé : catégorie hors liste refusée (422 VALIDATION, fieldErrors.category) à la création, à la modification et au filtre, rien n’est écrit ; la base refuse aussi une valeur hors énumération ; l’écran ne propose que les cinq catégories (e2e)."
+ },
+ "R-8.1-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/suppliers/suppliers.controller.ts",
+   "apps/api/src/modules/suppliers/suppliers.service.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/interventions-coherence.int.spec.ts › historique d’un fournisseur : filtre supplierId, y compris après archivage",
+   "apps/api/test/integration/suppliers.int.spec.ts › fournisseur archivé choisi dans un formulaire : 422 FOURNISSEUR_ARCHIVE (et non 404) ; hors société : 404",
+   "apps/api/test/integration/suppliers.int.spec.ts › unicité par société sur le nom normalisé (casse, accents, espaces), parmi les fournisseurs actifs seulement"
+  ],
+  "note": "Archivage et réactivation (POST /suppliers/:id/archive et /restore), aucune route de suppression, clés étrangères onDelete Restrict ; après archivage, les interventions du fournisseur restent listées (filtre supplierId) et la fiche reste lisible (statut ARCHIVE). Les pleins et dépenses liés à un fournisseur archivé suivent le même mécanisme sans test dédié."
+ },
+ "R-8.1-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/suppliers/suppliers.controller.ts",
+   "apps/api/src/modules/suppliers/suppliers.service.ts",
+   "docs/guide-utilisateur.md"
+  ],
+  "tests": [
+   "apps/api/src/lot-d-docs.spec.ts › guide utilisateur (8.1) : répertoire seulement — ni commandes, ni stock, ni comptes fournisseurs, dans le guide comme dans le code"
+  ],
+  "note": "Contrôle automatisé de la revue : routes du contrôleur limitées au répertoire (liste, fiche, création, modification, archivage, réactivation, copie), aucun modèle de commande, de stock ou de compte fournisseur dans le schéma, mention dans docs/guide-utilisateur.md (« le module se limite au répertoire »)."
+ },
+ "R-8.2-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/fuel/fuel.controller.ts",
+   "apps/api/src/modules/fuel/fuel.service.ts",
+   "apps/api/src/modules/fuel/dto/create-fuel-entry.dto.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/fuel.int.spec.ts › saisie directe : plein VALIDE, relevé CARBURANT accepté et dépense de synthèse dans la même transaction",
+   "apps/api/test/integration/fuel.int.spec.ts › soumission conducteur : fenêtre d’utilisation, photo obligatoire, ni dépense ni relevé accepté (D-222, D-226)",
+   "tests/e2e/specs/carburant.spec.ts › le chef saisit un plein avec anomalies : avertissements de l’API, confirmation de la capacité, consommation N/D motivée puis 12,5 L/100 km (T25)"
+  ],
+  "note": "FuelEntry : véhicule, filledAt, driverId facultatif, supplierId, litres, prix unitaire facultatif, total, energy (type de carburant), isFullTank, declaredPhysicalKm + readingId, ticketAttachmentId ; saisie complète vérifiée (API et e2e)."
+ },
+ "R-8.2-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/fuel/dto/create-fuel-entry.dto.ts",
+   "apps/api/src/domain/money.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/fuel.int.spec.ts › refuse les valeurs nulles ou négatives, la date future et les énergies incompatibles (D-223, D-225)",
+   "apps/api/src/domain/money.spec.ts › refuse zéro, les négatifs, plus de trois décimales, les nombres JSON et les écritures exotiques"
+  ],
+  "note": "Litres 0, total −5 et prix 0 refusés en 422 VALIDATION avec erreurs attachées aux champs liters, totalAmount, unitPrice ; aucune écriture."
+ },
+ "R-8.2-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/money.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/src/domain/money.spec.ts › accepte un décimal strictement positif à trois décimales au plus",
+   "apps/api/src/domain/money.spec.ts › produit exact sans arrondi intermédiaire : 40,125 L × 2,525 = 101,315625",
+   "apps/api/src/domain/money.spec.ts › reste exact au-delà de 20 chiffres significatifs (produit de deux DECIMAL(18,3))",
+   "apps/api/src/domain/expense-ledger.spec.ts › additionne sans perte de précision (aucun flottant)"
+  ],
+  "note": "Decimal(18,3) pour litres, prix unitaire et total ; calculs en décimal exact, montants transmis en chaînes (un nombre JSON est refusé)."
+ },
+ "R-8.2-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/money.ts",
+   "apps/api/src/modules/fuel/fuel.service.ts",
+   "apps/api/src/modules/settings/settings.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/money.spec.ts › petit montant : la part fixe (0,100 TND) l’emporte sur 1 % du total",
+   "apps/api/src/domain/money.spec.ts › gros montant : la part relative (1 % du total) l’emporte",
+   "apps/api/src/domain/money.spec.ts › l’écart est une valeur absolue et le total saisi n’est jamais modifié",
+   "apps/api/src/domain/money.spec.ts › une tolérance paramétrée différemment est appliquée telle quelle",
+   "apps/api/test/integration/fuel.int.spec.ts › signale un écart litres × prix / total au-delà de la tolérance sans corriger le total (D-224)",
+   "tests/e2e/specs/carburant.spec.ts › le chef saisit un plein avec anomalies : avertissements de l’API, confirmation de la capacité, consommation N/D motivée puis 12,5 L/100 km (T25)"
+  ],
+  "note": "Tolérance fuel.amountToleranceTnd / fuel.amountToleranceRatio (paramètres) ; écart signalé (amountMismatch, valeur), total jamais modifié et repris tel quel par la dépense ; confirmation explicite exigée à la validation ; avertissement affiché (e2e)."
+ },
+ "R-8.2-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/fuel/fuel.service.ts",
+   "apps/api/src/modules/fuel/dto/create-fuel-entry.dto.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/fuel.int.spec.ts › soumission conducteur : fenêtre d’utilisation, photo obligatoire, ni dépense ni relevé accepté (D-222, D-226)",
+   "tests/e2e/specs/carburant.spec.ts › le conducteur déclare un plein depuis Mon véhicule ; le chef le voit en attente, le valide, et une seconde validation est refusée"
+  ],
+  "note": "Soumission conducteur SOUMIS : aucune dépense, relevé EN_ATTENTE (SOUMISSION_CONDUCTEUR), ticket obligatoire, fenêtre d’utilisation ; validation par le chef ensuite (e2e)."
+ },
+ "R-8.2-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/fuel/fuel.service.ts",
+   "apps/api/src/modules/fuel/dto/validate-fuel-entry.dto.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/expenses/expenses.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/fuel.int.spec.ts › saisie directe : plein VALIDE, relevé CARBURANT accepté et dépense de synthèse dans la même transaction",
+   "apps/api/test/integration/fuel.int.spec.ts › T24 — plein validé deux fois : même clé → réponse rejouée, autre clé → 409 DEJA_VALIDE, une seule dépense",
+   "apps/api/test/integration/fuel.int.spec.ts › compteur non validé : coût compté, plein exclu de la consommation jusqu’à régularisation (8.2, D-222)"
+  ],
+  "note": "Saisie directe : plein VALIDE, relevé CARBURANT par le service d’ingestion unique et dépense de synthèse dans la même transaction sérialisable (un échec n’écrit rien) ; validation d’une soumission : dépense unique, rejeu = même réponse, autre clé = 409 DEJA_VALIDE. Le relevé proposé par un conducteur, ingéré à la soumission, reste soumis à readings.approve (D-222)."
+ },
+ "R-8.2-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/fuel/fuel.service.ts",
+   "apps/api/src/domain/consumption.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/fuel.int.spec.ts › compteur non validé : coût compté, plein exclu de la consommation jusqu’à régularisation (8.2, D-222)",
+   "apps/api/src/domain/consumption.spec.ts › plein validé sans relevé accepté : COMPTEUR_NON_VALIDE (coût compté, consommation exclue)"
+  ],
+  "note": "Plein VALIDE à compteur non validé : dépense comptée, consumptionEligibility COMPTEUR_NON_VALIDE, redevenu ADMISSIBLE après approbation du relevé ou relevé accepté à l’heure du plein."
+ },
+ "R-8.2-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/fuel/dto/create-fuel-entry.dto.ts",
+   "apps/api/src/domain/consumption.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/consumption.spec.ts › 50 L / 400 km × 100 = 12,5 L/100 km ; le carburant acheté en A n’est pas compté",
+   "apps/api/src/domain/consumption.spec.ts › un plein complet SOUMIS n’est pas une borne : il rend l’intervalle N/D ; une fois validé, deux intervalles",
+   "apps/api/test/integration/fuel.int.spec.ts › refuse les valeurs nulles ou négatives, la date future et les énergies incompatibles (D-223, D-225)",
+   "apps/api/test/integration/fuel.int.spec.ts › T25 — deux pleins complets, partiel intermédiaire 20 L, dernier 30 L, 400 km : 12,5 L/100 km"
+  ],
+  "note": "isFullTank obligatoire (erreur de champ si absent) ; seuls les pleins complets admissibles bornent un intervalle (partiel intermédiaire compté dans les litres)."
+ },
+ "R-8.2-09": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/attachments/attachments.service.ts",
+   "apps/api/src/modules/fuel/fuel.service.ts",
+   "apps/api/src/modules/fuel/fuel-visibility.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/fuel.int.spec.ts › soumission conducteur : fenêtre d’utilisation, photo obligatoire, ni dépense ni relevé accepté (D-222, D-226)",
+   "apps/api/test/integration/fuel.int.spec.ts › cloisonnement : chef B ne voit rien de A (404), lecteur sans costs.read sans montants",
+   "apps/api/test/integration/attachments.int.spec.ts › accepte un PNG et un PDF, vérifie le type réel et renvoie un nom interne aléatoire",
+   "apps/api/test/integration/attachments.int.spec.ts › refuse un fichier HTML déguisé en image, un SVG et un fichier trop volumineux",
+   "tests/e2e/specs/carburant.spec.ts › le conducteur déclare un plein depuis Mon véhicule ; le chef le voit en attente, le valide, et une seconde validation est refusée"
+  ],
+  "note": "Ticket = pièce jointe privée PLEIN : types réels PDF/PNG/JPEG contrôlés, 10 Mo au plus (attachments) ; téléchargement après contrôle sur le plein propriétaire (conducteur : son ticket seulement ; chef B, lecteur sans costs.read : 404) ; photo réencodée en JPEG en e2e. Service réel : attachments.service.ts (files.service.ts prévu)."
+ },
+ "R-8.3-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/consumption.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/consumption.spec.ts › 50 L / 400 km × 100 = 12,5 L/100 km ; le carburant acheté en A n’est pas compté",
+   "apps/api/src/domain/consumption.spec.ts › borne B ou A à compteur non validé (relevé en attente ou absent)",
+   "apps/api/src/domain/consumption.spec.ts › plein intermédiaire encore SOUMIS",
+   "apps/api/src/domain/consumption.spec.ts › période déclarée « achats incomplets » qui recoupe ]A, B]",
+   "apps/api/test/integration/fuel.int.spec.ts › T25 — deux pleins complets, partiel intermédiaire 20 L, dernier 30 L, 400 km : 12,5 L/100 km"
+  ],
+  "note": "Intervalle calculé seulement entre deux pleins complets admissibles à kilométrage validé croissant, sans période « achats incomplets » ni achat intermédiaire non validé."
+ },
+ "R-8.3-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/consumption.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/consumption.spec.ts › 50 L / 400 km × 100 = 12,5 L/100 km ; le carburant acheté en A n’est pas compté",
+   "apps/api/test/integration/fuel.int.spec.ts › T25 — deux pleins complets, partiel intermédiaire 20 L, dernier 30 L, 400 km : 12,5 L/100 km"
+  ],
+  "note": "Litres = achats de ]A, B] (intermédiaire 20 L + B 30 L = 50 L), le carburant acheté en A exclu."
+ },
+ "R-8.3-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/consumption.ts",
+   "apps/api/src/modules/fuel/fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/consumption.spec.ts › 50 L / 400 km × 100 = 12,5 L/100 km ; le carburant acheté en A n’est pas compté",
+   "apps/api/test/integration/fuel.int.spec.ts › T25 — deux pleins complets, partiel intermédiaire 20 L, dernier 30 L, 400 km : 12,5 L/100 km",
+   "tests/e2e/specs/carburant.spec.ts › le chef saisit un plein avec anomalies : avertissements de l’API, confirmation de la capacité, consommation N/D motivée puis 12,5 L/100 km (T25)"
+  ],
+  "note": "Recette 50 / 400 × 100 = 12,5 L/100 km vérifiée en unitaire, en intégration et à l’écran (e2e)."
+ },
+ "R-8.3-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/consumption.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/consumption.spec.ts › historique insuffisant : un seul plein complet → N/D motivé, aucune valeur 0",
+   "apps/api/src/domain/consumption.spec.ts › distance nulle entre deux pleins complets : N/D (jamais de division par zéro)",
+   "apps/api/src/domain/consumption.spec.ts › plusieurs motifs sont tous restitués",
+   "apps/api/test/integration/fuel.int.spec.ts › T25 — deux pleins complets, partiel intermédiaire 20 L, dernier 30 L, 400 km : 12,5 L/100 km",
+   "apps/api/test/integration/fuel.int.spec.ts › N/D motivés par l’API : période « achats incomplets », capacité dépassée non confirmée puis confirmée",
+   "tests/e2e/specs/carburant.spec.ts › le chef saisit un plein avec anomalies : avertissements de l’API, confirmation de la capacité, consommation N/D motivée puis 12,5 L/100 km (T25)"
+  ],
+  "note": "N/D avec motifs (historique insuffisant, distance nulle, borne partielle ou non validée, capacité non confirmée, achats incomplets) ; jamais 0 ni division par zéro ; motif affiché (e2e)."
+ },
+ "R-8.3-05": {
+  "status": "fait",
+  "files": [
+   "apps/web/app/(app)/vehicules/[id]/consumption-panel.tsx",
+   "apps/api/src/modules/fuel/dto/consumption.dto.ts",
+   "apps/api/src/modules/fuel/fuel.service.ts"
+  ],
+  "tests": [
+   "tests/e2e/specs/carburant.spec.ts › le chef saisit un plein avec anomalies : avertissements de l’API, confirmation de la capacité, consommation N/D motivée puis 12,5 L/100 km (T25)",
+   "apps/api/test/integration/fuel.int.spec.ts › T25 — deux pleins complets, partiel intermédiaire 20 L, dernier 30 L, 400 km : 12,5 L/100 km"
+  ],
+  "note": "Mention « Estimation fondée sur les pleins saisis, pas une mesure télématique. » vérifiée à l’écran ; champ nature de l’API contenant « Estimation ». Texte dans consumption-panel.tsx (labels.fr.ts prévu absent)."
+ },
+ "R-8.3-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/fuel-rules.ts",
+   "apps/api/src/modules/fuel/fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/fuel.int.spec.ts › refuse les valeurs nulles ou négatives, la date future et les énergies incompatibles (D-223, D-225)",
+   "apps/api/src/domain/fuel-rules.spec.ts › véhicule électrique : refus, module kWh hors V1"
+  ],
+  "note": "Un véhicule ELECTRIQUE se crée et se modifie comme les autres (énergie renseignée par PATCH 200) ; tout plein y est refusé (422 VEHICULE_ELECTRIQUE, module kWh hors V1). docs/guide-utilisateur.md prévu absent."
+ },
+ "R-8.4-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/expenses/dto/create-expense.dto.ts",
+   "packages/db/prisma/schema.prisma",
+   "packages/contracts/src/index.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/expenses.int.spec.ts › D-230 — dépense sans véhicule limitée à assurance, taxes, location et autre ; ligne « Non ventilé »",
+   "apps/api/test/integration/expenses.int.spec.ts › D-229 — avoir : montant positif soustrait, rattachement facultatif, net négatif affiché tel quel",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef saisit une dépense avec justificatif, la retrouve dans la synthèse puis l’exclut du coût d’exploitation"
+  ],
+  "note": "Enum ExpenseCategory : ENTRETIEN_REPARATION, CARBURANT, ASSURANCE, LOCATION, TAXES, PEAGE, STATIONNEMENT, AUTRE, plus ACHAT_VEHICULE (R-8.4-08, D-233) ; chaque catégorie exercée et libellés vérifiés."
+ },
+ "R-8.4-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/expenses/expenses.controller.ts",
+   "apps/api/src/modules/expenses/expenses.service.ts",
+   "apps/api/src/modules/expenses/dto/create-expense.dto.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/test/integration/expenses.int.spec.ts › création manuelle idempotente : même clé → même réponse ; autre corps → 409 ; clé obligatoire",
+   "apps/api/test/integration/expenses.int.spec.ts › D-230 — dépense sans véhicule limitée à assurance, taxes, location et autre ; ligne « Non ventilé »",
+   "apps/api/test/integration/expenses.int.spec.ts › T24 — la dépense de synthèse d’une intervention apparaît une seule fois ; elle se corrige par sa source",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef saisit une dépense avec justificatif, la retrouve dans la synthèse puis l’exclut du coût d’exploitation"
+  ],
+  "note": "Société au fait générateur, véhicule (ou dépense société non affectée), date civile, catégorie, fournisseur, référence, montant TTC, devise TND, justificatif (pièce jointe DEPENSE) et source liée (PLEIN, INTERVENTION) vérifiés."
+ },
+ "R-8.4-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/expenses/expenses.service.ts",
+   "apps/api/src/modules/vehicles/event-company.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/expenses.int.spec.ts › T26 — une dépense datée avant un transfert reste imputée à la société historique ; coûts historiques inchangés",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés"
+  ],
+  "note": "Société imputée = société gestionnaire du véhicule à la date de la dépense (eventCompany, D-231) ; dépense antérieure au transfert restée à A, saisie antidatée par la cible refusée, correction ne changeant jamais la société (SOCIETE_INCHANGEE) ; rapport ventilé par société détentrice. Découpage (lot D) : rapport ventilé par société détentrice (distance-cost-report.service.ts, reports.int.spec.ts › 11.3) livré avec le lot E."
+ },
+ "R-8.4-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/expenses/expenses.service.ts",
+   "apps/api/src/modules/fuel/fuel.service.ts",
+   "apps/api/src/modules/interventions/interventions.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/fuel.int.spec.ts › T24 — plein validé deux fois : même clé → réponse rejouée, autre clé → 409 DEJA_VALIDE, une seule dépense",
+   "apps/api/test/integration/expenses.int.spec.ts › T24 — la dépense de synthèse d’une intervention apparaît une seule fois ; elle se corrige par sa source",
+   "apps/api/test/integration/interventions.int.spec.ts › T24 — clôture rejouée : même clé → même résultat ; autre clé → 409 ; une seule dépense",
+   "tests/e2e/specs/carburant.spec.ts › le conducteur déclare un plein depuis Mon véhicule ; le chef le voit en attente, le valide, et une seconde validation est refusée"
+  ],
+  "note": "Plein et intervention validés deux fois (même clé, autre clé, concurrence) : une seule dépense par source ; e2e : une seule ligne « Synthèse d’un plein » au registre."
+ },
+ "R-8.4-05": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/expenses/expenses.service.ts",
+   "apps/api/src/domain/expense-ledger.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/expenses.int.spec.ts › T24 — la dépense de synthèse d’une intervention apparaît une seule fois ; elle se corrige par sa source"
+  ],
+  "note": "Synthèse, tableau de bord (costs.operating justifié par /expenses/summary) et rapports lisent uniquement le registre Expense ; aucune lecture des lignes d’intervention dans reports/ ni dashboard/ ; pièces et main-d’œuvre non recomptées (T24). Test prévu dans reports.int.spec.ts : couverture par expenses et dashboard. Découpage (lot D) : registre sans double comptage testé (T24) ; tableau de bord et rapports (dashboard.service.ts, distance-cost-report.service.ts, dashboard.int.spec.ts › T02) : fonctionnalité et tests livrés avec le lot E."
+ },
+ "R-8.4-06": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql",
+   "apps/api/src/modules/expenses/expenses.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/expenses-ledger-integrity.int.spec.ts › R-8.4-06 — l’index unique expense_one_active_per_source refuse en base une seconde dépense VALIDEE pour la même source ; annulées et remplacées ne comptent pas",
+   "apps/api/test/integration/fuel.int.spec.ts › T24 — plein validé deux fois : même clé → réponse rejouée, autre clé → 409 DEJA_VALIDE, une seule dépense",
+   "apps/api/test/integration/interventions.int.spec.ts › T24 — clôture rejouée : même clé → même résultat ; autre clé → 409 ; une seule dépense",
+   "apps/api/test/integration/expenses.int.spec.ts › D-232 — référence fournisseur en double → 409 DEPENSE_REFERENCE_EXISTANTE, casse ignorée, y compris en concurrence",
+   "apps/api/test/integration/expenses.int.spec.ts › D-232 niveau 3 — un justificatif identique déjà rattaché déclenche un avertissement à confirmer",
+   "apps/api/test/integration/expenses.int.spec.ts › création manuelle idempotente : même clé → même réponse ; autre corps → 409 ; clé obligatoire"
+  ],
+  "note": "Index partiel unique expense_one_active_per_source (sourceType, sourceId) WHERE VALIDEE (migration initiale ; 0002_integrity_constraints n’existe pas) exercé directement : une seconde dépense VALIDEE de la même source est refusée par la base (client Prisma et SQL brut), l’historique ANNULEE/REMPLACEE reste possible. Relance : même clé → même écriture, même référence fournisseur → 409 DEPENSE_REFERENCE_EXISTANTE ; une seule dépense par source (rejeu, autre clé, concurrence)."
+ },
+ "R-8.4-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/money.ts",
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/organizations/organizations.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/expenses.int.spec.ts › création manuelle idempotente : même clé → même réponse ; autre corps → 409 ; clé obligatoire",
+   "apps/api/src/domain/money.spec.ts › accepte un décimal strictement positif à trois décimales au plus",
+   "apps/web/lib/format.spec.ts › montants en TND à trois décimales"
+  ],
+  "note": "Devise TND (Expense.currency, Organization.currency/currencyDecimals), montants à 3 décimales exactes (plus de 3 refusé, jamais arrondi), aucun code de conversion monétaire."
+ },
+ "R-8.4-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/expenses/expenses.service.ts",
+   "apps/api/src/domain/expense-ledger.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/expenses.int.spec.ts › D-233 — achat de véhicule conservé à titre informatif, exclu du coût d’exploitation par défaut ; bascule auditée (costs.write + costs.read)",
+   "apps/api/src/domain/expense-ledger.spec.ts › achat de véhicule exclu du coût d’exploitation par défaut, selon le paramètre (D-233)"
+  ],
+  "note": "Catégorie ACHAT_VEHICULE exclue par défaut du coût d’exploitation (excludedFromOperatingCost), conservée à titre informatif dans excludedFromOperatingCost de la synthèse ; bascule auditée (costs.write + costs.read). Découpage (lot D) : rapport coûts/distances (distance-cost-report.service.ts) livré avec le lot E."
+ },
+ "R-8.4-09": {
+  "status": "fait",
+  "files": [
+   "apps/web/app/(app)/depenses/expense-summary.tsx",
+   "docs/guide-utilisateur.md"
+  ],
+  "tests": [
+   "apps/api/src/lot-d-docs.spec.ts › guide utilisateur (8.4) : le registre ne remplace pas la comptabilité ; la même mention figure à l’écran /depenses",
+   "tests/e2e/specs/depenses-fournisseurs.spec.ts › chaîne des corrections navigable depuis le registre ; synthèse filtrée comme la liste ; le registre ne remplace pas la comptabilité"
+  ],
+  "note": "Mention « Le registre ne remplace pas la comptabilité et ne calcule aucune obligation fiscale » dans docs/guide-utilisateur.md et sous la synthèse /depenses (vérifiée à l’écran en e2e) ; aucun modèle ni champ fiscal ou comptable dans le schéma (contrôle automatisé)."
+ },
+ "R-8.4-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/expenses/expenses.service.ts",
+   "apps/api/src/modules/expenses/dto/correct-expense.dto.ts",
+   "apps/api/src/infra/audit.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/expenses.int.spec.ts › D-229 — correction : nouvelle dépense VALIDEE, ancienne REMPLACEE, total non compté en double, audit avant/après",
+   "apps/api/test/integration/expenses.int.spec.ts › D-229 — annulation motivée : le coût disparaît de sa période d’origine, sans écriture sur la période courante",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef corrige une dépense validée (nouvelle version, ancienne remplacée) puis l’annule avec motif"
+  ],
+  "note": "Dépense immuable : correction = nouvelle version VALIDEE, ancienne REMPLACEE (motif, audit auteur/motif/avant/après, idempotente) ; annulation motivée ANNULEE ; dépenses de synthèse corrigées par leur source ; e2e vert."
+ },
+ "R-8.4-11": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/expenses/expenses.service.ts",
+   "apps/api/src/modules/expenses/dto/create-expense.dto.ts",
+   "apps/api/src/domain/expense-ledger.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/expenses.int.spec.ts › D-229 — avoir : montant positif soustrait, rattachement facultatif, net négatif affiché tel quel",
+   "apps/api/test/integration/expenses.int.spec.ts › D-229 — un avoir et l’annulation concurrente de sa dépense d’origine ne réussissent jamais tous les deux",
+   "apps/api/src/domain/expense-ledger.spec.ts › un avoir saisi en positif est soustrait ; un net négatif reste négatif"
+  ],
+  "note": "Avoir kind=AVOIR, montant positif soustrait du coût d’exploitation, rattachement facultatif à la dépense d’origine ; aucune notion de paiement dans le modèle."
+ },
+ "R-8.4-12": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/expenses/expenses.controller.ts",
+   "apps/api/src/modules/expenses/expenses.service.ts",
+   "apps/api/src/modules/fuel/fuel-visibility.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/expenses.int.spec.ts › permissions : lecteur sans costs.read 403 ; opérateur saisit mais ne corrige ni n’annule ; conducteur exclu",
+   "apps/api/test/integration/fuel.int.spec.ts › cloisonnement : chef B ne voit rien de A (404), lecteur sans costs.read sans montants",
+   "apps/api/test/integration/fuel.int.spec.ts › soumission conducteur : fenêtre d’utilisation, photo obligatoire, ni dépense ni relevé accepté (D-222, D-226)",
+   "tests/e2e/specs/depenses-alertes.spec.ts › un compte sans permission de consulter les coûts voit un message clair, sans registre",
+   "tests/e2e/specs/depenses-alertes.spec.ts › un opérateur saisit une dépense sans pouvoir consulter le registre ; le chef la retrouve"
+  ],
+  "note": "costs.read requis pour consulter (lecteur 403, montants masqués sur les pleins), costs.write pour saisir ; permission accordée explicitement au lecteur testée ; conducteur : registre 403, dépense 404, facture de station 404 (ne voit que son ticket)."
+ },
+ "R-9.1-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/maintenance/maintenance-plans.service.ts",
+   "apps/api/src/domain/maintenance-schedule.ts",
+   "apps/api/src/modules/alerts/alerts.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/maintenance.int.spec.ts › T15 — base 80 000, intervalle 10 000 : 89 500 A_PREVOIR, 90 000 A_FAIRE, 90 200 EN_RETARD, sans GPS",
+   "apps/api/test/integration/maintenance.int.spec.ts › T16 — date atteinte avant le kilométrage : à faire le jour local de l’échéance, en retard le lendemain"
+  ],
+  "note": "A_PREVOIR, A_FAIRE et EN_RETARD produisent ENTRETIEN_ECHEANCE de gravité correspondante (kilométrage et date)."
+ },
+ "R-9.1-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/documents/documents.service.ts",
+   "apps/api/src/domain/document-status.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/documents.int.spec.ts › paramétrage réservé à l’administrateur ; un document bloquant est requis ; pas de date de fin sans expiration",
+   "apps/api/test/integration/documents.int.spec.ts › absence d’un document requis : MANQUANT et alerte dédiée, résolue à l’enregistrement",
+   "apps/api/test/integration/documents.int.spec.ts › T21 — fin de validité aujourd’hui : valable jusqu’à la fin du jour local, expiré le lendemain, puis valide à l’entrée en vigueur du renouvellement futur",
+   "apps/api/test/integration/documents.int.spec.ts › paliers de préavis 30/15/7 : une seule alerte dont la gravité monte ; renouvellement sans trou → alerte résolue"
+  ],
+  "note": "Document manquant, préavis 30/15/7 (INFO puis URGENT sur la même alerte), expiré (CRITIQUE) ; aucun DOCUMENT_ECHEANCE pour un type sans expiration."
+ },
+ "R-9.1-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-freshness.service.ts",
+   "apps/api/src/domain/freshness.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T12 — alertes de fraîcheur : kilométrage inconnu, puis ancien au-delà du seuil, résolues par un relevé ; aucune alerte hors service",
+   "apps/api/src/domain/freshness.spec.ts › respecte un seuil configuré différent",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › rattrapage : alertes temporelles et réservations non honorées, une fois par créneau ; créneau manqué rattrapé au redémarrage"
+  ],
+  "note": "INCONNU → KILOMETRAGE_ABSENT ; aucune observation acceptée depuis plus de odometer.staleAfterDays (7, paramétrable) → KILOMETRAGE_ANCIEN, occurrence « depuis:date » ; véhicule hors service exclu."
+ },
+ "R-9.1-04": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/odometer.int.spec.ts › T11 — la soumission d’un conducteur reste en attente et ne modifie pas le compteur officiel"
+  ],
+  "note": "Tout relevé EN_ATTENTE créé par le service d’ingestion unique lève RELEVE_A_VALIDER (schedulePendingAlert) : soumission conducteur (T11) et relevé automatique incohérent (T40) testés ; l’anomalie importante (hausse implausible) suit le même chemin sans assertion sur l’alerte ; résolue à l’approbation. Découpage (lot D) : soumission conducteur (T11) testée ; relevé automatique incohérent (T40, telemetry-sync.int.spec.ts) : test livré avec le lot F."
+ },
+ "R-9.1-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/worker/src/jobs/alert-catch-up.job.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T07 — retour dépassé avec réservation suivante : alerte, utilisation ouverte, départ suivant bloqué",
+   "apps/api/test/integration/usages-rules.int.spec.ts › retard : isLate, filtre late=true et alerte RETOUR_DEPASSE appliquent la même tolérance, par société",
+   "apps/api/test/integration/alerts-occurrences.int.spec.ts › R-9.1-06 — retard de retour : retour dépassé et réservation suivante compromise, textes datés dans le fuseau du groupe (jamais en UTC brut)"
+  ],
+  "note": "Alerte créée dès le dépassement (tolérance paramétrable), utilisation laissée EN_COURS, pas de doublon au rejeu ; retour prévu affiché dans le fuseau du groupe (« 24/09/2026 à 13:00 »), jamais en UTC brut (corrigé en revue)."
+ },
+ "R-9.1-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts",
+   "apps/api/src/modules/immobilizations/immobilizations.service.ts",
+   "apps/api/src/modules/reservations/reservations.service.ts",
+   "apps/api/src/modules/alerts/alerts.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages.int.spec.ts › T07 — retour dépassé avec réservation suivante : alerte, utilisation ouverte, départ suivant bloqué",
+   "apps/api/test/integration/usages-rules.int.spec.ts › D-135 / 4.5 — prolongation qui efface le retard : les alertes « réservation compromise » dues à ce retard sont résolues avec lui",
+   "apps/api/test/integration/alerts-occurrences.int.spec.ts › R-9.1-06 — retard de retour : retour dépassé et réservation suivante compromise, textes datés dans le fuseau du groupe (jamais en UTC brut)",
+   "apps/api/test/integration/alerts-occurrences.int.spec.ts › R-9.1-06 — immobilisation : réservation proche compromise (date locale dans le texte), réservation lointaine au rattrapage, résolution à la fin de l’immobilisation"
+  ],
+  "note": "Réservation compromise par un retard de retour : testée (CRITIQUE, résolue au retour ou à la prolongation ; textes des alertes RETOUR_DEPASSE et RESERVATION_COMPROMISE datés dans le fuseau du groupe — corrigé en revue : ils affichaient un horodatage UTC brut). Par une immobilisation : testée (réservation dans les 24 h → RESERVATION_COMPROMISE URGENT, texte daté dans le fuseau du groupe ; réservation plus lointaine signalée par le rattrapage quand elle entre dans l’horizon ; résolues à la fin de l’immobilisation)."
+ },
+ "R-9.1-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/incidents/incidents.service.ts",
+   "apps/api/src/modules/alerts/alerts.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/incidents.int.spec.ts › incident critique : alerte immédiate, résolue à la prise en charge ; transitions et rôles ; clôture après résolution",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (a) SMTP absent : alertes internes disponibles, rien mis en file, aucun envoi ni succès prétendu"
+  ],
+  "note": "Incident CRITIQUE OUVERT → INCIDENT_CRITIQUE (CRITIQUE), résolue au passage en traitement (D-218)."
+ },
+ "R-9.1-13": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/alerts/alerts.service.ts",
+   "apps/api/src/modules/alerts/alert-center.service.ts",
+   "apps/api/src/modules/alerts/alerts.controller.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T20 — « lu » sur une vidange en retard : l’alerte reste ACTIVE et le plan EN_RETARD ; report motivé visible, statut inchangé",
+   "apps/api/test/integration/alerts.int.spec.ts › T19 — dix recalculs de la même occurrence : une seule alerte active, aucune ligne d’outbox dupliquée"
+  ],
+  "note": "Vue d’alerte : type et libellé, gravité, objet (objectType/objectId, véhicule), société, condition (valeurs et seuils), triggeredAt, responsable (nom), actionPath ; contenu de l’e-mail vérifié (T19)."
+ },
+ "R-9.1-14": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/alerts/alert-center.service.ts",
+   "apps/api/src/modules/access-control/access-control.service.ts",
+   "apps/api/src/modules/notifications/notifications.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › cloisonnement et visibilité par rôle : le chef B ne voit ni ne compte les alertes de A ; 404 hors périmètre ; conducteur 403",
+   "apps/api/test/integration/alerts.int.spec.ts › récapitulatif quotidien : une ligne par utilisateur et date locale, jamais avant l’heure ni pour un autre jour, sans alerte reportée"
+  ],
+  "note": "Liste, détail, compteurs et actions limités aux sociétés habilitées et aux types visibles par rôle (404 hors périmètre, conducteur 403) ; récapitulatif limité aux sociétés du destinataire."
+ },
+ "R-9.2-01": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/alerts/alerts.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › cloisonnement et visibilité par rôle : le chef B ne voit ni ne compte les alertes de A ; 404 hors périmètre ; conducteur 403",
+   "apps/api/test/integration/alerts.int.spec.ts › T20 — « lu » sur une vidange en retard : l’alerte reste ACTIVE et le plan EN_RETARD ; report motivé visible, statut inchangé"
+  ],
+  "note": "Enum AlertStatus ACTIVE | RESOLUE ; filtre status=RESOLUE ; report refusé sur une alerte résolue (409 ALERTE_RESOLUE)."
+ },
+ "R-9.2-02": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/alerts/alert-center.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T20 — « lu » sur une vidange en retard : l’alerte reste ACTIVE et le plan EN_RETARD ; report motivé visible, statut inchangé",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef marque une alerte comme lue puis la reporte : elle reste active"
+  ],
+  "note": "AlertRecipientState par (alerte, utilisateur) : « lu » propre à chacun (l’administrateur ne l’a pas lue), première date conservée, « non lu » possible, sans effet sur le statut."
+ },
+ "R-9.2-03": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/alerts/alert-center.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T20 — « lu » sur une vidange en retard : l’alerte reste ACTIVE et le plan EN_RETARD ; report motivé visible, statut inchangé",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef marque une alerte comme lue puis la reporte : elle reste active"
+  ],
+  "note": "Lu puis report : alerte ACTIVE, CRITIQUE, plan EN_RETARD, y compris après recomputeAll ; aucune action de masquage distincte du report."
+ },
+ "R-9.2-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/alerts/alerts.controller.ts",
+   "apps/api/src/modules/alerts/dto/alerts.dto.ts",
+   "apps/api/src/modules/alerts/alert-center.service.ts",
+   "apps/api/src/domain/alert-policy.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T20 — « lu » sur une vidange en retard : l’alerte reste ACTIVE et le plan EN_RETARD ; report motivé visible, statut inchangé",
+   "apps/api/src/domain/alert-policy.spec.ts › report : date civile valide, strictement future, 90 jours au plus",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef marque une alerte comme lue puis la reporte : elle reste active"
+  ],
+  "note": "Report jusqu’à une date civile future (90 jours au plus), motif obligatoire (MOTIF_REQUIS), visible des autres destinataires avec son auteur, audité ; statut de retard inchangé. DTO SnoozeAlertDto dans alerts.dto.ts (postpone-alert.dto.ts prévu)."
+ },
+ "R-9.2-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/alerts/alerts.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/interventions.int.spec.ts › T17 — une batterie terminée n’a aucun effet sur la vidange ; vidange à 90 300 → suivante à 100 300",
+   "apps/api/test/integration/documents.int.spec.ts › T21 — fin de validité aujourd’hui : valable jusqu’à la fin du jour local, expiré le lendemain, puis valide à l’entrée en vigueur du renouvellement futur",
+   "apps/api/test/integration/odometer.int.spec.ts › T12 — alertes de fraîcheur : kilométrage inconnu, puis ancien au-delà du seuil, résolues par un relevé ; aucune alerte hors service",
+   "apps/api/test/integration/usages.int.spec.ts › T07 — retour dépassé avec réservation suivante : alerte, utilisation ouverte, départ suivant bloqué",
+   "apps/api/test/integration/interventions-closure-scope.int.spec.ts › R-6.4-06 — les alertes des plans sont réévaluées dans la transaction de clôture : un échec d’écriture d’alerte annule toute la clôture"
+  ],
+  "note": "Résolution par la seule disparition de la condition : entretien effectué, document valide, relevé récent, retour constaté."
+ },
+ "R-9.2-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/alerts/alerts.service.ts",
+   "apps/api/src/modules/maintenance/maintenance-plans.service.ts",
+   "apps/api/src/modules/documents/documents.service.ts",
+   "apps/api/src/modules/odometer/odometer-freshness.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts-occurrences.int.spec.ts › R-6.4-13 / R-9.2-06 — plan : la clôture résout l’occurrence, l’échéance suivante crée une nouvelle alerte (nouvelle ligne, ancienne conservée résolue)",
+   "apps/api/test/integration/alerts-occurrences.int.spec.ts › R-9.2-06 — document suivant : le renouvellement résout l’alerte de l’ancienne version ; l’échéance de la nouvelle crée une nouvelle occurrence"
+  ],
+  "note": "Récurrence suivante testée : échéance suivante d’un même plan (nouvelle ligne, occurrence echeance:91200, ancienne RESOLUE conservée) et document suivant (renouvellement → alerte de l’ancienne version résolue ; un an plus tard, nouvelle occurrence echeance:2027-10-10 sur la nouvelle version) ; aucun doublon au rattrapage répété."
+ },
+ "R-9.2-07": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "packages/db/prisma/migrations/20260924120000_init/migration.sql",
+   "apps/api/src/modules/alerts/alerts.service.ts",
+   "apps/worker/src/scheduler/scheduled-runs.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T19 — dix recalculs de la même occurrence : une seule alerte active, aucune ligne d’outbox dupliquée",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › rattrapage : alertes temporelles et réservations non honorées, une fois par créneau ; créneau manqué rattrapé au redémarrage",
+   "apps/api/test/integration/maintenance.int.spec.ts › T16 — date atteinte avant le kilométrage : à faire le jour local de l’échéance, en retard le lendemain"
+  ],
+  "note": "Index unique (organizationId, companyId, type, objectType, objectId, occurrenceKey) dans la migration initiale (0002_integrity_constraints prévue absente) ; dix recalculs séquentiels, dix concurrents et dix raise concurrents → une seule alerte, aucune ligne d’outbox dupliquée ; un seul Job de rattrapage par créneau."
+ },
+ "R-9.2-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/alerts/alerts.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/maintenance.int.spec.ts › T15 — base 80 000, intervalle 10 000 : 89 500 A_PREVOIR, 90 000 A_FAIRE, 90 200 EN_RETARD, sans GPS",
+   "apps/api/test/integration/alerts.int.spec.ts › escalade A_FAIRE → EN_RETARD sur la même alerte : e-mail à la seule gravité critique, lecture et report remis à zéro (D-246, D-252)",
+   "apps/api/test/integration/documents.int.spec.ts › paliers de préavis 30/15/7 : une seule alerte dont la gravité monte ; renouvellement sans trou → alerte résolue"
+  ],
+  "note": "Même alerte : ATTENTION → CRITIQUE (entretien), URGENT → CRITIQUE avec lecture et report remis à zéro (D-252), INFO → URGENT (document)."
+ },
+ "R-9.3-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/alerts/alerts.service.ts",
+   "apps/api/src/modules/odometer/odometer.service.ts",
+   "apps/api/src/modules/interventions/interventions.service.ts",
+   "apps/api/src/modules/documents/documents.service.ts",
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/maintenance.int.spec.ts › T15 — base 80 000, intervalle 10 000 : 89 500 A_PREVOIR, 90 000 A_FAIRE, 90 200 EN_RETARD, sans GPS",
+   "apps/api/test/integration/interventions.int.spec.ts › T17 — une batterie terminée n’a aucun effet sur la vidange ; vidange à 90 300 → suivante à 100 300",
+   "apps/api/test/integration/documents.int.spec.ts › absence d’un document requis : MANQUANT et alerte dédiée, résolue à l’enregistrement",
+   "apps/api/test/integration/usages.int.spec.ts › T07 — retour dépassé avec réservation suivante : alerte, utilisation ouverte, départ suivant bloqué",
+   "apps/api/test/integration/odometer-dependents.int.spec.ts › R-5.3-06 / R-13.3-07 — correction : échéance, statut du plan et alerte d’entretien recalculés, fraîcheur réévaluée, traces dans l’audit"
+  ],
+  "note": "Recalcul après relevé accepté ou corrigé, entretien clôturé, document enregistré et restitution."
+ },
+ "R-9.3-02": {
+  "status": "fait",
+  "files": [
+   "apps/worker/src/jobs/alert-catch-up.job.ts",
+   "apps/worker/src/scheduler/job-lease.service.ts",
+   "apps/worker/src/scheduler/worker-scheduler.service.ts",
+   "apps/api/src/domain/job-schedule.ts"
+  ],
+  "tests": [
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › deux instances simultanées : une seule exécute la tâche ; l’autre la reprend quand le bail expire",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › rattrapage : alertes temporelles et réservations non honorées, une fois par créneau ; créneau manqué rattrapé au redémarrage",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › intervalle de rattrapage paramétrable par organisation (alerts.catchUpIntervalMinutes)",
+   "apps/api/src/domain/job-schedule.spec.ts › rattrapage toutes les 15 minutes aligné sur :00, :15, :30, :45 UTC"
+  ],
+  "note": "Tâche alertes-rattrapage : créneaux de 15 min alignés, bail JobLease (une instance exécute, l’autre reprend à l’expiration), Job dédupliqué par créneau, créneau manqué rattrapé au redémarrage."
+ },
+ "R-9.3-03": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/alerts/alerts.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/maintenance.int.spec.ts › T15 — base 80 000, intervalle 10 000 : 89 500 A_PREVOIR, 90 000 A_FAIRE, 90 200 EN_RETARD, sans GPS"
+  ],
+  "note": "Alerte écrite dans la transaction de validation ou juste après sa validation (AfterCommit) : visible dès la réponse (T15), délai mesuré inférieur à une minute (T42). Découpage (lot D) : alerte visible dès la réponse de la validation (T15) testée ; mesure du délai après synchronisation (T42, telemetry-sync.int.spec.ts) : test livré avec le lot F."
+ },
+ "R-9.3-04": {
+  "status": "fait",
+  "files": [
+   "apps/worker/src/jobs/alert-catch-up.job.ts",
+   "apps/api/src/common/clock.ts",
+   "apps/api/src/domain/job-schedule.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/job-schedule.spec.ts › rattrapage toutes les 15 minutes aligné sur :00, :15, :30, :45 UTC",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › rattrapage : alertes temporelles et réservations non honorées, une fois par créneau ; créneau manqué rattrapé au redémarrage",
+   "apps/api/test/integration/maintenance.int.spec.ts › T16 — date atteinte avant le kilométrage : à faire le jour local de l’échéance, en retard le lendemain",
+   "apps/api/test/integration/documents.int.spec.ts › T21 — fin de validité aujourd’hui : valable jusqu’à la fin du jour local, expiré le lendemain, puis valide à l’entrée en vigueur du renouvellement futur"
+  ],
+  "note": "Rattrapage toutes les 15 min (paramétrable de 5 à 60) : l’alerte temporelle apparaît au plus tard au créneau suivant le seuil (T16 : EN_RETARD et alerte CRITIQUE au jour local suivant ; T21 : expiration au jour civil)."
+ },
+ "R-9.3-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/civil-date.ts",
+   "apps/api/src/modules/organizations/organizations.service.ts",
+   "apps/api/src/modules/settings/settings.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/organization-timezone.int.spec.ts › modification réservée à l’administrateur, fuseau inconnu refusé (422 FUSEAU_INVALIDE), version contrôlée, audit ; la session expose le nouveau fuseau",
+   "apps/api/test/integration/organization-timezone.int.spec.ts › le fuseau du groupe détermine le jour local des échéances d’entretien et la date des dépenses de synthèse",
+   "apps/api/src/domain/civil-date.spec.ts › convertit un instant UTC en date locale (Tunis = UTC+1 sans heure d’été)",
+   "apps/api/test/integration/maintenance.int.spec.ts › T16 — date atteinte avant le kilométrage : à faire le jour local de l’échéance, en retard le lendemain",
+   "apps/api/test/integration/documents.int.spec.ts › T21 — fin de validité aujourd’hui : valable jusqu’à la fin du jour local, expiré le lendemain, puis valide à l’entrée en vigueur du renouvellement futur"
+  ],
+  "note": "Africa/Tunis par défaut ; fuseau modifiable par l’administrateur seul (PATCH /organization : FUSEAU_INVALIDE, 403 chef, 409 version, audit, session mise à jour) ; il détermine le jour local des échéances (même instant : EN_RETARD à Tunis, A_FAIRE à São Paulo) et la date des dépenses de synthèse (25/09 puis 24/09), sans réécriture rétroactive ; le texte de l’alerte d’échéance affiche la date civile en français (« échéance 24/09/2026 »), plus au format ISO (corrigé en revue)."
+ },
+ "R-9.3-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/civil-date.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/api/src/domain/civil-date.spec.ts › convertit un instant UTC en date locale (Tunis = UTC+1 sans heure d’été)",
+   "apps/api/test/integration/documents.int.spec.ts › T21 — fin de validité aujourd’hui : valable jusqu’à la fin du jour local, expiré le lendemain, puis valide à l’entrée en vigueur du renouvellement futur",
+   "apps/api/test/integration/expenses.int.spec.ts › création manuelle idempotente : même clé → même réponse ; autre corps → 409 ; clé obligatoire"
+  ],
+  "note": "Horodatages timestamptz(3) en UTC ; dates civiles en @db.Date sans décalage (occurredOn stocké 2026-09-21T00:00:00.000Z, validTo comparé au jour local)."
+ },
+ "R-9.3-07": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/common/clock.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/alert-policy.spec.ts › un report reste actif jusqu’à la fin du jour local de sa date de fin (horloge contrôlée)",
+   "apps/api/test/integration/maintenance.int.spec.ts › T16 — date atteinte avant le kilométrage : à faire le jour local de l’échéance, en retard le lendemain",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › rattrapage : alertes temporelles et réservations non honorées, une fois par créneau ; créneau manqué rattrapé au redémarrage"
+  ],
+  "note": "Clock abstraite injectée (SystemClock, FixedClock des tests) ; tests temporels déterministes (t.clock.set, FixedClock du worker)."
+ },
+ "R-9.4-01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/notifications/notifications.service.ts",
+   "apps/worker/src/jobs/outbox-dispatcher.job.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › alertes internes disponibles, aucune ligne d’outbox, statut exact « Canal e-mail non configuré »",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (a) SMTP absent : alertes internes disponibles, rien mis en file, aucun envoi ni succès prétendu"
+  ],
+  "note": "Sans SMTP : liste, compteurs et lecture fonctionnent, aucune ligne d’outbox, récapitulatif CANAL_NON_CONFIGURE, distributeur inactif sans succès prétendu."
+ },
+ "R-9.4-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/notifications/notifications.service.ts",
+   "apps/worker/src/jobs/outbox-dispatcher.job.ts",
+   "apps/worker/src/jobs/smtp-transport.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T19 — dix recalculs de la même occurrence : une seule alerte active, aucune ligne d’outbox dupliquée",
+   "apps/api/test/integration/alerts.int.spec.ts › préférences respectées : e-mail critique désactivé, rôles sans e-mail, version optimiste",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (c) arrêt brutal pendant l’envoi puis redémarrage avec SMTP disponible : reprise après expiration du verrou, envoi réel (Mailpit), statut ENVOYE ; droits revérifiés"
+  ],
+  "note": "SMTP configuré : alerte CRITIQUE mise en file pour le chef de parc de la société et l’administrateur (ni opérateur, ni lecteur, ni conducteur, ni autre société) ; envoi réel vérifié sur le serveur SMTP de test Mailpit (statut ENVOYE, identifiant du message)."
+ },
+ "R-9.4-03": {
+  "status": "fait",
+  "files": [
+   "apps/worker/src/jobs/daily-digest.job.ts",
+   "apps/api/src/modules/notifications/notifications.service.ts",
+   "apps/api/src/domain/notification-rules.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › récapitulatif quotidien : une ligne par utilisateur et date locale, jamais avant l’heure ni pour un autre jour, sans alerte reportée",
+   "apps/worker/src/jobs/daily-jobs.spec.ts › dû à 08:00 heure de Tunis, rattrapé le jour même après un arrêt, jamais deux fois",
+   "apps/api/src/domain/notification-rules.spec.ts › récapitulatif dû à partir de 08:00 locale le jour même ; jamais anticipé ni rattrapé le lendemain"
+  ],
+  "note": "Récapitulatif à 08:00 heure de Tunis (jamais avant, rattrapé le jour même après un arrêt, jamais deux fois : clé digest:utilisateur:date), pour les chefs et administrateurs actifs dont la préférence est active, sur leurs seules sociétés."
+ },
+ "R-9.4-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/settings/settings.service.ts",
+   "apps/api/src/modules/notifications/notifications.service.ts",
+   "apps/api/src/domain/notification-rules.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › préférences respectées : e-mail critique désactivé, rôles sans e-mail, version optimiste",
+   "apps/api/src/domain/notification-rules.spec.ts › e-mail immédiat : CRITIQUE seulement par défaut (D-246) ; gravité minimale configurable par l’utilisateur (D-245)",
+   "apps/api/src/domain/notification-rules.spec.ts › récapitulatif dû à partir de 08:00 locale le jour même ; jamais anticipé ni rattrapé le lendemain"
+  ],
+  "note": "Préférences par utilisateur (emailCritical, emailDailyDigest, minimumSeverity, versionnées et auditées) respectées à la mise en file et à l’envoi ; heure d’envoi paramétrable (email.dailyDigestLocalTime, 10:30 testé en unitaire)."
+ },
+ "R-9.4-05": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/notifications/notifications.service.ts",
+   "apps/web/app/(app)/administration/notifications/notifications-admin.tsx",
+   "apps/web/app/(app)/alertes/page.tsx",
+   "apps/web/app/(app)/profil/notifications/notification-preferences.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › alertes internes disponibles, aucune ligne d’outbox, statut exact « Canal e-mail non configuré »",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (a) SMTP absent : alertes internes disponibles, rien mis en file, aucun envoi ni succès prétendu",
+   "tests/e2e/specs/alertes-notifications.spec.ts › sans SMTP : « Canal e-mail non configuré » pour l’administrateur et dans les préférences, file vide, aucun envoi annoncé"
+  ],
+  "note": "API : GET /notifications/status renvoie exactement « Canal e-mail non configuré », aucune ligne ni succès prétendu. e2e (pile sans SMTP) : /administration/notifications affiche « Canal e-mail non configuré », jamais « Canal e-mail configuré », compteurs de l’outbox à 0 et « dernier envoi réussi : aucun » ; /profil/notifications l’annonce aussi. tests/e2e/alertes.spec.ts prévu : couvert par alertes-notifications.spec.ts."
+ },
+ "R-9.4-06": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/notifications/notifications.service.ts",
+   "apps/worker/src/jobs/outbox-dispatcher.job.ts",
+   "apps/api/src/domain/outbox-retry.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › état de l’outbox (administrateur) : compteurs exacts, tentatives, prochaine tentative, erreur expurgée, corps jamais exposé",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (b) panne SMTP : ECHEC, prochaine tentative croissante, erreur expurgée, puis ABANDONNE après 8 tentatives",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (c) arrêt brutal pendant l’envoi puis redémarrage avec SMTP disponible : reprise après expiration du verrou, envoi réel (Mailpit), statut ENVOYE ; droits revérifiés",
+   "apps/api/src/domain/outbox-retry.spec.ts › ECHEC avec prochaine tentative croissante, puis ABANDONNE à la 8e tentative échouée"
+  ],
+  "note": "NotificationOutbox : status, attempts/maxAttempts (8), nextAttemptAt, lastError expurgé (aucun secret), sentAt, providerMessageId ; exposés à l’administrateur sans le corps."
+ },
+ "R-9.4-07": {
+  "status": "fait",
+  "files": [
+   "apps/worker/src/jobs/outbox-dispatcher.job.ts",
+   "apps/api/src/domain/outbox-retry.ts"
+  ],
+  "tests": [
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (b) panne SMTP : ECHEC, prochaine tentative croissante, erreur expurgée, puis ABANDONNE après 8 tentatives",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (c) arrêt brutal pendant l’envoi puis redémarrage avec SMTP disponible : reprise après expiration du verrou, envoi réel (Mailpit), statut ENVOYE ; droits revérifiés",
+   "apps/api/src/domain/outbox-retry.spec.ts › délais 1, 2, 4, 8, 16, 32, 60 puis 60 minutes"
+  ],
+  "note": "Panne SMTP réelle (port fermé) : ECHEC, reprises à 1, 2, 4, 8, 16, 32, 60 min puis ABANDONNE ; arrêt brutal du worker pendant l’envoi puis redémarrage : reprise après expiration du verrou, envoi réel, statut ENVOYE. Script scripts/tests/smtp-outage-worker-restart.sh prévu absent : scénario couvert par le test automatisé du worker (16/16 le 2026-09-24)."
+ },
+ "R-9.4-08": {
+  "status": "fait",
+  "files": [
+   "apps/worker/src/jobs/outbox-dispatcher.job.ts",
+   "apps/worker/src/scheduler/job-lease.service.ts",
+   "packages/db/prisma/schema.prisma"
+  ],
+  "tests": [
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (c) arrêt brutal pendant l’envoi puis redémarrage avec SMTP disponible : reprise après expiration du verrou, envoi réel (Mailpit), statut ENVOYE ; droits revérifiés",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › arrêt propre : les baux sont libérés et repris immédiatement par un autre worker",
+   "apps/api/test/integration/alerts.int.spec.ts › T19 — dix recalculs de la même occurrence : une seule alerte active, aucune ligne d’outbox dupliquée"
+  ],
+  "note": "Réservation par UPDATE … FOR UPDATE SKIP LOCKED avec verrou lockedUntil (2 min), écriture du statut sous condition du verrou, bail JobLease de la tâche outbox-envoi (un seul worker), dedupeKey unique : une ligne encore verrouillée n’est ni reprise ni envoyée par l’autre worker."
+ },
+ "R-9.4-09": {
+  "status": "fait",
+  "files": [
+   "docs/exploitation.md",
+   "apps/worker/src/jobs/outbox-dispatcher.job.ts",
+   "docs/guide-utilisateur.md"
+  ],
+  "tests": [
+   "apps/api/src/lot-d-docs.spec.ts › exploitation (9.4) : double livraison exceptionnelle documentée ; délais, tentatives et verrou conformes au code"
+  ],
+  "note": "docs/exploitation.md, « Double livraison exceptionnelle » (message accepté par le serveur SMTP puis arrêt avant ENVOYE : livraison possible deux fois) ; contrôle automatisé de la mention et de la conformité des délais (1, 2, 4, 8, 16, 32 puis 60 min), du nombre de tentatives (8) et du verrou (2 min) au code ; renvoi depuis le guide utilisateur."
+ },
+ "R-9.4-10": {
+  "status": "fait",
+  "files": [
+   "apps/worker/src/jobs/outbox-dispatcher.job.ts",
+   "apps/api/src/modules/notifications/notifications.service.ts",
+   "apps/api/src/modules/access-control/access-control.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › revérification avant envoi (D-261) : report, habilitation retirée, compte désactivé ou alerte résolue → refus motivé",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (c) arrêt brutal pendant l’envoi puis redémarrage avec SMTP disponible : reprise après expiration du verrou, envoi réel (Mailpit), statut ENVOYE ; droits revérifiés"
+  ],
+  "note": "authorizeDelivery juste avant l’envoi : compte actif et adresse inchangée, habilitation chef/administrateur sur la société de l’alerte, alerte encore active à la même gravité, préférence, absence de report ; refus → ANNULE « Droits révoqués… » (vérifié avec un vrai worker)."
+ },
+ "R-9.4-11": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/notifications/notifications.service.ts",
+   "apps/api/src/domain/notification-rules.ts",
+   "apps/worker/src/jobs/smtp-transport.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T19 — dix recalculs de la même occurrence : une seule alerte active, aucune ligne d’outbox dupliquée",
+   "apps/api/test/integration/alerts.int.spec.ts › récapitulatif quotidien : une ligne par utilisateur et date locale, jamais avant l’heure ni pour un autre jour, sans alerte reportée",
+   "apps/api/src/domain/notification-rules.spec.ts › e-mail critique : texte brut, lien, sans message libre (pas de nom de conducteur ni montant)",
+   "apps/api/src/domain/notification-rules.spec.ts › erreur d’envoi expurgée : aucun secret, texte borné"
+  ],
+  "note": "E-mails en texte brut sans pièce jointe (smtp-transport n’envoie que le texte) : ni montant, ni nom de conducteur, ni PDF dans les corps vérifiés ; erreurs expurgées ; corps jamais exposé par l’API."
+ },
+ "R-10.2-11": {
+  "status": "fait",
+  "files": [
+   "apps/web/app/(app)/carburant/page.tsx",
+   "apps/web/app/(app)/carburant/fuel-list.tsx",
+   "apps/web/app/(app)/depenses/page.tsx",
+   "apps/web/app/(app)/depenses/expenses-register.tsx",
+   "apps/web/app/(app)/depenses/expense-summary.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/carburant.spec.ts › le chef saisit un plein avec anomalies : avertissements de l’API, confirmation de la capacité, consommation N/D motivée puis 12,5 L/100 km (T25)",
+   "tests/e2e/specs/carburant.spec.ts › le conducteur déclare un plein depuis Mon véhicule ; le chef le voit en attente, le valide, et une seconde validation est refusée",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef saisit une dépense avec justificatif, la retrouve dans la synthèse puis l’exclut du coût d’exploitation",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef corrige une dépense validée (nouvelle version, ancienne remplacée) puis l’annule avec motif",
+   "apps/web/lib/fuel-types.spec.ts › chaque statut renvoyé par l’API a un libellé français, y compris REMPLACE (D-222)"
+  ],
+  "note": "/carburant : saisie, avertissements, validation avec confirmation d’écart, filtre des pleins à valider, ticket ; /depenses : saisie avec justificatif téléchargeable, correction, annulation, filtres (véhicule, état), synthèse des coûts et bascule hors coût d’exploitation (e2e verts le 2026-09-24)."
+ },
+ "R-10.2-12": {
+  "status": "fait",
+  "files": [
+   "apps/web/app/(app)/fournisseurs/page.tsx",
+   "apps/web/app/(app)/fournisseurs/suppliers-list.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/depenses-fournisseurs.spec.ts › le chef tient le répertoire : création, recherche, fiche avec contacts et historique des dépenses, archivage puis réactivation",
+   "tests/e2e/specs/depenses-fournisseurs.spec.ts › l’administrateur copie un fournisseur vers une autre société : nouvelle fiche sans historique ; le conducteur n’a pas accès au répertoire"
+  ],
+  "note": "e2e /fournisseurs : création (contrôles de saisie, liste fermée des catégories), recherche par contact et filtre de catégorie, fiche avec contacts (tel:, mailto:), notes et historique autorisé des dépenses (lien vers le détail de la dépense), archivage puis réactivation, copie vers une autre société sans historique ; conducteur refusé (403). tests/e2e/fournisseurs.spec.ts prévu : couvert par depenses-fournisseurs.spec.ts."
+ },
+ "R-10.2-13": {
+  "status": "fait",
+  "files": [
+   "apps/web/app/(app)/alertes/page.tsx",
+   "apps/web/app/(app)/alertes/alerts-center.tsx"
+  ],
+  "tests": [
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef marque une alerte comme lue puis la reporte : elle reste active",
+   "tests/e2e/specs/alertes-notifications.spec.ts › incident critique : l’alerte affiche son responsable de suivi et mène à l’action ; résolue à la prise en charge"
+  ],
+  "note": "e2e /alertes : lecture propre à l’utilisateur (l’alerte reste active), report motivé, compteurs, filtres ; responsable affiché (« responsable : Chaima Chef », « Non attribué » sinon) ; action de résolution : le titre mène à l’incident, sa prise en charge résout l’alerte (vue « Résolues » avec date locale et motif)."
+ },
+ "R-13.2-05": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › relevé de transfert (contexte TRANSFERT, société d’origine) et décisions explicites : affectation, plans, site, service, documents, alertes"
+  ],
+  "note": "VehicleCompanyHistory : fromCompanyId, toCompanyId, effectiveAt, motif, technicalSnapshot (compteur, plans, documents, localisation, télématique), transferReadingId, sharedDocumentIds, auteur ; vérifiés après transfert. Test porté par vehicle-transfer.int.spec.ts (vehicles.int.spec.ts prévu)."
+ },
+ "R-13.2-16": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/suppliers/suppliers.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/suppliers.int.spec.ts › « Copier vers une autre société » : chef des deux sociétés ou administrateur ; nouvelle fiche sans historique ni montants",
+   "apps/api/test/integration/suppliers.int.spec.ts › unicité par société sur le nom normalisé (casse, accents, espaces), parmi les fournisseurs actifs seulement"
+  ],
+  "note": "Supplier : companyId, category, contactName, phone, email, address, notes, status/archivedAt, normalizedName (colonne générée, unicité parmi les actifs D-221), version."
+ },
+ "R-13.2-17": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/fuel/fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/fuel.int.spec.ts › saisie directe : plein VALIDE, relevé CARBURANT accepté et dépense de synthèse dans la même transaction",
+   "apps/api/test/integration/fuel.int.spec.ts › T24 — plein validé deux fois : même clé → réponse rejouée, autre clé → 409 DEJA_VALIDE, une seule dépense"
+  ],
+  "note": "FuelEntry : achat, readingId (relevé lié), isFullTank ; dépense de synthèse unique par sourceType PLEIN / sourceId."
+ },
+ "R-13.2-18": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/expenses/expenses.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/expenses.int.spec.ts › D-229 — correction : nouvelle dépense VALIDEE, ancienne REMPLACEE, total non compté en double, audit avant/après",
+   "apps/api/test/integration/expenses.int.spec.ts › T26 — une dépense datée avant un transfert reste imputée à la société historique ; coûts historiques inchangés",
+   "apps/api/test/integration/expenses.int.spec.ts › T24 — la dépense de synthèse d’une intervention apparaît une seule fois ; elle se corrige par sa source"
+  ],
+  "note": "Expense : companyId au fait générateur, sourceType/sourceId uniques parmi les VALIDEE, replacesExpenseId (chaîne de versions), cancelledAt/cancelReason, kind, excludedFromOperatingCost."
+ },
+ "R-13.2-20": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/alerts/alerts.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T19 — dix recalculs de la même occurrence : une seule alerte active, aucune ligne d’outbox dupliquée",
+   "apps/api/test/integration/alerts.int.spec.ts › T20 — « lu » sur une vidange en retard : l’alerte reste ACTIVE et le plan EN_RETARD ; report motivé visible, statut inchangé",
+   "apps/api/test/integration/alerts.int.spec.ts › revérification avant envoi (D-261) : report, habilitation retirée, compte désactivé ou alerte résolue → refus motivé"
+  ],
+  "note": "Alert : occurrenceKey, severity, condition (JSON), status, resolvedAt, resolutionReason, emailNotifiedSeverity, version."
+ },
+ "R-13.2-21": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/alerts/alert-center.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T20 — « lu » sur une vidange en retard : l’alerte reste ACTIVE et le plan EN_RETARD ; report motivé visible, statut inchangé"
+  ],
+  "note": "AlertRecipientState : readAt, snoozedUntil (date civile), snoozeReason par destinataire, unique (alertId, userId)."
+ },
+ "R-13.2-22": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/api/src/modules/notifications/notifications.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T19 — dix recalculs de la même occurrence : une seule alerte active, aucune ligne d’outbox dupliquée",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (b) panne SMTP : ECHEC, prochaine tentative croissante, erreur expurgée, puis ABANDONNE après 8 tentatives",
+   "apps/api/test/integration/alerts.int.spec.ts › état de l’outbox (administrateur) : compteurs exacts, tentatives, prochaine tentative, erreur expurgée, corps jamais exposé"
+  ],
+  "note": "NotificationOutbox : kind, destinataire, sujet, corps, dedupeKey unique (clé d’idempotence), attempts, maxAttempts, nextAttemptAt, verrou."
+ },
+ "R-13.2-23": {
+  "status": "partiel",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/worker/src/scheduler/job-lease.service.ts",
+   "apps/worker/src/heartbeat.service.ts",
+   "apps/api/src/modules/health/health.controller.ts"
+  ],
+  "tests": [
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › deux instances simultanées : une seule exécute la tâche ; l’autre la reprend quand le bail expire",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › arrêt propre : les baux sont libérés et repris immédiatement par un autre worker",
+   "apps/worker/src/heartbeat.service.spec.ts › crée puis met à jour la ligne de battement du processus, sans en créer de nouvelle"
+  ],
+  "note": "JobLease (holder, expiresAt, heartbeatAt) porte le verrou des tâches planifiées (testé) ; battement du worker dans WorkerHeartbeat (testé) contrôlé par l’endpoint de santé : /health/worker 200 jusqu’à deux minutes, 503 au-delà, /health/ready le signale (health.int.spec.ts). notifications.int.spec.ts et health.service.ts prévus absents : contrôle dans health.controller.ts. Découpage (lot D) : baux JobLease et battement WorkerHeartbeat testés ; contrôle du battement par l’endpoint de santé (health.int.spec.ts) : test livré avec le lot E."
+ },
+ "R-13.3-08": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/fuel/fuel.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/fuel.int.spec.ts › saisie directe : plein VALIDE, relevé CARBURANT accepté et dépense de synthèse dans la même transaction",
+   "apps/api/test/integration/fuel.int.spec.ts › T24 — plein validé deux fois : même clé → réponse rejouée, autre clé → 409 DEJA_VALIDE, une seule dépense"
+  ],
+  "note": "Saisie, validation et correction dans prisma.serializable avec verrou du véhicule ; échec en cours de transaction : ni plein, ni relevé, ni dépense ; validations concurrentes : un seul succès, une seule dépense."
+ },
+ "R-13.3-10": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › refuse un relevé de transfert incohérent (contrôle du service unique) sans rien écrire",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › deux transferts concurrents : verrou du véhicule, un seul aboutit (l’autre reçoit 409)",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés"
+  ],
+  "note": "prisma.serializable + lockVehicle : refus sans aucune écriture (ni relevé, ni historique, ni changement de société), concurrence résolue par un seul succès (200/409)."
+ },
+ "R-14.1-10": {
+  "status": "fait",
+  "files": [
+   "apps/worker/src/main.ts",
+   "apps/worker/src/worker.module.ts"
+  ],
+  "tests": [
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › deux instances simultanées : une seule exécute la tâche ; l’autre la reprend quand le bail expire",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (c) arrêt brutal pendant l’envoi puis redémarrage avec SMTP disponible : reprise après expiration du verrou, envoi réel (Mailpit), statut ENVOYE ; droits revérifiés",
+   "apps/worker/src/jobs/daily-jobs.spec.ts › dû à 08:00 heure de Tunis, rattrapé le jour même après un arrêt, jamais deux fois"
+  ],
+  "note": "Worker = NestFactory.createApplicationContext(WorkerModule) sans serveur HTTP ; WorkerModule importe InfraModule, AccessControlModule, AuthModule et FEATURE_MODULES de l’API ; les tâches appellent les services métier de l’API (NotificationsService, MaintenancePlansService, UsagesService…). Les tests du worker compilent ce module et exercent ces services ; main.ts lu, non exécuté par les tests."
+ },
+ "R-14.1-11": {
+  "status": "fait",
+  "files": [
+   "packages/db/prisma/schema.prisma",
+   "apps/worker/src/jobs/outbox-dispatcher.job.ts",
+   "apps/worker/src/scheduler/job-lease.service.ts",
+   "docs/ARCHITECTURE.md"
+  ],
+  "tests": [
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › deux instances simultanées : une seule exécute la tâche ; l’autre la reprend quand le bail expire",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (c) arrêt brutal pendant l’envoi puis redémarrage avec SMTP disponible : reprise après expiration du verrou, envoi réel (Mailpit), statut ENVOYE ; droits revérifiés"
+  ],
+  "note": "Outbox, Job et JobLease en PostgreSQL ; aucune dépendance Redis (package.json, docker-compose.prod.yml sans service redis ; ARCHITECTURE.md : « Redis : non utilisé ») ; les tests du worker tournent avec la seule base PostgreSQL. Découpage (lot D) : docker-compose.prod.yml et file de jobs d’export (job-queue.job.ts, queue-telemetry-retention.spec.ts) livrés avec les lots E et F."
+ },
+ "R-15.2-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicle-transfer.controller.ts",
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts",
+   "apps/api/src/modules/vehicles/dto/transfer-vehicle.dto.ts",
+   "apps/web/app/(app)/vehicules/[id]/transfer-dialog.tsx"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › idempotent (même clé et même corps : même résultat ; corps différent : 409) et versionné",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › réservé à l’administrateur : 403 pour le chef ou l’opérateur de la société, 404 hors périmètre",
+   "tests/e2e/specs/transfert.spec.ts › aperçu bloqué par une réservation future, puis transfert après son annulation ; véhicule visible dans la société cible",
+   "apps/web/lib/transfer-types.spec.ts › lit la liste typée des objets bloquants d’un 409 TRANSFERT_BLOQUE"
+  ],
+  "note": "POST /vehicles/:id/transfer (clé d’idempotence, expectedVersion) et GET /vehicles/:id/transfer-preview, réservés à l’administrateur ; écran de transfert vérifié en e2e."
+ },
+ "R-15.2-19": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/fuel/fuel.controller.ts",
+   "apps/api/src/modules/fuel/fuel.service.ts",
+   "apps/api/src/modules/fuel/dto/create-fuel-entry.dto.ts",
+   "apps/api/src/modules/fuel/dto/validate-fuel-entry.dto.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/fuel.int.spec.ts › saisie directe : plein VALIDE, relevé CARBURANT accepté et dépense de synthèse dans la même transaction",
+   "apps/api/test/integration/fuel.int.spec.ts › T24 — plein validé deux fois : même clé → réponse rejouée, autre clé → 409 DEJA_VALIDE, une seule dépense",
+   "apps/api/test/integration/fuel.int.spec.ts › correction d’un plein validé : nouvelle ligne, dépense remplacée dans la même transaction, puis annulation traçable (D-229)",
+   "apps/api/test/integration/fuel.int.spec.ts › signale un écart litres × prix / total au-delà de la tolérance sans corriger le total (D-224)",
+   "apps/api/test/integration/fuel.int.spec.ts › soumission conducteur : fenêtre d’utilisation, photo obligatoire, ni dépense ni relevé accepté (D-222, D-226)",
+   "tests/e2e/specs/carburant.spec.ts › le conducteur déclare un plein depuis Mon véhicule ; le chef le voit en attente, le valide, et une seconde validation est refusée"
+  ],
+  "note": "/fuel-entries : saisie, validate, reject, cancel, correct, confirm-capacity, ticket (ticketAttachmentId), liste filtrée (période, statut, véhicule, conducteur, écart) ; consommation et périodes « achats incomplets » sous /vehicles/:id."
+ },
+ "R-15.2-20": {
+  "status": "partiel",
+  "files": [
+   "apps/api/src/modules/expenses/expenses.controller.ts",
+   "apps/api/src/modules/expenses/expenses.service.ts",
+   "apps/api/src/modules/expenses/dto/create-expense.dto.ts",
+   "apps/api/src/modules/expenses/dto/correct-expense.dto.ts",
+   "apps/api/src/modules/expenses/dto/expense-view.dto.ts",
+   "docs/DECISIONS.md"
+  ],
+  "tests": [
+   "apps/api/test/integration/expenses.int.spec.ts › création manuelle idempotente : même clé → même réponse ; autre corps → 409 ; clé obligatoire",
+   "apps/api/test/integration/fuel.int.spec.ts › T24 — plein validé deux fois : même clé → réponse rejouée, autre clé → 409 DEJA_VALIDE, une seule dépense",
+   "apps/api/test/integration/expenses.int.spec.ts › D-229 — correction : nouvelle dépense VALIDEE, ancienne REMPLACEE, total non compté en double, audit avant/après",
+   "apps/api/test/integration/expenses.int.spec.ts › D-229 — annulation motivée : le coût disparaît de sa période d’origine, sans écriture sur la période courante",
+   "apps/api/test/integration/expenses.int.spec.ts › D-230 — dépense sans véhicule limitée à assurance, taxes, location et autre ; ligne « Non ventilé »",
+   "apps/api/test/integration/expenses.int.spec.ts › cloisonnement : le chef B ne voit rien de A, ni dans la liste, ni dans les totaux, ni par identifiant",
+   "apps/api/test/integration/expenses-ledger-integrity.int.spec.ts › synthèse filtrée comme la liste : « sans véhicule », nature, recherche et fournisseur donnent les totaux exacts des lignes validées listées",
+   "apps/api/test/integration/expenses-ledger-integrity.int.spec.ts › chaîne de corrections navigable : chaque version expose la précédente et la suivante ; annulée à la fin ; hors périmètre → 404"
+  ],
+  "note": "/expenses : saisie idempotente, correction (nouvelle version), annulation motivée, operating-cost, justificatif, détail avec chaîne des versions, liste filtrée et synthèse aux mêmes filtres testés. Manque la validation exigée par la règle : /expenses n’expose aucune route ni aucun état de validation ; une dépense manuelle du personnel costs.write est enregistrée VALIDEE dès la saisie. La validation n’existe que pour les soumissions qui génèrent une dépense de synthèse (POST /fuel-entries/:id/validate, clôture d’intervention — T24, hors /expenses). Écart proposé dans D-016 (« Validation d’une dépense manuelle ») par l’équipe de réalisation, non arbitré par le maître d’ouvrage : statut ramené de « fait » à « partiel » en revue, aucun test ne vérifiant une validation exposée par /expenses."
+ },
+ "R-15.2-21": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/suppliers/suppliers.controller.ts",
+   "apps/api/src/modules/suppliers/suppliers.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/suppliers-directory.int.spec.ts › GET /suppliers : actifs par défaut, filtres société, catégorie, statut et recherche (nom ou contact), total exact et pagination",
+   "apps/api/test/integration/suppliers-directory.int.spec.ts › cloisonnement de la liste : chaque chef ne voit que ses sociétés, société hors périmètre → 404, conducteur → 403, administrateur : toutes",
+   "apps/api/test/integration/suppliers.int.spec.ts › unicité par société sur le nom normalisé (casse, accents, espaces), parmi les fournisseurs actifs seulement",
+   "apps/api/test/integration/suppliers.int.spec.ts › « Copier vers une autre société » : chef des deux sociétés ou administrateur ; nouvelle fiche sans historique ni montants",
+   "apps/api/test/integration/suppliers.int.spec.ts › fournisseur archivé choisi dans un formulaire : 422 FOURNISSEUR_ARCHIVE (et non 404) ; hors société : 404"
+  ],
+  "note": "GET /suppliers testé (actifs par défaut, filtres société, catégorie, statut, recherche sur nom ou contact, pagination exacte, filtres invalides 422, cloisonnement) ; POST, PATCH versionné, archive, restore et copy testés."
+ },
+ "R-15.2-22": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/alerts/alerts.controller.ts",
+   "apps/api/src/modules/alerts/alert-center.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T20 — « lu » sur une vidange en retard : l’alerte reste ACTIVE et le plan EN_RETARD ; report motivé visible, statut inchangé",
+   "apps/api/test/integration/alerts.int.spec.ts › cloisonnement et visibilité par rôle : le chef B ne voit ni ne compte les alertes de A ; 404 hors périmètre ; conducteur 403"
+  ],
+  "note": "GET /alerts (filtres), /alerts/counts, /alerts/:id, POST read, unread, snooze (motivé), unsnooze, dans le périmètre."
+ },
+ "R-16.2-06": {
+  "status": "fait",
+  "files": [
+   "apps/worker/src/jobs/daily-purge.job.ts"
+  ],
+  "tests": [
+   "apps/worker/src/jobs/daily-jobs.spec.ts › purge une fois par jour : idempotence expirée, sessions et tentatives anciennes, pièces jointes temporaires abandonnées"
+  ],
+  "note": "Purge quotidienne (daily-purge.job.ts ; temp-files-cleanup.job.ts prévu absent) : pièce jointe temporaire non rattachée depuis plus de 24 h marquée supprimée et fichier effacé du stockage, récente et rattachée conservées, une fois par jour. files.int.spec.ts prévu absent : test dans le worker."
+ },
+ "R-17.1-02": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/money.ts"
+  ],
+  "tests": [
+   "apps/web/lib/format.spec.ts › montants en TND à trois décimales",
+   "apps/api/src/domain/money.spec.ts › accepte un décimal strictement positif à trois décimales au plus",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef saisit une dépense avec justificatif, la retrouve dans la synthèse puis l’exclut du coût d’exploitation"
+  ],
+  "note": "Montants renvoyés avec 3 décimales (« 12.500 ») et affichés « 45,500 TND » (format.ts, e2e)."
+ },
+ "R-17.1-06": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/usages/usages.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/usages-rules.int.spec.ts › retard : isLate, filtre late=true et alerte RETOUR_DEPASSE appliquent la même tolérance, par société",
+   "apps/api/test/integration/usages.int.spec.ts › T07 — retour dépassé avec réservation suivante : alerte, utilisation ouverte, départ suivant bloqué"
+  ],
+  "note": "Alerte émise dès le dépassement : tolérance 0 par défaut, 30 min paramétrée pour une société (12:30 non en retard, 12:30:01 en retard)."
+ },
+ "R-17.1-07": {
+  "status": "fait",
+  "files": [
+   "apps/worker/src/jobs/alert-catch-up.job.ts",
+   "apps/api/src/domain/job-schedule.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/job-schedule.spec.ts › rattrapage toutes les 15 minutes aligné sur :00, :15, :30, :45 UTC",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › rattrapage : alertes temporelles et réservations non honorées, une fois par créneau ; créneau manqué rattrapé au redémarrage",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › intervalle de rattrapage paramétrable par organisation (alerts.catchUpIntervalMinutes)"
+  ],
+  "note": "alerts.catchUpIntervalMinutes = 15 par défaut, créneaux :00/:15/:30/:45 UTC."
+ },
+ "R-17.1-08": {
+  "status": "fait",
+  "files": [
+   "apps/worker/src/jobs/daily-digest.job.ts",
+   "apps/api/src/modules/notifications/notifications.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › récapitulatif quotidien : une ligne par utilisateur et date locale, jamais avant l’heure ni pour un autre jour, sans alerte reportée",
+   "apps/api/test/integration/alerts.int.spec.ts › préférences respectées : e-mail critique désactivé, rôles sans e-mail, version optimiste",
+   "apps/api/test/integration/alerts.int.spec.ts › alertes internes disponibles, aucune ligne d’outbox, statut exact « Canal e-mail non configuré »",
+   "apps/worker/src/jobs/daily-jobs.spec.ts › dû à 08:00 heure de Tunis, rattrapé le jour même après un arrêt, jamais deux fois"
+  ],
+  "note": "08:00 locale ; rien sans canal configuré (CANAL_NON_CONFIGURE) ni pour un destinataire l’ayant désactivé (optedOut)."
+ },
+ "R-18-19": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/alerts/alerts.service.ts",
+   "apps/api/src/modules/notifications/notifications.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T19 — dix recalculs de la même occurrence : une seule alerte active, aucune ligne d’outbox dupliquée",
+   "apps/worker/src/scheduler/worker-scheduler.service.spec.ts › rattrapage : alertes temporelles et réservations non honorées, une fois par créneau ; créneau manqué rattrapé au redémarrage"
+  ],
+  "note": "T19 : dix recalculs (séquentiels, concurrents, recomputeAll) et dix raise concurrents → une alerte active, deux lignes d’outbox seulement ; un seul Job de rattrapage par créneau."
+ },
+ "R-18-20": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/alerts/alert-center.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T20 — « lu » sur une vidange en retard : l’alerte reste ACTIVE et le plan EN_RETARD ; report motivé visible, statut inchangé",
+   "tests/e2e/specs/depenses-alertes.spec.ts › le chef marque une alerte comme lue puis la reporte : elle reste active"
+  ],
+  "note": "T20 : « lu » sur une vidange en retard, plan EN_RETARD et alerte ACTIVE (intégration et e2e)."
+ },
+ "R-18-24": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/expenses/expenses.service.ts",
+   "apps/api/src/modules/fuel/fuel.service.ts",
+   "apps/api/src/modules/interventions/interventions.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/fuel.int.spec.ts › T24 — plein validé deux fois : même clé → réponse rejouée, autre clé → 409 DEJA_VALIDE, une seule dépense",
+   "apps/api/test/integration/expenses.int.spec.ts › T24 — la dépense de synthèse d’une intervention apparaît une seule fois ; elle se corrige par sa source",
+   "apps/api/test/integration/interventions.int.spec.ts › T24 — clôture rejouée : même clé → même résultat ; autre clé → 409 ; une seule dépense",
+   "tests/e2e/specs/carburant.spec.ts › le conducteur déclare un plein depuis Mon véhicule ; le chef le voit en attente, le valide, et une seconde validation est refusée"
+  ],
+  "note": "T24 : plein et intervention validés deux fois → une seule dépense par source, synthèse sans double comptage."
+ },
+ "R-18-25": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/domain/consumption.ts"
+  ],
+  "tests": [
+   "apps/api/src/domain/consumption.spec.ts › 50 L / 400 km × 100 = 12,5 L/100 km ; le carburant acheté en A n’est pas compté",
+   "apps/api/src/domain/consumption.spec.ts › historique insuffisant : un seul plein complet → N/D motivé, aucune valeur 0",
+   "apps/api/src/domain/consumption.spec.ts › distance nulle entre deux pleins complets : N/D (jamais de division par zéro)",
+   "apps/api/test/integration/fuel.int.spec.ts › T25 — deux pleins complets, partiel intermédiaire 20 L, dernier 30 L, 400 km : 12,5 L/100 km",
+   "tests/e2e/specs/carburant.spec.ts › le chef saisit un plein avec anomalies : avertissements de l’API, confirmation de la capacité, consommation N/D motivée puis 12,5 L/100 km (T25)"
+  ],
+  "note": "T25 : 12,5 L/100 km (unitaire, intégration, e2e) ; N/D si un seul plein complet, aucun plein ou distance nulle."
+ },
+ "R-18-26": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés",
+   "apps/api/test/integration/expenses.int.spec.ts › T26 — une dépense datée avant un transfert reste imputée à la société historique ; coûts historiques inchangés",
+   "tests/e2e/specs/transfert.spec.ts › aperçu bloqué par une réservation future, puis transfert après son annulation ; véhicule visible dans la société cible"
+  ],
+  "note": "T26 : refus 409 avec intervention ouverte, transfert après résolution, dépense 100,500 toujours imputée à A et visible de A seul ; e2e : blocage par réservation future puis transfert après annulation, dépense historique inchangée."
+ },
+ "R-18-29": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/notifications/notifications.service.ts",
+   "apps/worker/src/jobs/outbox-dispatcher.job.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › alertes internes disponibles, aucune ligne d’outbox, statut exact « Canal e-mail non configuré »",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (a) SMTP absent : alertes internes disponibles, rien mis en file, aucun envoi ni succès prétendu",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (b) panne SMTP : ECHEC, prochaine tentative croissante, erreur expurgée, puis ABANDONNE après 8 tentatives",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (c) arrêt brutal pendant l’envoi puis redémarrage avec SMTP disponible : reprise après expiration du verrou, envoi réel (Mailpit), statut ENVOYE ; droits revérifiés"
+  ],
+  "note": "T29 : SMTP absent (alertes internes, statut exact « Canal e-mail non configuré ») ; panne SMTP (ECHEC, délais croissants, erreur expurgée, ABANDONNE) ; arrêt puis redémarrage du worker (reprise, ENVOYE, droits revérifiés)."
+ },
+ "R-19.1-04": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/fuel/fuel.service.ts",
+   "apps/api/src/modules/expenses/expenses.service.ts",
+   "apps/api/src/modules/alerts/alerts.service.ts",
+   "apps/api/src/modules/notifications/notifications.service.ts",
+   "apps/worker/src/worker.module.ts",
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts",
+   "docs/plan-de-realisation.md"
+  ],
+  "tests": [
+   "apps/api/test/integration/alerts.int.spec.ts › T19 — dix recalculs de la même occurrence : une seule alerte active, aucune ligne d’outbox dupliquée",
+   "apps/api/test/integration/alerts.int.spec.ts › T20 — « lu » sur une vidange en retard : l’alerte reste ACTIVE et le plan EN_RETARD ; report motivé visible, statut inchangé",
+   "apps/api/test/integration/fuel.int.spec.ts › T24 — plein validé deux fois : même clé → réponse rejouée, autre clé → 409 DEJA_VALIDE, une seule dépense",
+   "apps/api/src/domain/consumption.spec.ts › 50 L / 400 km × 100 = 12,5 L/100 km ; le carburant acheté en A n’est pas compté",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › T26 — refus 409 TRANSFERT_BLOQUE avec une intervention ouverte, puis transfert après résolution ; coûts historiques inchangés",
+   "apps/worker/src/jobs/outbox-dispatcher.job.spec.ts › (c) arrêt brutal pendant l’envoi puis redémarrage avec SMTP disponible : reprise après expiration du verrou, envoi réel (Mailpit), statut ENVOYE ; droits revérifiés"
+  ],
+  "note": "docs/plan-de-realisation.md décrit le lot D (carburant, registre de dépenses, alertes, e-mail, worker et transfert) avec ses emplacements et tests, contrôlé par lot-d-docs.spec.ts (chaque chemin, écran et test cité existe). T19, T20, T24, T25, T26 et T29 verts ; les écarts relevés (écran /fournisseurs, liste et catégories des fournisseurs, réservation compromise par immobilisation, nouvelle occurrence, blocages du transfert, responsable de suivi, index d’unicité des sources, fuseau modifiable, contrôle santé du worker) sont testés ; la validation d’une dépense manuelle reste un écart (D-016, R-15.2-20 partiel). Le rapport de recette (docs/rapport-recette.md) relève du lot E et n’existe pas encore : le plan le dit désormais au lieu d’y renvoyer. Découpage (lot D) : contrôle automatique de chaque chemin, écran et test cité par le plan (lot-d-docs.spec.ts › plan de réalisation, qui cite les écrans et tests des lots E et F) : cas reporté au lot F."
+ },
+ "R-2.4-X01": {
+  "status": "fait",
+  "files": [
+   "apps/api/src/modules/vehicles/vehicle-transfer.service.ts",
+   "apps/api/src/modules/odometer/odometer-ingestion.service.ts",
+   "apps/api/src/domain/period-distance.ts"
+  ],
+  "tests": [
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › relevé de transfert (contexte TRANSFERT, société d’origine) et décisions explicites : affectation, plans, site, service, documents, alertes",
+   "apps/api/test/integration/vehicle-transfer.int.spec.ts › refuse un relevé de transfert incohérent (contrôle du service unique) sans rien écrire",
+   "apps/api/src/domain/period-distance.spec.ts › sociétés différentes : non ventilable sans relevé de transfert, calculable avec",
+   "apps/api/src/domain/period-distance.spec.ts › chaque part ne compte que ses relevés, bornés par le relevé de transfert commun"
+  ],
+  "note": "Relevé de transfert par OdometerIngestionService (contexte TRANSFERT, société d’origine, observé à l’instant du transfert) ; il borne la ventilation (500 km pour A, 800 km pour B) ; sans relevé, motif obligatoire et distance NON_VENTILABLE attribuée à aucune société (instantané et règle period-distance). Découpage (lot D) : ventilation dans le rapport coûts/distances (reports.int.spec.ts › 11.3, distance-cost-report.service.ts) livrée avec le lot E."
  }
 }

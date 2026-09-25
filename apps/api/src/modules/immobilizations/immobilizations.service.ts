@@ -6,6 +6,7 @@ import { BusinessRuleError, ConflictError, NotFoundOrOutOfScopeError } from '../
 import { assertExpectedVersion } from '../../common/optimistic-lock.js';
 import { type Page, pageOf, skipTake } from '../../common/pagination.js';
 import type { RequestContext } from '../../common/request-context.js';
+import { formatLocalDateTime } from '../../domain/civil-date.js';
 import { CAUSE_DURATIONS_NOTE, immobilizationDurations } from '../../domain/immobilization-duration.js';
 import { AuditService } from '../../infra/audit.service.js';
 import { PrismaService, isConstraintViolation, isUniqueViolation, type Tx } from '../../infra/prisma.service.js';
@@ -363,6 +364,8 @@ export class ImmobilizationsService {
       where: { vehicleId: immo.vehicleId, status: 'CONFIRMEE', endAt: { gt: now }, startAt: { lte: horizon } },
       include: { driver: { select: { firstName: true, lastName: true } } },
     });
+    // Texte de l'alerte : début de la réservation dans le fuseau du groupe (jamais un horodatage UTC brut).
+    const timezone = reservations.length > 0 ? (await this.prisma.client.organization.findUniqueOrThrow({ where: { id: immo.organizationId }, select: { timezone: true } })).timezone : null;
     for (const r of reservations) {
       await this.alerts.raise({
         organizationId: r.organizationId,
@@ -374,7 +377,7 @@ export class ImmobilizationsService {
         vehicleId: r.vehicleId,
         occurrenceKey: `immobilisation:${immo.id}`,
         title: `Réservation compromise — ${immo.vehicle.code}`,
-        message: `La réservation de ${r.driver.firstName} ${r.driver.lastName} (${r.startAt.toISOString()}) est compromise : le véhicule est immobilisé.`,
+        message: `La réservation de ${r.driver.firstName} ${r.driver.lastName} du ${formatLocalDateTime(r.startAt, timezone as string, { sentence: true })} est compromise : le véhicule est immobilisé.`,
         condition: { immobilizationId: immo.id, reservationId: r.id, reservationStartAt: r.startAt.toISOString() },
         actionPath: `/planning?reservation=${r.id}`,
       });

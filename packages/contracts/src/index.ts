@@ -188,6 +188,7 @@ export const FUEL_ENTRY_STATUS_LABELS = {
   VALIDE: 'Validé',
   REJETE: 'Rejeté',
   ANNULE: 'Annulé',
+  REMPLACE: 'Remplacé (corrigé)',
 } as const;
 
 /** Contexte d'une déclaration de localisation (CDC 3.4 ; déclarative, sans suivi en direct). */
@@ -293,7 +294,9 @@ export const SETTING_DEFAULTS = {
   'imports.maxRows': 2000,
   'pagination.defaultPageSize': 25,
   'pagination.maxPageSize': 100,
-  'fuel.amountToleranceRatio': 0.02,
+  'fuel.amountToleranceRatio': 0.01,
+  'fuel.amountToleranceTnd': 0.1,
+  'fuel.driverLateSubmissionDays': 7,
   'telemetry.syncIntervalMinutes': 15,
   'telemetry.silentAfterHours': 24,
   'telemetry.driftThresholdPercent': 3,
@@ -325,6 +328,8 @@ export interface SettingDescriptor {
   min?: number;
   max?: number;
   unit?: string;
+  /** Nombre maximal de décimales d'une valeur `number` (montant en TND : 3, règle d'affichage du CDC 17.1). */
+  decimals?: number;
   /** Surcharge possible par société (sinon valeur groupe uniquement). */
   companyOverride: boolean;
   /**
@@ -372,6 +377,8 @@ export const SETTING_DESCRIPTORS: Record<SettingKey, SettingDescriptor> = {
   'incidents.driverLateDeclarationHours': { label: 'Déclaration d’incident par le conducteur après restitution', kind: 'integer', min: 0, max: 168, unit: 'heures', companyOverride: true },
   'reservations.noShowGraceMinutes': { label: 'Délai avant constat manuel de non-présentation (après le début prévu)', kind: 'integer', min: 0, max: 1440, unit: 'minutes', companyOverride: true },
   'reservations.conversionEarlyMinutes': { label: 'Avance maximale d’une remise convertissant une réservation (avant le début prévu)', kind: 'integer', min: 0, max: 1440, unit: 'minutes', companyOverride: true },
+  'fuel.amountToleranceTnd': { label: 'Écart toléré (litres × prix / total), part fixe', kind: 'number', min: 0, max: 100, unit: 'TND', decimals: 3, companyOverride: true },
+  'fuel.driverLateSubmissionDays': { label: 'Soumission d’un ticket carburant après restitution', kind: 'integer', min: 0, max: 30, unit: 'jours', companyOverride: true },
   'drivers.allowHabitualVehicleSubmissions': { label: 'Soumissions du conducteur sur le véhicule dont il est responsable habituel (sans utilisation en cours)', kind: 'boolean', companyOverride: false },
 };
 

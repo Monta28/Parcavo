@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
 import { hostname } from 'node:os';
 import { randomBytes } from 'node:crypto';
-import { APP_ENV, Clock, PrismaService, type AppEnv } from '@parc-auto/api';
+import { APP_ENV, Clock, PrismaService, describeErrorSafely, type AppEnv } from '@parc-auto/api';
 
 /** Période du battement : l'API considère le worker absent au-delà de 5 minutes (/health/ready). */
 export const HEARTBEAT_INTERVAL_MS = 30_000;
@@ -25,10 +25,15 @@ export class HeartbeatService implements OnApplicationBootstrap, OnApplicationSh
 
   async onApplicationBootstrap(): Promise<void> {
     await this.beat();
+    // Minuteur référencé : il maintient le processus du worker actif jusqu'à l'arrêt (SIGTERM → onApplicationShutdown).
     this.timer = setInterval(() => {
-      this.beat().catch((error: unknown) => this.logger.error(`Battement en échec : ${error instanceof Error ? error.message : String(error)}`));
+      this.beat().catch((error: unknown) => this.logger.error(`Battement en échec : ${describeErrorSafely(error)}`));
     }, HEARTBEAT_INTERVAL_MS);
-    this.timer.unref();
+  }
+
+  /** Vrai tant que le battement périodique est armé et retient la boucle d'événements. */
+  isKeepingProcessAlive(): boolean {
+    return this.timer !== null && this.timer.hasRef();
   }
 
   onApplicationShutdown(): void {

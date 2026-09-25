@@ -46,4 +46,11 @@ describe('Battement du worker (CDC 16.3)', () => {
     expect(row.startedAt.toISOString()).toBe('2026-09-24T10:00:00.000Z');
     expect(await prisma.client.workerHeartbeat.count({ where: { workerId: heartbeat.workerId } })).toBe(1);
   });
+
+  it('arme au démarrage un battement qui maintient le processus actif, puis le libère à l’arrêt', async () => {
+    await heartbeat.onApplicationBootstrap();
+    expect(heartbeat.isKeepingProcessAlive()).toBe(true);
+    heartbeat.onApplicationShutdown();
+    expect(heartbeat.isKeepingProcessAlive()).toBe(false);
+  });
 });

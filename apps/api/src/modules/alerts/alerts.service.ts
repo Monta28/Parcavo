@@ -2,7 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { AlertSeverity, AlertType, Prisma } from '@parc-auto/db';
 import type { AfterCommit } from '../../common/after-commit.js';
 import { Clock } from '../../common/clock.js';
-import { PrismaService, type Tx } from '../../infra/prisma.service.js';
+import { isEscalationOrReactivation } from '../../domain/alert-policy.js';
+import { PrismaService, isUniqueViolation, type Tx } from '../../infra/prisma.service.js';
 
 export interface AlertCondition {
   organizationId: string;
@@ -30,8 +31,6 @@ export interface AlertKey {
   occurrenceKey?: string;
 }
 
-const SEVERITY_RANK: Record<AlertSeverity, number> = { INFO: 0, ATTENTION: 1, URGENT: 2, CRITIQUE: 3 };
-
 export type AlertRaisedListener = (alert: { id: string; organizationId: string; companyId: string; severity: AlertSeverity; type: AlertType; created: boolean; escalated: boolean }) => Promise<void>;
 
 /**
@@ -54,11 +53,24 @@ export class AlertsService {
   }
 
   /**
-   * Crée ou met à jour l'alerte active de cette occurrence ; renvoie son identifiant.
+   * Crée ou met à jour l'alerte active de cette occurrence ; renvoie son identifiant. Idempotent : un
+   * recalcul répété ne crée ni doublon ni notification (T19). Deux créations concurrentes de la même
+   * occurrence se résolvent sur l'index unique : la seconde met à jour la ligne créée par la première.
+   */
+  async raise(condition: AlertCondition, tx?: Tx, after?: AfterCommit): Promise<string> {
+    try {
+      return await this.upsert(condition, tx, after);
+    } catch (error) {
+      if (!tx && isUniqueViolation(error)) return this.upsert(condition);
+      throw error;
+    }
+  }
+
+  /**
    * Dans une transaction (tx), la notification d'une création ou d'une hausse de gravité n'est émise qu'après
    * validation, par la file `after` fournie par l'appelant ; sans file, elle n'est pas émise (rattrapage).
    */
-  async raise(condition: AlertCondition, tx?: Tx, after?: AfterCommit): Promise<string> {
+  private async upsert(condition: AlertCondition, tx?: Tx, after?: AfterCommit): Promise<string> {
     const client = tx ?? this.prisma.client;
     const now = this.clock.now();
     const unique = {
@@ -92,9 +104,11 @@ export class AlertsService {
       id = alert.id;
       created = true;
     } else {
-      escalated = SEVERITY_RANK[condition.severity] > SEVERITY_RANK[existing.severity] || existing.status === 'RESOLUE';
+      escalated = isEscalationOrReactivation({ severity: existing.severity, active: existing.status === 'ACTIVE' }, condition.severity);
+      // Responsable fourni par la condition (responsable du suivi d'un incident, du plan…) : il suit l'objet source.
+      const responsibleChanged = condition.responsibleUserId !== undefined && (condition.responsibleUserId ?? null) !== existing.responsibleUserId;
       const changed =
-        existing.status !== 'ACTIVE' || existing.severity !== condition.severity || existing.message !== condition.message || existing.title !== condition.title;
+        existing.status !== 'ACTIVE' || existing.severity !== condition.severity || existing.message !== condition.message || existing.title !== condition.title || responsibleChanged;
       await client.alert.update({
         where: { id: existing.id },
         data: {
@@ -106,12 +120,17 @@ export class AlertsService {
           message: condition.message,
           condition: condition.condition as Prisma.InputJsonValue,
           actionPath: condition.actionPath,
+          ...(condition.responsibleUserId !== undefined ? { responsibleUserId: condition.responsibleUserId ?? null } : {}),
           lastEvaluatedAt: now,
-          ...(existing.status === 'RESOLUE' ? { triggeredAt: now } : {}),
+          ...(existing.status === 'RESOLUE' ? { triggeredAt: now, emailNotifiedSeverity: null } : {}),
           ...(changed ? { version: { increment: 1 } } : {}),
         },
       });
       id = existing.id;
+      if (escalated) {
+        // D-252 : une hausse de gravité (ou une réactivation) annule les reports et remet la lecture à zéro.
+        await client.alertRecipientState.updateMany({ where: { alertId: existing.id }, data: { readAt: null, snoozedUntil: null, snoozeReason: null } });
+      }
     }
     if ((created || escalated) && !tx) await this.notify(id, condition, created, escalated);
     else if ((created || escalated) && after) after.add(`notification de l’alerte ${id}`, () => this.notify(id, condition, created, escalated));

@@ -7,7 +7,7 @@ import { BusinessRuleError, ConflictError, NotFoundOrOutOfScopeError } from '../
 import { assertExpectedVersion } from '../../common/optimistic-lock.js';
 import { type Page, pageOf, resolveSort, skipTake } from '../../common/pagination.js';
 import type { RequestContext } from '../../common/request-context.js';
-import { type CivilDate, fromDbDate, localDate, startOfLocalDay, toDbDate } from '../../domain/civil-date.js';
+import { type CivilDate, formatCivilDate, fromDbDate, localDate, startOfLocalDay, toDbDate } from '../../domain/civil-date.js';
 import { computeFreshness } from '../../domain/freshness.js';
 import {
   comparePlansForSort,
@@ -86,6 +86,14 @@ export interface PlanEvaluation extends StatusResult {
   /** Nature du kilométrage retenu : ESTIME_GPS, COMPTEUR_CAN ou COMPTEUR_AFFICHE (D-179). */
   currentKmSource: KmSource | null;
   currentKmObservedAt: Date | null;
+}
+
+/**
+ * Règle unique du responsable d'un plan : compte actif de l'organisation, administrateur groupe ou habilité
+ * opérationnel (chef de parc, opérateur) sur la société du plan. Utilisée pour le contrôle et pour les listes.
+ */
+export function responsibleMembershipWhere(organizationId: string, companyId: string): Prisma.MembershipWhereInput {
+  return { organizationId, user: { organizationId, status: 'ACTIF' }, OR: [{ companyId: null, role: 'ADMIN' }, { companyId, role: { in: [...OPERATIONAL_ROLES] } }] };
 }
 
 /**
@@ -495,7 +503,7 @@ export class MaintenancePlansService implements OnModuleInit {
       vehicleId: plan.vehicleId,
       occurrenceKey,
       title: `Entretien ${STATUS_LABEL[status]} — ${plan.vehicle.code}`,
-      message: `${plan.maintenanceType.label} : échéance ${dueKm ? `${dueKm} km` : ''}${dueKm && dueDate ? ' / ' : ''}${dueDate ?? ''} — ${STATUS_LABEL[status]}.`,
+      message: `${plan.maintenanceType.label} : échéance ${dueKm ? `${dueKm} km` : ''}${dueKm && dueDate ? ' / ' : ''}${dueDate ? formatCivilDate(dueDate) : ''} — ${STATUS_LABEL[status]}.`,
       condition: { planId: plan.id, status, nextDueKm: plan.nextDueKm?.toString() ?? null, nextDueDate: dueDate },
       actionPath: `/entretiens?plan=${plan.id}`,
       responsibleUserId: plan.responsibleUserId,
@@ -562,7 +570,7 @@ export class MaintenancePlansService implements OnModuleInit {
   async assertResponsible(tx: Tx | undefined, organizationId: string, userId: string | null, companyId: string): Promise<void> {
     if (!userId) return;
     const membership = await (tx ?? this.prisma.client).membership.findFirst({
-      where: { userId, organizationId, user: { organizationId, status: 'ACTIF' }, OR: [{ companyId: null, role: 'ADMIN' }, { companyId, role: { in: [...OPERATIONAL_ROLES] } }] },
+      where: { userId, ...responsibleMembershipWhere(organizationId, companyId) },
       select: { id: true },
     });
     if (!membership) {
@@ -570,6 +578,20 @@ export class MaintenancePlansService implements OnModuleInit {
         fieldErrors: { responsibleUserId: ['Compte inconnu, désactivé ou sans habilitation sur la société du plan.'] },
       });
     }
+  }
+
+  /**
+   * Comptes éligibles comme responsable d'un plan de cette société : même règle que assertResponsible
+   * (administrateurs groupe compris), pour les listes de choix (transfert d'un véhicule).
+   */
+  async eligibleResponsibles(organizationId: string, companyId: string): Promise<Array<{ id: string; firstName: string; lastName: string; email: string; roles: string[] }>> {
+    const where = responsibleMembershipWhere(organizationId, companyId);
+    const users = await this.prisma.client.user.findMany({
+      where: { organizationId, status: 'ACTIF', memberships: { some: where } },
+      select: { id: true, firstName: true, lastName: true, email: true, memberships: { where, select: { role: true } } },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { id: 'asc' }],
+    });
+    return users.map((u) => ({ id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email, roles: [...new Set(u.memberships.map((m) => m.role))] }));
   }
 
   /** Vue d'un plan : échéances et statut matérialisés, restes et avertissements évalués au présent. */

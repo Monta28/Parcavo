@@ -74,6 +74,7 @@ Les partitions mensuelles des échantillons télématiques (`TelemetryOdometerSa
 | `ImmobilizationCause` | Cause d'une immobilisation. | organisation | Close (`endedAt`) ; conservée. |
 | `Supplier` | Fournisseur (garage, station…). | société | Archivage (`status`, `archivedAt`). |
 | `FuelEntry` | Plein ou achat de carburant. | société | Statut (`REJETE`, `ANNULE`, `REMPLACE`) ; jamais supprimé. |
+| `FuelPurchaseGap` | Période déclarée « achats incomplets ». | société | Conservée. |
 | `Expense` | Registre unique des dépenses. | société | Statut (`ANNULEE`, `REMPLACEE`) ; jamais supprimée. |
 | `Attachment` | Métadonnées d'un fichier privé (le contenu est dans le stockage). | société ou groupe | Suppression logique (`deletedAt`) motivée et auditée ; contenu effacé du stockage (voir plus bas). |
 | `Alert` | Alerte métier dédupliquée. | société | Statut (`RESOLUE`) ; conservée. |

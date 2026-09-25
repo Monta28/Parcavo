@@ -18,6 +18,7 @@ import { isApiError } from '@/lib/api-error';
 import { formatDate, formatDateTime, formatKm } from '@/lib/format';
 import type { VehicleSynthesis } from '@/lib/vehicles-types';
 import { AssignmentsPanel } from './assignments-panel';
+import { ConsumptionPanel } from './consumption-panel';
 import { VehicleDocumentsPanel } from './documents-panel';
 import { LifecycleDialog } from './lifecycle-dialog';
 import { LocationPanel } from './location-panel';
@@ -26,9 +27,10 @@ import { OdometerPanel } from './odometer-panel';
 import { PhotosPanel } from './photos-panel';
 import { QrPanel } from './qr-panel';
 import { ReservationsPanel } from './reservations-panel';
+import { TransferDialog } from './transfer-dialog';
 
 /** Onglets atteignables par lien (?onglet=…, liens d'alerte) ; les onglets de gestion sont refusés au conducteur. */
-const STAFF_TABS = new Set(['synthese', 'localisation', 'kilometrage', 'photos', 'affectations', 'reservations', 'entretien', 'documents']);
+const STAFF_TABS = new Set(['synthese', 'localisation', 'kilometrage', 'photos', 'affectations', 'reservations', 'entretien', 'documents', 'carburant']);
 const DRIVER_TABS = new Set(['synthese', 'localisation']);
 
 function initialTab(requested: string | null, driverOnly: boolean): string {
@@ -44,6 +46,7 @@ export function VehicleDetail({ id }: { id: string }) {
   const isManager = session.isAdmin || role === 'CHEF_PARC';
   const isOperational = isManager || role === 'OPERATEUR';
   const [lifecycleOpen, setLifecycleOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const lifecycle = useMutation({
     mutationFn: (input: { lifecycleStatus: string; reason: string }) =>
@@ -78,6 +81,11 @@ export function VehicleDetail({ id }: { id: string }) {
                 Changer le cycle de vie
               </Button>
             ) : null}
+            {session.isAdmin && v.lifecycleStatus !== 'ARCHIVE' && v.lifecycleStatus !== 'CEDE' ? (
+              <Button variant="outline" onClick={() => setTransferOpen(true)}>
+                Transférer
+              </Button>
+            ) : null}
           </>
         }
       />
@@ -100,6 +108,7 @@ export function VehicleDetail({ id }: { id: string }) {
           {session.isDriverOnly ? null : <TabsTrigger value="reservations">Réservations</TabsTrigger>}
           {session.isDriverOnly ? null : <TabsTrigger value="entretien">Entretien</TabsTrigger>}
           {session.isDriverOnly ? null : <TabsTrigger value="documents">Documents</TabsTrigger>}
+          {session.isDriverOnly ? null : <TabsTrigger value="carburant">Carburant</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="synthese">
@@ -278,9 +287,16 @@ export function VehicleDetail({ id }: { id: string }) {
             <VehicleDocumentsPanel vehicleId={id} companyId={v.companyId} />
           </TabsContent>
         )}
+
+        {session.isDriverOnly ? null : (
+          <TabsContent value="carburant">
+            <ConsumptionPanel vehicleId={id} companyId={v.companyId} />
+          </TabsContent>
+        )}
       </Tabs>
 
       <LifecycleDialog open={lifecycleOpen} onOpenChange={setLifecycleOpen} current={v.lifecycleStatus} pending={lifecycle.isPending} onSubmit={(input) => lifecycle.mutate(input)} />
+      {transferOpen ? <TransferDialog vehicleId={id} onClose={() => setTransferOpen(false)} /> : null}
     </div>
   );
 }

@@ -145,6 +145,36 @@ describe('Clôture d’intervention : périmètre de la société et transaction
     expect(done.body).toMatchObject({ companyId: f.companies.A, status: 'TERMINEE' });
   });
 
+  it('R-6.3-06 — transfert réel du véhicule : l’intervention terminée garde sa société historique ; facture et dépense contrôlées sur cette société', async () => {
+    const vT = await createVehicle(t.prisma, f, 'A', { code: 'V-T' });
+    const i = await intervention(chefA, vT);
+    // Clôture sans coût connu (facture attendue plus tard, D-206) : aucune opération ouverte ne bloque le transfert.
+    const done = await chefA.post(`/interventions/${i.id}/complete`, { completedTaskIds: i.tasks.map((x) => x.id), expectedVersion: i.version, performedOn: '2026-09-24' }).set('Idempotency-Key', randomUUID());
+    expect(done.status, JSON.stringify(done.body)).toBe(200);
+    expect(done.body.costStatus).toBe('A_SAISIR');
+    const vehicleVersion = (await t.prisma.client.vehicle.findUniqueOrThrow({ where: { id: vT } })).version;
+    const transfer = await admin
+      .post(`/vehicles/${vT}/transfer`, { targetCompanyId: f.companies.B, expectedVersion: vehicleVersion, reason: 'Réorganisation du parc', plans: [], siteId: null, departmentId: null, sharedDocumentVersionIds: [], noReadingReason: 'Véhicule déjà au dépôt de la société B' })
+      .set('Idempotency-Key', randomUUID());
+    expect(transfer.status, JSON.stringify(transfer.body)).toBe(200);
+    expect((await t.prisma.client.vehicle.findUniqueOrThrow({ where: { id: vT } })).companyId).toBe(f.companies.B);
+    // Société historique : l'intervention reste de A (visible du chef A, pas du chef B, nouvelle société du véhicule).
+    expect((await chefA.get(`/interventions/${i.id}`)).body).toMatchObject({ companyId: f.companies.A, status: 'TERMINEE' });
+    expect((await chefB.get(`/interventions/${i.id}`)).status).toBe(404);
+    // Facture téléversée pour la nouvelle société du véhicule : hors périmètre de l'intervention (404), aucune dépense.
+    const invoiceB = await uploadPdf(chefAB, t.server, f.companies.B, 'facture-nouvelle-societe.pdf');
+    const refused = await chefAB.post(`/interventions/${i.id}/cost`, { totalAmount: '80.000', invoiceAttachmentId: invoiceB, expectedVersion: done.body.version });
+    expect(refused.status).toBe(404);
+    expect(await t.prisma.client.expense.count()).toBe(0);
+    expect((await t.prisma.client.attachment.findUniqueOrThrow({ where: { id: invoiceB } })).ownerId).toBeNull();
+    // Facture de la société historique : dépense imputée à A, jamais réimputée à la nouvelle société.
+    const invoiceA = await uploadPdf(chefAB, t.server, f.companies.A, 'facture-societe-historique.pdf');
+    const cost = await chefAB.post(`/interventions/${i.id}/cost`, { totalAmount: '80.000', invoiceAttachmentId: invoiceA, expectedVersion: done.body.version });
+    expect(cost.status, JSON.stringify(cost.body)).toBe(200);
+    expect(await t.prisma.client.expense.findFirstOrThrow({ where: { sourceId: i.id } })).toMatchObject({ companyId: f.companies.A, attachmentId: invoiceA, status: 'VALIDEE' });
+    expect((await t.prisma.client.intervention.findUniqueOrThrow({ where: { id: i.id } })).companyId).toBe(f.companies.A);
+  });
+
   it('R-6.4-06 — les alertes des plans sont réévaluées dans la transaction de clôture : un échec d’écriture d’alerte annule toute la clôture', async () => {
     const alert = await t.prisma.client.alert.findFirstOrThrow({ where: { objectId: planId, type: 'ENTRETIEN_ECHEANCE', status: 'ACTIVE' } });
     expect(alert.severity).toBe('CRITIQUE');

@@ -14,6 +14,8 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { CsrfGuard } from './modules/auth/csrf.guard.js';
 import { DocumentsModule } from './modules/documents/documents.module.js';
 import { DriversModule } from './modules/drivers/drivers.module.js';
+import { ExpensesModule } from './modules/expenses/expenses.module.js';
+import { FuelModule } from './modules/fuel/fuel.module.js';
 import { AlertsCoreModule } from './modules/alerts/alerts-core.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { ImmobilizationsModule } from './modules/immobilizations/immobilizations.module.js';
@@ -28,6 +30,9 @@ import { UsagesModule } from './modules/usages/usages.module.js';
 import { OrganizationsModule } from './modules/organizations/organizations.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { VehiclesModule } from './modules/vehicles/vehicles.module.js';
+import { VehicleTransferModule } from './modules/vehicles/vehicle-transfer.module.js';
+import { AlertsModule } from './modules/alerts/alerts.module.js';
+import { NotificationsModule } from './modules/notifications/notifications.module.js';
 
 export interface AppModuleOptions {
   env?: AppEnv;
@@ -35,7 +40,7 @@ export interface AppModuleOptions {
 }
 
 /** Modules métier chargés dans l'API. Chaque lot ajoute ses modules ici. */
-export const FEATURE_MODULES = [HealthModule, SettingsModule, AlertsCoreModule, UsersModule, OrganizationsModule, AttachmentsModule, DriversModule, VehiclesModule, OdometerModule, UsagesModule, ReservationsModule, AssignmentsModule, MaintenanceModule, ImmobilizationsModule, SuppliersModule, InterventionsModule, DocumentsModule, IncidentsModule];
+export const FEATURE_MODULES = [HealthModule, SettingsModule, AlertsCoreModule, UsersModule, OrganizationsModule, AttachmentsModule, DriversModule, VehiclesModule, OdometerModule, UsagesModule, ReservationsModule, AssignmentsModule, MaintenanceModule, ImmobilizationsModule, SuppliersModule, InterventionsModule, DocumentsModule, IncidentsModule, ExpensesModule, FuelModule, AlertsModule, NotificationsModule, VehicleTransferModule];
 
 @Module({})
 export class AppModule {

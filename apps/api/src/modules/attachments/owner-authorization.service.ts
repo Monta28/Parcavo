@@ -4,6 +4,7 @@ import { BusinessRuleError, ForbiddenActionError, NotFoundOrOutOfScopeError } fr
 import type { RequestContext } from '../../common/request-context.js';
 import { PrismaService } from '../../infra/prisma.service.js';
 import { AccessControlService } from '../access-control/access-control.service.js';
+import { driverOwnWhere } from '../fuel/fuel-visibility.js';
 import type { OwnerAuthorization } from './attachments.service.js';
 
 /** Fichiers techniques : leur conservation suit leur module (imports, exports, rapports de télématique). */
@@ -71,8 +72,11 @@ export class OwnerAuthorizationService implements OwnerAuthorization {
 
   private async staffCanRead(ctx: RequestContext, ownerType: AttachmentOwnerType, ownerId: string, companyId: string): Promise<boolean> {
     switch (ownerType) {
+      // Ticket de plein et facture de dépense : pièces de coût, lisibles seulement avec costs.read (D-266).
       case 'PLEIN':
       case 'DEPENSE':
+        return this.access.hasPermission(ctx, companyId, 'costs.read');
+      // Pièces d'intervention (rapports, photos, factures) : costs.read ou rôle opérationnel de la société.
       case 'INTERVENTION':
         return this.access.hasPermission(ctx, companyId, 'costs.read') || this.access.hasRole(ctx, companyId, ['CHEF_PARC', 'OPERATEUR']);
       case 'PERMIS':
@@ -93,7 +97,9 @@ export class OwnerAuthorizationService implements OwnerAuthorization {
         return reading !== null;
       }
       case 'PLEIN': {
-        const entry = await this.prisma.client.fuelEntry.findFirst({ where: { id: ownerId, driverId: ctx.driverId }, select: { id: true } });
+        // Ses propres soumissions uniquement (règle unique du module carburant) : jamais le ticket ou la
+        // facture d'un plein saisi par le personnel, même à son nom (2.3).
+        const entry = await this.prisma.client.fuelEntry.findFirst({ where: { AND: [{ id: ownerId }, driverOwnWhere(ctx)] }, select: { id: true } });
         return entry !== null;
       }
       case 'INCIDENT': {

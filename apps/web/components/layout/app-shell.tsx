@@ -1,6 +1,7 @@
 'use client';
 
-import { LogOut, Menu } from 'lucide-react';
+import { BellRing, LogOut, Menu } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
             <span className="ml-2 text-muted-foreground">{session.isAdmin ? 'Administrateur' : session.isDriverOnly ? 'Conducteur' : ''}</span>
           </div>
+          {session.isDriverOnly ? null : (
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/profil/notifications" aria-label="Mes notifications" title="Mes notifications">
+                <BellRing className="size-4" aria-hidden="true" />
+                <span className="hidden lg:inline">Mes notifications</span>
+              </Link>
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={logout} aria-label="Se déconnecter">
             <LogOut className="size-4" />
             <span className="hidden sm:inline">Déconnexion</span>

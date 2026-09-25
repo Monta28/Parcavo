@@ -15,6 +15,7 @@ const SECTIONS = [
   { href: '/administration/utilisateurs', label: 'Utilisateurs' },
   { href: '/administration/organisation', label: 'Organisation' },
   { href: '/administration/parametres', label: 'Paramètres' },
+  { href: '/administration/notifications', label: 'Notifications' },
 ] as const;
 
 const FORBIDDEN = new ApiRequestError(403, { code: 'ADMIN_REQUIS', message: 'La section Administration est réservée à l’administrateur groupe.' });

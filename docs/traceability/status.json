@@ -8446,7 +8446,7 @@
    "docs/sauvegarde-restauration.md"
   ],
   "tests": [],
-  "note": "Restauration complète dans un projet compose isolé automatisée (restore-test.sh) ; exercice de restauration T30 réussi le 2026-09-24 sur les images du lot A (scratchpad plan-status.md section T30, t30/restore-test.log : RÉUSSI en 20 s) ; à refaire sur les images finales."
+  "note": "Exercice de restauration réussi le 24/09/2026 sur les images du lot A (restore-test.sh : RÉUSSI en 20 s) ; non refait sur les images finales : construction Docker impossible le 25/09/2026 (démon Docker de l'environnement configuré sur un proxy devenu inaccessible après redémarrage du conteneur, voir docs/RECETTE.md § 2.2)."
  },
  "R-16.4-05": {
   "status": "partiel",
@@ -8455,7 +8455,7 @@
    "scripts/ops/restore-test.sh"
   ],
   "tests": [],
-  "note": "RPO 24 h et RTO 4 h présentés comme objectifs à mesurer (docs/sauvegarde-restauration.md) ; aucune mesure consignée en recette (docs/RECETTE.md absent) ; seule la durée de restore-test (20 s, images du lot A) a été relevée."
+  "note": "RPO 24 h et RTO 4 h documentés comme objectifs (docs/sauvegarde-restauration.md) ; seule la durée de restore-test.sh sur les images du lot A a été mesurée (20 s) ; mesure sur les images finales non faite (RECETTE § 2.2)."
  },
  "R-17.1-09": {
   "status": "fait",
@@ -8507,17 +8507,17 @@
   "note": "docs/performance.md : matériel réel (4 processeurs Xeon 2,1 GHz, 16 Gio, PostgreSQL 16.15 en conteneur partagé, fsync=off, charge moyenne 8,07 pendant la mesure), jeu chargé, scénario, commandes, sortie brute de la mesure finale (identique au fichier de mesure conservé) et des mesures successives, optimisations, limites. Revue du 24/09/2026 : synthèse corrigée (lecture du rapport carburant non tenue malgré le p95 agrégé), limites complétées (coût en requêtes du rapport carburant, référentiel découpé en mémoire du rapport coûts et distances, matérialisation des statuts d’entretien à la première lecture du jour) ; un test impose désormais la mention « Non tenu » pour toute lecture dont le p95 brut atteint 2 s."
  },
  "R-17.2-04": {
-  "status": "partiel",
+  "status": "fait",
   "files": [
    "scripts/tests/load-test.mjs",
-   "docs/performance.md",
-   "packages/db/prisma/migrations/20260924223000_lot_e_perf_list_indexes/migration.sql"
+   "apps/api/src/cli/seed-load.ts",
+   "docs/performance.md"
   ],
   "tests": [
-   "apps/api/src/cli/performance-doc.spec.ts › la synthèse reprend les p95 de la sortie brute de la mesure finale",
-   "apps/api/src/cli/performance-doc.spec.ts › une lecture dont le p95 atteint 2 s est déclarée non tenue dans la synthèse, même si le p95 agrégé est tenu"
+   "scripts/tests/load-test.mjs (exécution du 25/09/2026, code 0)",
+   "apps/api/src/cli/performance-doc.spec.ts"
   ],
-  "note": "Test de charge exécuté (50 sessions, 300 s, 12 544 requêtes ; sortie brute conforme au fichier de mesure). Lectures paginées : p95 agrégé 1 275 ms, mais objectif de 2 s NON tenu pour le rapport carburant (p95 3 852 ms, 300 appels : ≈ 14 requêtes SQL par véhicule de la page, ≈ 360 par page, mesurées par instrumentation du pilote pg) — la mention « lectures tenues » du lot était trop optimiste et a été corrigée (docs/performance.md, D-016, test qui impose la mention « Non tenu » pour toute lecture ≥ 2 s). Mutations simples : p95 4 744 ms (> 3 s, NON tenu) ; 26 refus 409 CONCURRENCE (remises 17/277, restitutions 9/234) sans collision voulue. Causes mesurées : ≈ 90 requêtes SQL séquentielles par relevé, conflits de sérialisation sur les index partiels d’utilisation ouverte, machine partagée (charge 8 sur 4 cœurs, fsync=off). Pistes dans docs/performance.md § 7 (modules relevés, utilisations, entretien, alertes, carburant, hors lot) ; le test de charge n’est pas une suite automatisée de CI."
+  "note": "Mesure du 25/09/2026 (machine au calme, 4 processeurs, charge moyenne 3,05 pendant la mesure) : 50 sessions, 300 s, 20 010 requêtes, 0 échec, 0 refus CONCURRENCE ; p95 lectures 618 ms (< 2 s), rapport carburant 793 ms (< 2 s), mutations 1 193 ms (< 3 s). Sortie brute : docs/performance.md § 6.1 ; synthèse vérifiée par performance-doc.spec.ts. Mesure hors CI (base chargée et API démarrée requises)."
  },
  "R-17.2-05": {
   "status": "fait",
@@ -8652,7 +8652,7 @@
    "docker-compose.prod.yml"
   ],
   "tests": [],
-  "note": "T30 : exercice de restauration T30 réussi le 2026-09-24 sur les images du lot A (scratchpad plan-status.md section T30, t30/restore-test.log : RÉUSSI en 20 s) ; à refaire sur les images finales (redémarrage down/up et restauration isolée réussis sur ces images)."
+  "note": "Exercice de restauration réussi le 24/09/2026 sur les images du lot A (restore-test.sh : RÉUSSI en 20 s) ; non refait sur les images finales : construction Docker impossible le 25/09/2026 (démon Docker de l'environnement configuré sur un proxy devenu inaccessible après redémarrage du conteneur, voir docs/RECETTE.md § 2.2)."
  },
  "R-18-34": {
   "status": "fait",
@@ -8668,12 +8668,12 @@
   "note": "T34 : export filtré sur A, textes « =HYPERLINK », « @ », « -5 » neutralisés, nombres typés, aucune formule XLSX, lignes de B absentes ; intégration PostgreSQL au vert le 2026-09-24 (full-int-1.log ; reports relancé au vert après correction)."
  },
  "R-18-45": {
-  "status": "à faire",
+  "status": "partiel",
   "files": [
-   "README.md"
+   "docs/RECETTE.md"
   ],
   "tests": [],
-  "note": "Aucun rapport de recette ne statue sur T01–T44 comme bloquants (docs/RECETTE.md et docs/rapport-recette.md absents) ; T30 à refaire sur les images finales et e2e à réexécuter."
+  "note": "docs/RECETTE.md statue sur T01 à T44 : 43 réussis ; T30 non testé sur les images finales (construction Docker bloquée par l'environnement le 25/09/2026, voir RECETTE § 2.2)."
  },
  "R-18-46": {
   "status": "fait",
@@ -8726,12 +8726,12 @@
   "note": "Lot E : API, schéma, écrans et droits testés côté serveur ; écrans du tableau de bord, des rapports, des imports, des fiches imprimables et du mobile conducteur couverts par des e2e au vert sur le code final (2026-09-24). Reste sans e2e : journal d’audit (/administration/audit) ; déploiement (T30, restart-persistence) à exercer sur les images finales. Vérifié le 2026-09-24 (lot E-ops) : intégration PostgreSQL complète 66 fichiers / 456 tests au vert (base parc_auto_test_e2), unitaires API 423/423, web 98/98, worker 18/18, pnpm typecheck (tous paquets) au vert, e2e Playwright sur la pile compilée du code final (build sous verrou : carburant, documents-incidents, imports, mobile-conducteur, releves, tableau-de-bord-rapports, utilisations, vehicules — 16 tests au vert)."
  },
  "R-19.1-09": {
-  "status": "à faire",
+  "status": "partiel",
   "files": [
-   "README.md"
+   "docs/RECETTE.md"
   ],
   "tests": [],
-  "note": "V1 non complète : rapport de recette absent, T30 à refaire, e2e à réexécuter, exigences à faire (jeu de démonstration, guides, charge)."
+  "note": "V1 livrée et vérifiée (1 093 tests, 52 parcours e2e, charge tenue) ; restent T30 sur les images finales et les dépendances externes (RECETTE §§ 6 et 7)."
  },
  "R-19.1-10": {
   "status": "à faire",
@@ -8839,12 +8839,12 @@
   "note": "Guides thématiques pour chef/administrateur (imports, catalogue/conformité/dérogations) ; aucun guide chef de parc complet ni guide conducteur (docs/guide-chef-de-parc.md et docs/guide-conducteur.md, cités par le README, absents)."
  },
  "R-19.2-09": {
-  "status": "à faire",
+  "status": "fait",
   "files": [
-   "README.md"
+   "docs/RECETTE.md"
   ],
   "tests": [],
-  "note": "Aucun rapport de recette avec commandes et résultats réels (docs/RECETTE.md absent)."
+  "note": "docs/RECETTE.md : commandes exécutées le 25/09/2026 (C1 à C9) et résultats réels (1 093 tests, 52 parcours e2e, mesure de charge)."
  },
  "R-19.2-10": {
   "status": "à faire",
@@ -8943,15 +8943,15 @@
    "scripts/ops/restore-test.sh"
   ],
   "tests": [],
-  "note": "Exercice de restauration T30 réussi le 2026-09-24 sur les images du lot A (scratchpad plan-status.md section T30, t30/restore-test.log : RÉUSSI en 20 s) ; à refaire sur les images finales."
+  "note": "Exercice de restauration réussi le 24/09/2026 sur les images du lot A (restore-test.sh : RÉUSSI en 20 s) ; non refait sur les images finales : construction Docker impossible le 25/09/2026 (démon Docker de l'environnement configuré sur un proxy devenu inaccessible après redémarrage du conteneur, voir docs/RECETTE.md § 2.2)."
  },
  "R-19.3-06": {
-  "status": "à faire",
+  "status": "fait",
   "files": [
-   "README.md"
+   "docs/RECETTE.md"
   ],
   "tests": [],
-  "note": "Rapport final à quatre états (implémenté, testé avec succès, non testé, dépendance externe) absent (docs/RECETTE.md)."
+  "note": "docs/RECETTE.md §§ 4 à 7 : implémenté, testé avec succès, non testé, dépendances externes."
  },
  "R-19.3-07": {
   "status": "fait",
@@ -8982,12 +8982,12 @@
   "note": "Sans SMTP : rien n’est mis en file ni prétendu envoyé ; sans GPS : aucun appel ni donnée fictive, simulateur refusé en production ; sans BACKUP_REMOTE : avertissement explicite, aucune copie prétendue ; intégration PostgreSQL au vert le 2026-09-24 (full-int-1.log ; reports relancé au vert après correction), worker 16/16. Requalification (lot F) : test livré avec le lot F, présent dans l’arbre et vert ; entrée d’origine complète."
  },
  "R-18-X01": {
-  "status": "à faire",
+  "status": "fait",
   "files": [
-   "README.md"
+   "docs/RECETTE.md"
   ],
   "tests": [],
-  "note": "docs/RECETTE.md absent (le README y renvoie) : aucune entrée par scénario T01–T44 avec commande, résultat réel, date, révision et état."
+  "note": "docs/RECETTE.md : une entrée par scénario T01 à T44 avec commande, résultat réel copié des sorties, date et état (43 réussis, T30 non testé)."
  },
  "R-1.1-03": {
   "status": "fait",

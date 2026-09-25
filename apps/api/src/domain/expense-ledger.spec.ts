@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  COUNTED_EXPENSE_STATUS,
   amountRejection,
   countsInTotals,
   defaultExcludedFromOperatingCost,
@@ -93,6 +94,30 @@ describe('registre des dépenses : règles pures (CDC 8.4, D-229, D-230, D-233)'
     expect(summary.unallocated.count).toBe(2);
     expect(summary.excluded.net.toFixed(3)).toBe('45000.000');
     expect(summary.excluded.byCategory.map((c) => c.category)).toEqual(['ACHAT_VEHICULE']);
+  });
+
+  it('lignes agrégées en base (rapports paginés, CDC 17.2) : même synthèse que les dépenses une à une', () => {
+    const individual = [
+      row({ category: 'ENTRETIEN_REPARATION', amount: '191.250' }),
+      row({ category: 'ENTRETIEN_REPARATION', amount: '8.750' }),
+      row({ category: 'ENTRETIEN_REPARATION', kind: 'AVOIR', amount: '41.250' }),
+      row({ category: 'ASSURANCE', amount: '1200.000', vehicleId: null }),
+      row({ category: 'ASSURANCE', amount: '300.000', vehicleId: null }),
+      row({ category: 'ACHAT_VEHICULE', amount: '45000.000', excludedFromOperatingCost: true }),
+      row({ category: 'CARBURANT', amount: '999.000', status: 'ANNULEE' }),
+    ];
+    const aggregated = [
+      row({ category: 'ENTRETIEN_REPARATION', amount: '200.000', count: 2 }),
+      row({ category: 'ENTRETIEN_REPARATION', kind: 'AVOIR', amount: '41.250', count: 1 }),
+      row({ category: 'ASSURANCE', amount: '1500.000', vehicleId: null, count: 2 }),
+      row({ category: 'ACHAT_VEHICULE', amount: '45000.000', excludedFromOperatingCost: true, count: 1 }),
+      row({ category: 'CARBURANT', amount: '999.000', status: 'ANNULEE', count: 1 }),
+    ];
+    const view = (s: ReturnType<typeof summarizeLedger>) => JSON.stringify(s, (_k, v: unknown) => (v !== null && typeof v === 'object' && 'toFixed' in v ? (v as { toFixed(n: number): string }).toFixed(3) : v));
+    expect(view(summarizeLedger(aggregated))).toBe(view(summarizeLedger(individual)));
+    expect(summarizeLedger(aggregated).operating.count).toBe(5);
+    expect(summarizeLedger(aggregated).unallocated.count).toBe(2);
+    expect(countsInTotals(COUNTED_EXPENSE_STATUS)).toBe(true);
   });
 
   it('synthèse vide : zéros exacts', () => {

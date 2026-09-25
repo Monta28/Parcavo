@@ -8,6 +8,7 @@ import { AuditService } from '../../infra/audit.service.js';
 import { PrismaService, isUniqueViolation } from '../../infra/prisma.service.js';
 import { AccessControlService } from '../access-control/access-control.service.js';
 import { Clock } from '../../common/clock.js';
+import { RequestMemo, timezoneMemoKey } from '../../common/request-memo.js';
 import type {
   CompaniesQueryDto,
   CompanyViewDto,
@@ -64,6 +65,8 @@ export class OrganizationsService {
       await tx.organization.update({ where: { id: org.id, version: dto.expectedVersion }, data: { ...(dto.name !== undefined ? { name: dto.name } : {}), ...(dto.timezone !== undefined ? { timezone: dto.timezone } : {}), version: { increment: 1 } } });
       await this.audit.record(ctx, { action: 'organisation.modification', objectType: 'Organization', objectId: org.id, before: { name: org.name, timezone: org.timezone }, after: { name: dto.name ?? org.name, timezone: dto.timezone ?? org.timezone } }, tx);
     });
+    // Fuseau mémorisé pour cette requête (common/request-memo.ts) : relu après la modification.
+    RequestMemo.invalidate(timezoneMemoKey(org.id));
     return this.getOrganization(ctx);
   }
 

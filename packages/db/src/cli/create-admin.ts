@@ -7,6 +7,7 @@
 import { hash } from '@node-rs/argon2';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
+import { Writable } from 'node:stream';
 import { createPrismaClient } from '../client.js';
 
 interface Args {
@@ -42,10 +43,24 @@ async function readPassword(): Promise<string> {
   const fromEnv = process.env['ADMIN_PASSWORD'];
   if (fromEnv) return fromEnv;
   if (!stdin.isTTY) throw new Error('Fournissez ADMIN_PASSWORD (aucun terminal interactif détecté).');
-  const rl = createInterface({ input: stdin, output: stdout });
-  const password = await rl.question('Mot de passe du premier administrateur : ');
-  rl.close();
-  return password;
+  return askHidden('Mot de passe du premier administrateur : ');
+}
+
+/**
+ * Saisie masquée : le terminal passe en mode brut (readline) et l'écho de readline part dans un flux muet,
+ * si bien qu'aucun caractère du mot de passe n'est affiché ni conservé dans l'historique du terminal.
+ */
+async function askHidden(prompt: string): Promise<string> {
+  const muted = new Writable({ write: (_chunk, _encoding, done) => done() });
+  const rl = createInterface({ input: stdin, output: muted, terminal: true });
+  const interrupted = new Promise<never>((_resolve, reject) => rl.once('SIGINT', () => reject(new Error('Saisie interrompue : aucun administrateur créé.'))));
+  try {
+    stdout.write(prompt);
+    return await Promise.race([rl.question(''), interrupted]);
+  } finally {
+    stdout.write('\n');
+    rl.close();
+  }
 }
 
 function validatePassword(p: string): void {
@@ -88,7 +103,8 @@ async function main(): Promise<void> {
         data: { organizationId: org.id, actorType: 'SYSTEME', action: 'cli.premier_administrateur', objectType: 'User', objectId: user.id, after: { email: user.email, organizationCode: org.code } },
       });
       return { orgCode: org.code, userId: user.id };
-    });
+      // Sérialisable : deux exécutions simultanées ne créent jamais deux premiers administrateurs.
+    }, { isolationLevel: 'Serializable' });
     stdout.write(`Administrateur créé pour l'organisation ${result.orgCode} (utilisateur ${result.userId}).\n`);
   } finally {
     await prisma.$disconnect();
@@ -96,6 +112,9 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  process.stderr.write(`Erreur : ${error instanceof Error ? error.message : String(error)}\n`);
+  // P2034 : conflit de sérialisation avec une exécution simultanée, qui a créé l'administrateur ou le fera.
+  const conflict = (error as { code?: unknown } | null)?.code === 'P2034';
+  const message = conflict ? 'Une autre création d’administrateur s’est exécutée en même temps : aucun compte créé par cette commande ; relancez-la pour vérifier l’état.' : error instanceof Error ? error.message : String(error);
+  process.stderr.write(`Erreur : ${message}\n`);
   process.exitCode = 1;
 });

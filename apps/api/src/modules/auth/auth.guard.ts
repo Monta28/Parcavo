@@ -20,8 +20,12 @@ export class SessionAuthGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<RequestWithContext>();
     const token = readSessionCookie(req);
     if (token) {
-      const ctx = await this.contextBuilder.fromSessionToken(token, req.requestId, clientIp(req));
-      if (ctx) req.context = ctx;
+      const session = await this.contextBuilder.resolveSession(token, req.requestId, clientIp(req));
+      if (session) {
+        req.context = session.context;
+        // Empreinte CSRF lue avec la session : CsrfGuard la compare sans relire la session.
+        req.sessionCsrfTokenHash = session.csrfTokenHash;
+      }
     }
     if (isPublic) return true;
     if (!req.context) throw new UnauthenticatedError();

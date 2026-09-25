@@ -3,7 +3,10 @@ import { hostname } from 'node:os';
 import { randomBytes } from 'node:crypto';
 import { APP_ENV, Clock, PrismaService, describeErrorSafely, type AppEnv } from '@parc-auto/api';
 
-/** Période du battement : l'API considère le worker absent au-delà de 5 minutes (/health/ready). */
+/**
+ * Période du battement : l'API considère le worker arrêté au-delà de deux minutes sans battement
+ * (WORKER_HEARTBEAT_STALE_MS, /health/worker en 503 ; information dans /health/ready, D-315).
+ */
 export const HEARTBEAT_INTERVAL_MS = 30_000;
 
 /**

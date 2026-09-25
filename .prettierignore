@@ -4,3 +4,5 @@ dist
 coverage
 packages/db/src/generated
 pnpm-lock.yaml
+# Contrat OpenAPI généré (pnpm --filter @parc-auto/api openapi:export) : format fixé par le générateur et vérifié par le test de dérive.
+docs/openapi.json

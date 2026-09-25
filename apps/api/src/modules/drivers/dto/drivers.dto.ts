@@ -18,11 +18,11 @@ export class CreateDriverDto {
 export class UpdateDriverDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(100) firstName?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(100) lastName?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(50) phone?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsEmail() @MaxLength(254) email?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsUUID() siteId?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsUUID() departmentId?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(2000) notes?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsString() @MaxLength(50) phone?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsEmail() @MaxLength(254) email?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsUUID() siteId?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsUUID() departmentId?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsString() @MaxLength(2000) notes?: string | null;
   @ApiProperty() @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
 }
 

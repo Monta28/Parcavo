@@ -13,7 +13,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   readonly client: ParcAutoPrismaClient;
 
   constructor(@Inject(APP_ENV) env: AppEnv) {
-    this.client = createPrismaClient({ databaseUrl: env.databaseUrl, log: env.nodeEnv === 'test' ? ['error'] : ['warn', 'error'] });
+    this.client = createPrismaClient({ databaseUrl: env.databaseUrl, connectionTimeoutMs: env.databaseConnectionTimeoutMs, log: env.nodeEnv === 'test' ? ['error'] : ['warn', 'error'] });
   }
 
   async onModuleInit(): Promise<void> {
@@ -29,16 +29,29 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
    * Les opérations critiques (remise, retour, correction, clôture, transfert, ingestion) l'utilisent.
    */
   async serializable<T>(fn: (tx: Tx) => Promise<T>, options?: { maxRetries?: number; timeoutMs?: number }): Promise<T> {
+    return this.withRetries(Prisma.TransactionIsolationLevel.Serializable, fn, options);
+  }
+
+  /**
+   * Opération critique dont l'exclusion repose sur des verrous de ligne et des contraintes en base (D-016) :
+   * isolation READ COMMITTED, verrous `SELECT … FOR UPDATE` pris par l'appelant dans l'ordre constant
+   * véhicule → conducteur → utilisation → relevé (13.3), index uniques partiels et contraintes d'exclusion
+   * comme garde finale. Chaque instruction lit l'état validé le plus récent : une transaction qui attendait un
+   * verrou voit ensuite les écritures de celle qui le détenait, sans conflit de sérialisation (verrous de
+   * prédicat par page d'index). Reprise bornée sur interblocage (40P01) ou conflit d'écriture, puis 409
+   * CONCURRENCE, comme serializable().
+   */
+  async lockedReadCommitted<T>(fn: (tx: Tx) => Promise<T>, options?: { maxRetries?: number; timeoutMs?: number }): Promise<T> {
+    return this.withRetries(Prisma.TransactionIsolationLevel.ReadCommitted, fn, options);
+  }
+
+  private async withRetries<T>(isolationLevel: Prisma.TransactionIsolationLevel, fn: (tx: Tx) => Promise<T>, options?: { maxRetries?: number; timeoutMs?: number }): Promise<T> {
     const maxRetries = options?.maxRetries ?? 3;
     const timeout = options?.timeoutMs ?? 20_000;
     let attempt = 0;
     for (;;) {
       try {
-        return await this.client.$transaction(fn, {
-          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-          maxWait: 5_000,
-          timeout,
-        });
+        return await this.client.$transaction(fn, { isolationLevel, maxWait: 5_000, timeout });
       } catch (error) {
         if (isRetryable(error) && attempt < maxRetries) {
           attempt += 1;

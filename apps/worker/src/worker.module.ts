@@ -4,6 +4,8 @@ import { HeartbeatService } from './heartbeat.service.js';
 import { AlertCatchUpJob } from './jobs/alert-catch-up.job.js';
 import { DailyDigestJob } from './jobs/daily-digest.job.js';
 import { DailyPurgeJob } from './jobs/daily-purge.job.js';
+import { DailyRetentionJob } from './jobs/daily-retention.job.js';
+import { JobQueueJob } from './jobs/job-queue.job.js';
 import { OutboxDispatcherJob } from './jobs/outbox-dispatcher.job.js';
 import { JobLeaseService } from './scheduler/job-lease.service.js';
 import { ScheduledRunsService } from './scheduler/scheduled-runs.service.js';
@@ -30,8 +32,8 @@ export class WorkerModule {
     return {
       module: WorkerModule,
       imports: [InfraModule.forRoot(options.env, options.clock), AccessControlModule, AuthModule, ...FEATURE_MODULES],
-      providers: [{ provide: WORKER_OPTIONS, useValue: workerOptions }, HeartbeatService, JobLeaseService, ScheduledRunsService, AlertCatchUpJob, OutboxDispatcherJob, DailyDigestJob, DailyPurgeJob, WorkerScheduler],
-      exports: [HeartbeatService, JobLeaseService, WorkerScheduler, AlertCatchUpJob, OutboxDispatcherJob, DailyDigestJob, DailyPurgeJob],
+      providers: [{ provide: WORKER_OPTIONS, useValue: workerOptions }, HeartbeatService, JobLeaseService, ScheduledRunsService, AlertCatchUpJob, OutboxDispatcherJob, DailyDigestJob, DailyPurgeJob, JobQueueJob, DailyRetentionJob, WorkerScheduler],
+      exports: [HeartbeatService, JobLeaseService, WorkerScheduler, AlertCatchUpJob, OutboxDispatcherJob, DailyDigestJob, DailyPurgeJob, JobQueueJob, DailyRetentionJob],
     };
   }
 }

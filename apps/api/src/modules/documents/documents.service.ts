@@ -35,7 +35,7 @@ import type {
 
 type VersionRow = DocumentVersion & { documentType: { label: string; visibleToDriver: boolean; hasExpiry: boolean }; vehicle: { code: string; registration: string } | null; driver: { firstName: string; lastName: string } | null };
 
-interface OwnerRef {
+export interface OwnerRef {
   ownerType: 'VEHICULE' | 'CONDUCTEUR';
   id: string;
   companyId: string;
@@ -345,6 +345,17 @@ export class DocumentsService {
     const filtered = rows.filter((r) => (!query.status || r.status === query.status) && (query.blocking !== 'true' || r.blocksCheckout));
     const start = (query.page - 1) * query.pageSize;
     return pageOf(filtered.slice(start, start + query.pageSize), filtered.length, query);
+  }
+
+  /**
+   * Lignes de conformité d'objets déjà autorisés par l'appelant, par la règle unique (computeDocumentStatus) :
+   * sert au rapport des expirations, dont la page est calculée en base (CDC 17.2) et dont seules les lignes de
+   * la page sont recalculées ici. Types limités aux types ACTIF demandés ; jour local du groupe par défaut.
+   */
+  async complianceRowsFor(organizationId: string, owners: OwnerRef[], typeIds: readonly string[], today?: string): Promise<ComplianceRowDto[]> {
+    if (owners.length === 0 || typeIds.length === 0) return [];
+    const types = await this.prisma.client.documentType.findMany({ where: { organizationId, status: 'ACTIF', id: { in: [...typeIds] } } });
+    return this.rowsFor(owners, types, today ?? (await this.today(organizationId)));
   }
 
   /** Recalcule les alertes documentaires d'un objet (après toute écriture ou au rattrapage). */

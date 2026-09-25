@@ -8,7 +8,7 @@ import pg from 'pg';
  */
 export default async function globalSetup(): Promise<void> {
   const url = process.env['TEST_DATABASE_URL'] ?? 'postgresql://parc_auto:parc_auto_test@localhost:5433/parc_auto_test';
-  if (!/parc_auto_test/.test(url)) {
+  if (!/^parc_auto_test/.test(databaseNameOf(url) ?? '')) {
     throw new Error('TEST_DATABASE_URL doit pointer vers une base nommée parc_auto_test.');
   }
   const repoRoot = resolve(import.meta.dirname, '../../../..');
@@ -25,6 +25,18 @@ export default async function globalSetup(): Promise<void> {
     env: { ...process.env, DATABASE_URL: url },
   });
   process.env['TEST_DATABASE_URL'] = url;
+}
+
+/**
+ * Nom de la base visée par une URL PostgreSQL : son chemin, seul élément que pg et Prisma retiennent pour
+ * choisir la base. L'utilisateur, le mot de passe, l'hôte ou les paramètres n'en tiennent jamais lieu.
+ */
+export function databaseNameOf(url: string): string | null {
+  try {
+    return decodeURIComponent(new URL(url).pathname.replace(/^\//, '')) || null;
+  } catch {
+    return null;
+  }
 }
 
 async function reachable(url: string): Promise<boolean> {

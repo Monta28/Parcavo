@@ -17,11 +17,11 @@ export class CreateCompanyDto {
 
 export class UpdateCompanyDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(200) legalName?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(500) address?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(50) phone?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsEmail() @MaxLength(254) email?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(50) taxIdentifier?: string | null;
-  @ApiPropertyOptional({ description: 'Pièce jointe (logo) déjà téléversée.' }) @IsOptional() @IsUUID() logoAttachmentId?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsString() @MaxLength(500) address?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsString() @MaxLength(50) phone?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsEmail() @MaxLength(254) email?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsString() @MaxLength(50) taxIdentifier?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true, description: 'Pièce jointe (logo) déjà téléversée.' }) @IsOptional() @IsUUID() logoAttachmentId?: string | null;
   @ApiPropertyOptional({ description: 'Module F11 activable par société (administrateur).' }) @IsOptional() @IsBoolean() telemetryEnabled?: boolean;
   @ApiProperty() @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
 }
@@ -55,8 +55,8 @@ export class CreateSiteDto {
 
 export class UpdateSiteDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(150) name?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(500) address?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(150) managerName?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsString() @MaxLength(500) address?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsString() @MaxLength(150) managerName?: string | null;
   @ApiPropertyOptional({ enum: ['ACTIF', 'ARCHIVE'] }) @IsOptional() @IsIn(['ACTIF', 'ARCHIVE']) status?: 'ACTIF' | 'ARCHIVE';
   @ApiProperty() @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
 }

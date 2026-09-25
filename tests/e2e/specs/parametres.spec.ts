@@ -98,6 +98,13 @@ test.describe('Paramètres de l’organisation', () => {
     await expect(row(page, 'Heure du récapitulatif e-mail')).toContainText('version 2');
   });
 
+  test('le chef de parc n’accède pas à l’onglet Paramètres', async ({ page }) => {
+    await loginAs(page, E2E.chefA);
+    await page.goto('/administration/parametres');
+    await expect(page.getByText('Cette rubrique est réservée à l’administrateur groupe.', { exact: false })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Modifier « / })).toHaveCount(0);
+  });
+
   test('liste des véhicules : tri au choix par colonne, conservé dans l’URL', async ({ page }) => {
     await loginAs(page, E2E.admin);
     await page.goto('/vehicules');

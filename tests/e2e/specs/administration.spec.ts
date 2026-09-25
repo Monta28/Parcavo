@@ -86,6 +86,6 @@ test.describe('Administration des comptes', () => {
     await expect(page.getByRole('link', { name: 'E2E-VA2' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'E2E-VB1' })).toHaveCount(0);
     await page.goto('/administration/utilisateurs');
-    await expect(page.getByRole('main').getByRole('alert')).toContainText('La section Administration est réservée à l’administrateur groupe.');
+    await expect(page.getByRole('main').getByRole('alert')).toContainText('Cette rubrique est réservée à l’administrateur groupe.');
   });
 });

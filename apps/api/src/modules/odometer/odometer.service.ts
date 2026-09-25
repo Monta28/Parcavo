@@ -21,7 +21,7 @@ import { SettingsService } from '../settings/settings.service.js';
 import { VehiclesService } from '../vehicles/vehicles.service.js';
 import type { BatchReadingsDto, BatchResultItemDto, CorrectReadingDto, CreateReadingDto, CurrentOdometerDto, DecideReadingDto, IngestResultDto, InitSegmentDto, ReadingViewDto, ReadingsQueryDto, SegmentViewDto } from './dto/odometer.dto.js';
 import { OdometerEventsService } from './odometer-events.service.js';
-import { OdometerIngestionService, cumulativeFor, dec, isOrdinarySegment, lockVehicle, refreshSegmentLast } from './odometer-ingestion.service.js';
+import { type IngestResult, OdometerIngestionService, cumulativeFor, dec, isOrdinarySegment, lockVehicle, refreshSegmentLast } from './odometer-ingestion.service.js';
 import { recomputeUsagesForReading } from './usage-distance.js';
 
 type ReadingRow = OdometerReading & { vehicle: { code: string }; segment: { sequence: number }; replacedBy: { id: string } | null };
@@ -56,9 +56,11 @@ export class OdometerService {
    * est actif, sur celui dont il est responsable habituel en cours (D-268).
    */
   async create(ctx: RequestContext, vehicleId: string, dto: CreateReadingDto, idempotencyKey: string | undefined): Promise<IngestResultDto> {
-    const vehicle = await this.vehicles.load(ctx, vehicleId);
+    const vehicle = await this.vehicles.loadRef(ctx, vehicleId);
     const isDriver = ctx.isDriverOnly;
     if (!isDriver) this.access.requireOperational(ctx, vehicle.companyId);
+    // Paramètres de la saisie (plausibilité) et des données dépendantes (fraîcheur) : une lecture pour la requête.
+    await this.settings.prefetch(ctx.organizationId, READING_SETTINGS, vehicle.companyId);
     const work = async () => {
       const { result, after } = await this.prisma.serializable(async (tx) => {
         const after = new AfterCommit();
@@ -96,7 +98,7 @@ export class OdometerService {
         return { result, after };
       });
       await after.run();
-      return { status: 201, body: await this.ingestView(result.reading.id, result.outcome, result.anomaly), resourceId: result.reading.id };
+      return { status: 201, body: await this.ingestView(result, vehicle.code, dto.attachmentId ?? null), resourceId: result.reading.id };
     };
     if (idempotencyKey) {
       const replay = await this.idempotency.run({ organizationId: ctx.organizationId, userId: ctx.userId, operation: `releve:${vehicleId}`, key: idempotencyKey }, { vehicleId, ...dto }, work);
@@ -522,8 +524,17 @@ export class OdometerService {
     return (await this.views([r]))[0] as ReadingViewDto;
   }
 
-  private async ingestView(id: string, outcome: string, anomaly: { code: string; reason: string } | null): Promise<IngestResultDto> {
-    return { reading: await this.view(id), outcome, anomaly };
+  /**
+   * Réponse d'une saisie. Relevé créé par cette requête : vue construite depuis la ligne insérée (code du
+   * véhicule et rang du compteur connus, aucun remplacement possible, pièce jointe rattachée dans la même
+   * transaction), sans relecture ; relevé existant rejoué (IDEMPOTENT) : relu.
+   */
+  private async ingestView(result: IngestResult, vehicleCode: string, attachmentId: string | null): Promise<IngestResultDto> {
+    const created = result.outcome !== 'IDEMPOTENT' && result.segmentSequence !== undefined;
+    const reading = created
+      ? ((await this.views([{ ...result.reading, attachmentId: attachmentId ?? result.reading.attachmentId, vehicle: { code: vehicleCode }, segment: { sequence: result.segmentSequence as number }, replacedBy: null }]))[0] as ReadingViewDto)
+      : await this.view(result.reading.id);
+    return { reading, outcome: result.outcome, anomaly: result.anomaly };
   }
 
   /** Utilisations dont la distance est devenue validée : l'alerte DISTANCE_NON_VALIDEE est résolue dans la transaction. */
@@ -592,6 +603,9 @@ export class OdometerService {
     });
   }
 }
+
+/** Paramètres lus par une saisie de relevé et par ses recalculs dépendants (lecture groupée anticipée). */
+export const READING_SETTINGS = ['odometer.plausibilityMaxKmPerDay', 'odometer.plausibilityMinKm', 'odometer.staleAfterDays'] as const;
 
 /** Objets métier qui fixent la date d'un relevé (messages de blocage d'une correction, 5.3). */
 const DEPENDENT_LABELS: Record<string, string> = { utilisation: 'de la remise ou de la restitution', plein: 'du plein', intervention: 'de l’intervention' };

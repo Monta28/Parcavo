@@ -14,6 +14,7 @@ import { PrismaService, type Tx } from '../../infra/prisma.service.js';
 import { ReferenceService } from '../../infra/reference.service.js';
 import { AccessControlService } from '../access-control/access-control.service.js';
 import { AlertsService } from '../alerts/alerts.service.js';
+import { DriverSubmissionService } from '../assignments/driver-submission.service.js';
 import { AttachmentsService } from '../attachments/attachments.service.js';
 import { costsReadableWhere, incidentExpensesWhere } from '../expenses/expense-links.js';
 import { ImmobilizationsService } from '../immobilizations/immobilizations.service.js';
@@ -100,6 +101,7 @@ export class IncidentsService {
     private readonly audit: AuditService,
     private readonly idempotency: IdempotencyService,
     private readonly clock: Clock,
+    private readonly submissions: DriverSubmissionService,
   ) {}
 
   async list(ctx: RequestContext, query: IncidentsQueryDto): Promise<Page<IncidentViewDto>> {
@@ -150,7 +152,9 @@ export class IncidentsService {
   /**
    * Déclaration. Personnel : véhicule du périmètre, conducteur/utilisation facultatifs.
    * Conducteur : véhicule, utilisation et conducteur fixés par le serveur (utilisation en cours ou
-   * terminée depuis moins du délai paramétré, D-216). En-tête Idempotency-Key facultatif (D-308) :
+   * terminée depuis moins du délai paramétré, D-216) ; sans utilisation retenue, véhicule dont il est
+   * responsable habituel si drivers.allowHabitualVehicleSubmissions est actif (D-268, règle unique de
+   * DriverSubmissionService), pour un fait survenu depuis moins du même délai. En-tête Idempotency-Key facultatif (D-308) :
    * clé liée à l'organisation, à l'utilisateur et à l'opération ; même clé et même corps rejouent la
    * réponse initiale, corps différent : 409. Le rejeu n'a lieu qu'après les contrôles d'autorisation.
    */
@@ -182,10 +186,13 @@ export class IncidentsService {
         where: { driverId: ctx.driverId, ...(dto.vehicleId ? { vehicleId: dto.vehicleId } : {}), OR: [{ status: 'EN_COURS' }, { returnedAt: { gte: since } }] },
         orderBy: { checkedOutAt: 'desc' },
       });
-      if (!usage) throw new NotFoundOrOutOfScopeError('Utilisation');
-      vehicle = { id: usage.vehicleId, companyId: usage.companyId };
+      if (usage) {
+        vehicle = { id: usage.vehicleId, companyId: usage.companyId };
+        usageId = usage.id;
+      } else {
+        vehicle = await this.habitualVehicle(ctx, dto.vehicleId, occurredAt, now);
+      }
       driverId = ctx.driverId;
-      usageId = usage.id;
       if (dto.driverId || dto.usageId || dto.followUpUserId || dto.siteId) throw new BusinessRuleError('CHAMP_RESERVE', 'Le conducteur, l’utilisation, le site et le responsable sont fixés par le serveur.');
     } else {
       if (!dto.vehicleId) throw new BusinessRuleError('VEHICULE_REQUIS', 'Indiquez le véhicule.', { fieldErrors: { vehicleId: ['Véhicule requis.'] } });
@@ -210,6 +217,25 @@ export class IncidentsService {
     const severity: IncidentSeverity = dto.severity ?? (dto.type === 'ACCIDENT' ? 'ELEVEE' : 'MOYENNE');
     const org = await this.prisma.client.organization.findUniqueOrThrow({ where: { id: ctx.organizationId }, select: { timezone: true } });
     return { vehicle, driverId, usageId, occurredAt, severity, timezone: org.timezone };
+  }
+
+  /**
+   * D-268 : sans utilisation retenue, véhicule dont le conducteur est responsable habituel actif, si le
+   * paramètre drivers.allowHabitualVehicleSubmissions l'autorise (règle unique de DriverSubmissionService :
+   * jamais pendant une utilisation EN_COURS d'un autre véhicule). Aucune utilisation n'est rattachée. Le fait
+   * doit dater de moins de incidents.driverLateDeclarationHours (délai de la société du véhicule), comme une
+   * déclaration après restitution (D-216). Autre véhicule ou paramètre inactif : 404, comme sans utilisation.
+   */
+  private async habitualVehicle(ctx: RequestContext, vehicleId: string | undefined, occurredAt: Date, now: Date): Promise<{ id: string; companyId: string }> {
+    const habitual = (await this.submissions.targets(ctx)).filter((t) => t.basis === 'RESPONSABLE_HABITUEL' && (vehicleId === undefined || t.vehicleId === vehicleId));
+    const [target] = habitual;
+    if (!target) throw new NotFoundOrOutOfScopeError('Utilisation');
+    if (habitual.length > 1) throw new BusinessRuleError('VEHICULE_REQUIS', 'Vous êtes responsable habituel de plusieurs véhicules : indiquez le véhicule concerné.', { fieldErrors: { vehicleId: ['Véhicule requis.'] } });
+    const hours = await this.settings.get(ctx.organizationId, 'incidents.driverLateDeclarationHours', target.companyId);
+    if (occurredAt.getTime() < now.getTime() - hours * 3_600_000) {
+      throw new BusinessRuleError('DATE_HORS_DELAI', `Sans utilisation en cours, un problème se signale au plus tard ${hours} h après les faits.`, { fieldErrors: { occurredAt: [`Fait survenu il y a plus de ${hours} h.`] } });
+    }
+    return { id: target.vehicleId, companyId: target.companyId };
   }
 
   /** Enregistrement transactionnel de la déclaration préparée ; renvoie l'identifiant créé. */

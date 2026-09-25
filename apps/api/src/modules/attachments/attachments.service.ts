@@ -112,7 +112,17 @@ export class AttachmentsService {
     if (att.ownerId && (att.ownerType !== ownerType || att.ownerId !== ownerId)) {
       throw new BusinessRuleError('PIECE_JOINTE_DEJA_RATTACHEE', 'Cette pièce jointe est déjà rattachée à un autre objet.');
     }
-    return tx.attachment.update({ where: { id: att.id }, data: { ownerType, ownerId, companyId: companyId ?? att.companyId, attachedAt: this.clock.now() } });
+    // Écriture conditionnelle : la pièce doit être encore libre (ou déjà rattachée à ce même objet) et non
+    // supprimée au moment de l'écriture. Un rattachement ou une suppression concurrents validés entre la lecture
+    // et l'écriture sont refusés au lieu d'être écrasés, quelle que soit l'isolation de l'appelant (D-016).
+    const [attached] = await tx.attachment.updateManyAndReturn({
+      where: { id: att.id, deletedAt: null, OR: [{ ownerId: null }, { ownerType, ownerId }] },
+      data: { ownerType, ownerId, companyId: companyId ?? att.companyId, attachedAt: this.clock.now() },
+    });
+    if (attached) return attached;
+    const current = await tx.attachment.findFirst({ where: { id: att.id, deletedAt: null }, select: { id: true } });
+    if (!current) throw new NotFoundOrOutOfScopeError('Pièce jointe');
+    throw new BusinessRuleError('PIECE_JOINTE_DEJA_RATTACHEE', 'Cette pièce jointe est déjà rattachée à un autre objet.');
   }
 
   /** Lecture autorisée : l'appelant fournit la décision d'accès au propriétaire métier. */

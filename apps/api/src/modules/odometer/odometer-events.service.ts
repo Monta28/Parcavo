@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { AfterCommit } from '../../common/after-commit.js';
-import type { Tx } from '../../infra/prisma.service.js';
+import { AfterCommit } from '../../common/after-commit.js';
+import { PrismaService, isRetryable, isUniqueViolation, type Tx } from '../../infra/prisma.service.js';
 
 export interface ReadingAcceptedEvent {
   organizationId: string;
@@ -29,6 +29,8 @@ export class OdometerEventsService {
   private readonly listeners: Array<{ name: string; listener: ReadingAcceptedListener }> = [];
   private readonly inTx: Array<{ name: string; listener: ReadingDependentsListener }> = [];
 
+  constructor(private readonly prisma: PrismaService) {}
+
   onAccepted(name: string, listener: ReadingAcceptedListener): void {
     this.listeners.push({ name, listener });
   }
@@ -49,5 +51,28 @@ export class OdometerEventsService {
   async recomputeDependentsInTx(tx: Tx, event: ReadingAcceptedEvent, after: AfterCommit): Promise<string[]> {
     for (const { listener } of this.inTx) await listener(tx, event, after);
     return this.inTx.map((l) => l.name);
+  }
+
+  /**
+   * Relevé accepté hors correction, après validation de son ingestion : les mêmes recalculs dépendants
+   * (fraîcheur, échéances d'entretien et leurs alertes) regroupés dans une seule transaction (lectures et
+   * écritures groupées par chaque abonné) au lieu d'une transaction par plan et d'écritures unitaires ; les
+   * notifications partent après validation. Une création concurrente de la même occurrence d'alerte (index
+   * unique) ou un interblocage rejoue la transaction (deux reprises au plus) ; un échec est journalisé par
+   * l'appelant (AfterCommit) et rattrapé par la tâche périodique, sans remettre en cause le relevé validé.
+   */
+  async recomputeDependents(event: ReadingAcceptedEvent): Promise<string[]> {
+    if (this.inTx.length === 0) return [];
+    for (let attempt = 0; ; attempt += 1) {
+      const after = new AfterCommit();
+      try {
+        const names = await this.prisma.transaction((tx) => this.recomputeDependentsInTx(tx, event, after));
+        await after.run();
+        return names;
+      } catch (error) {
+        if ((isUniqueViolation(error) || isRetryable(error)) && attempt < 2) continue;
+        throw error;
+      }
+    }
   }
 }

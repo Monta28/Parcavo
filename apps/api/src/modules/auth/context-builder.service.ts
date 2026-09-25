@@ -22,6 +22,14 @@ export class ContextBuilderService {
   ) {}
 
   async fromSessionToken(sessionToken: string, requestId: string, ipAddress: string | null): Promise<RequestContext | null> {
+    return (await this.resolveSession(sessionToken, requestId, ipAddress))?.context ?? null;
+  }
+
+  /**
+   * Contexte et empreinte du jeton CSRF de la session, lus ensemble : la garde CSRF de la même requête la
+   * compare sans relire la session (CsrfGuard).
+   */
+  async resolveSession(sessionToken: string, requestId: string, ipAddress: string | null): Promise<{ context: RequestContext; csrfTokenHash: string } | null> {
     const now = this.clock.now();
     const session = await this.prisma.client.session.findUnique({
       where: { tokenHash: hashToken(sessionToken) },
@@ -37,7 +45,7 @@ export class ContextBuilderService {
     if (now.getTime() - session.lastSeenAt.getTime() > LAST_SEEN_REFRESH_MS) {
       await this.prisma.client.session.update({ where: { id: session.id }, data: { lastSeenAt: now } }).catch(() => undefined);
     }
-    return this.build(session.user, session.id, requestId, ipAddress);
+    return { context: await this.build(session.user, session.id, requestId, ipAddress), csrfTokenHash: session.csrfTokenHash };
   }
 
   /**

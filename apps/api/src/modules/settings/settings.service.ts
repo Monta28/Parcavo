@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@parc-auto/db';
 import { SETTING_DEFAULTS, SETTING_DESCRIPTORS, type SettingKey } from '@parc-auto/contracts';
 import { BusinessRuleError, ConflictError, ErrorCodes, NotFoundOrOutOfScopeError } from '../../common/errors.js';
+import { RequestMemo, settingMemoPrefix } from '../../common/request-memo.js';
 import type { RequestContext } from '../../common/request-context.js';
 import { AuditService } from '../../infra/audit.service.js';
 import { PrismaService, type Tx } from '../../infra/prisma.service.js';
@@ -45,18 +46,54 @@ export class SettingsService {
     private readonly audit: AuditService,
   ) {}
 
-  /** Valeur effective pour une organisation et, si fournie, une société (surcharge explicite). */
+  /**
+   * Valeur effective pour une organisation et, si fournie, une société (surcharge explicite). Lue une fois par
+   * requête HTTP (RequestMemo, invalidée par set et clearCompanyOverride) ; lecture directe hors requête.
+   */
   async get<K extends SettingKey>(organizationId: string, key: K, companyId?: string | null, tx?: Tx): Promise<SettingValueOf<K>> {
-    // Valeur fixe du produit : une ligne enregistrée avant qu'elle ne le devienne n'a aucun effet.
-    if (SETTING_DESCRIPTORS[key].fixed !== undefined) return SETTING_DEFAULTS[key] as unknown as SettingValueOf<K>;
+    return (await this.getMany(organizationId, [key], companyId, tx))[key];
+  }
+
+  /** Plusieurs valeurs effectives (même règle que get) : une seule lecture pour les clés non encore connues. */
+  async getMany<K extends SettingKey>(organizationId: string, keys: readonly K[], companyId?: string | null, tx?: Tx): Promise<{ [P in K]: SettingValueOf<P> }> {
+    const out = {} as { [P in K]: SettingValueOf<P> };
+    let batch: Promise<Map<SettingKey, unknown>> | null = null;
+    const stored = keys.filter((k) => SETTING_DESCRIPTORS[k].fixed === undefined);
+    await Promise.all(
+      keys.map(async (key) => {
+        // Valeur fixe du produit : une ligne enregistrée avant qu'elle ne le devienne n'a aucun effet.
+        if (SETTING_DESCRIPTORS[key].fixed !== undefined) {
+          out[key] = SETTING_DEFAULTS[key] as unknown as SettingValueOf<K>;
+          return;
+        }
+        out[key] = (await RequestMemo.get(`${settingMemoPrefix(organizationId)}${companyId ?? ''}:${key}`, async () => (await (batch ??= this.effectiveValues(organizationId, stored, companyId ?? null, tx))).get(key))) as SettingValueOf<K>;
+      }),
+    );
+    return out;
+  }
+
+  /**
+   * Lecture groupée anticipée des paramètres qu'une opération va consulter (une requête) : les lectures
+   * suivantes de la même requête HTTP, dans ou hors transaction, sont servies par la mémoire de requête.
+   * Sans effet sur les valeurs (même règle que get) ; hors requête HTTP, simple lecture.
+   */
+  async prefetch(organizationId: string, keys: readonly SettingKey[], companyId?: string | null): Promise<void> {
+    await this.getMany(organizationId, keys, companyId);
+  }
+
+  /** Lecture directe (sans mémoïsation) : surcharge société, sinon valeur groupe, sinon défaut du produit. */
+  private async effectiveValues(organizationId: string, keys: readonly SettingKey[], companyId: string | null, tx?: Tx): Promise<Map<SettingKey, unknown>> {
     const client = tx ?? this.prisma.client;
     const rows = await client.settingValue.findMany({
-      where: { organizationId, key, isCurrent: true, OR: [{ companyId: null }, ...(companyId ? [{ companyId }] : [])] },
+      where: { organizationId, key: { in: [...keys] }, isCurrent: true, OR: [{ companyId: null }, ...(companyId ? [{ companyId }] : [])] },
     });
-    const company = companyId ? rows.find((r) => r.companyId === companyId) : undefined;
-    const group = rows.find((r) => r.companyId === null);
-    const raw = (company ?? group)?.value ?? SETTING_DEFAULTS[key];
-    return raw as SettingValueOf<K>;
+    return new Map(
+      keys.map((key) => {
+        const company = companyId ? rows.find((r) => r.key === key && r.companyId === companyId) : undefined;
+        const group = rows.find((r) => r.key === key && r.companyId === null);
+        return [key, (company ?? group)?.value ?? SETTING_DEFAULTS[key]] as const;
+      }),
+    );
   }
 
   async list(ctx: RequestContext, companyId: string | null): Promise<EffectiveSetting[]> {
@@ -120,7 +157,7 @@ export class SettingsService {
         const previous = await tx.settingValue.findFirst({ where: { organizationId: ctx.organizationId, companyId, key: k, isCurrent: true } });
         assertSettingVersion(previous?.settingVersion ?? 0, expectedVersion);
         // Valeur remplacée : la version courante de ce niveau, sinon celle qui s'appliquait (groupe ou défaut).
-        const replaced = previous ? previous.value : companyId ? await this.get(ctx.organizationId, k, null, tx) : SETTING_DEFAULTS[k];
+        const replaced = previous ? previous.value : companyId ? (await this.effectiveValues(ctx.organizationId, [k], null, tx)).get(k) : SETTING_DEFAULTS[k];
         if (previous) await tx.settingValue.update({ where: { id: previous.id }, data: { isCurrent: false } });
         const last = await tx.settingValue.findFirst({ where: { organizationId: ctx.organizationId, companyId, key: k }, orderBy: { settingVersion: 'desc' } });
         const settingVersion = (last?.settingVersion ?? 0) + 1;
@@ -134,6 +171,7 @@ export class SettingsService {
         );
       }),
     );
+    RequestMemo.invalidate(settingMemoPrefix(ctx.organizationId));
     return (await this.list(ctx, companyId)).find((s) => s.key === k) as EffectiveSetting;
   }
 
@@ -168,6 +206,7 @@ export class SettingsService {
         );
       }),
     );
+    RequestMemo.invalidate(settingMemoPrefix(ctx.organizationId));
   }
 
   /** Clé connue et modifiable : inconnue → 404 ; valeur fixe du produit → 422 PARAMETRE_NON_MODIFIABLE. */

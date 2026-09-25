@@ -68,6 +68,13 @@ export class CompanyGrantDto {
   @ApiProperty({ type: [String], description: 'Permissions effectives (clés fonctionnelles).' }) permissions!: string[];
 }
 
+export class SessionCompanyDto {
+  @ApiProperty({ type: String }) id!: string;
+  @ApiProperty({ type: String }) code!: string;
+  @ApiProperty({ type: String, description: 'Raison sociale.' }) name!: string;
+  @ApiProperty({ type: String }) status!: string;
+}
+
 export class SessionInfoDto {
   @ApiProperty() userId!: string;
   @ApiProperty() email!: string;
@@ -82,7 +89,7 @@ export class SessionInfoDto {
   @ApiProperty() isDriverOnly!: boolean;
   @ApiProperty({ nullable: true, type: String }) driverId!: string | null;
   @ApiProperty({ type: [CompanyGrantDto] }) grants!: CompanyGrantDto[];
-  @ApiProperty({ description: 'Sociétés visibles (toutes pour l’administrateur).' }) companies!: Array<{ id: string; code: string; name: string; status: string }>;
+  @ApiProperty({ type: [SessionCompanyDto], description: 'Sociétés visibles (toutes pour l’administrateur).' }) companies!: SessionCompanyDto[];
   @ApiProperty() sessionExpiresAt!: string;
   @ApiProperty({ description: 'Canal e-mail configuré côté serveur (SMTP).' }) emailChannelConfigured!: boolean;
 }

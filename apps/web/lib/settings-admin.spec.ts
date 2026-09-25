@@ -46,6 +46,7 @@ describe('Paramètres (CDC 17.1) : affichage et saisie', () => {
     expect(boundsHint('odometer.staleAfterDays')).toBe('Nombre entier de 1 à 365 jours.');
     expect(boundsHint('documents.noticeDays')).toContain('De 1 à 10 entiers');
     expect(boundsHint('email.dailyDigestLocalTime')).toBe('Heure locale au format HH:MM.');
+    expect(boundsHint('fuel.amountToleranceTnd')).toBe('Nombre (décimales avec une virgule ou un point, 3 décimales au plus) de 0 à 100 TND.');
     expect(boundsHint('inconnu')).toBeNull();
   });
 

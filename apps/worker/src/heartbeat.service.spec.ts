@@ -3,8 +3,8 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { FixedClock, PrismaService, loadEnv } from '@parc-auto/api';
-import { HeartbeatService } from './heartbeat.service.js';
+import { FixedClock, PrismaService, WORKER_HEARTBEAT_STALE_MS, loadEnv, workerHeartbeatFreshness } from '@parc-auto/api';
+import { HEARTBEAT_INTERVAL_MS, HeartbeatService } from './heartbeat.service.js';
 import { WorkerModule } from './worker.module.js';
 
 /** Test sur la base PostgreSQL de test réelle (migrations appliquées par le globalSetup). */
@@ -45,6 +45,16 @@ describe('Battement du worker (CDC 16.3)', () => {
     expect(row.lastBeatAt.toISOString()).toBe('2026-09-24T10:00:30.000Z');
     expect(row.startedAt.toISOString()).toBe('2026-09-24T10:00:00.000Z');
     expect(await prisma.client.workerHeartbeat.count({ where: { workerId: heartbeat.workerId } })).toBe(1);
+  });
+
+  it('période du battement compatible avec le seuil de /health/worker : au moins quatre battements avant « arrêté » (D-315)', async () => {
+    expect(HEARTBEAT_INTERVAL_MS * 4).toBeLessThanOrEqual(WORKER_HEARTBEAT_STALE_MS);
+    // Le battement enregistré est lu « actif » par la règle de l'API, puis « arrêté » au-delà du seuil.
+    const at = await heartbeat.beat();
+    const row = await prisma.client.workerHeartbeat.findUniqueOrThrow({ where: { workerId: heartbeat.workerId } });
+    expect(row.lastBeatAt.getTime()).toBe(at.getTime());
+    expect(workerHeartbeatFreshness(row.lastBeatAt, new Date(at.getTime() + HEARTBEAT_INTERVAL_MS)).status).toBe('actif');
+    expect(workerHeartbeatFreshness(row.lastBeatAt, new Date(at.getTime() + WORKER_HEARTBEAT_STALE_MS + 1)).status).toBe('arrete');
   });
 
   it('arme au démarrage un battement qui maintient le processus actif, puis le libère à l’arrêt', async () => {

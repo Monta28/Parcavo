@@ -1,8 +1,8 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { PageQueryDto, type Page } from '../../common/pagination.js';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiPageResponse, PageQueryDto, type Page } from '../../common/pagination.js';
 import { Ctx, type RequestContext } from '../../common/request-context.js';
-import { AttachPhotoDto, ChangeLifecycleDto, CreateLocationReportDto, CreateVehicleDto, LocationReportViewDto, QrResolveDto, UpdateVehicleDto, VehicleSynthesisDto, VehicleViewDto, VehiclesQueryDto } from './dto/vehicles.dto.js';
+import { AttachPhotoDto, ChangeLifecycleDto, CreateLocationReportDto, CreateVehicleDto, LocationReportViewDto, QrResolveDto, QrTokenDto, UpdateVehicleDto, VehiclePhotoResultDto, VehicleSynthesisDto, VehicleViewDto, VehiclesQueryDto } from './dto/vehicles.dto.js';
 import { VehiclesService } from './vehicles.service.js';
 
 @ApiTags('vehicles')
@@ -12,6 +12,7 @@ export class VehiclesController {
 
   @Get()
   @ApiOperation({ summary: 'Recherche multicritère des véhicules du périmètre.' })
+  @ApiPageResponse(VehicleViewDto)
   list(@Ctx() ctx: RequestContext, @Query() query: VehiclesQueryDto): Promise<Page<VehicleViewDto>> {
     return this.vehicles.list(ctx, query);
   }
@@ -24,6 +25,7 @@ export class VehiclesController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Fiche d’un véhicule du périmètre.' })
   @ApiOkResponse({ type: VehicleViewDto })
   get(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string): Promise<VehicleViewDto> {
     return this.vehicles.get(ctx, id);
@@ -38,12 +40,14 @@ export class VehiclesController {
 
   @Post()
   @HttpCode(201)
-  @ApiOkResponse({ type: VehicleViewDto })
+  @ApiOperation({ summary: 'Crée un véhicule dans une société du périmètre (audité).' })
+  @ApiCreatedResponse({ type: VehicleViewDto })
   create(@Ctx() ctx: RequestContext, @Body() dto: CreateVehicleDto): Promise<VehicleViewDto> {
     return this.vehicles.create(ctx, dto);
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Modifie la fiche d’un véhicule (expectedVersion, audité).' })
   @ApiOkResponse({ type: VehicleViewDto })
   update(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateVehicleDto): Promise<VehicleViewDto> {
     return this.vehicles.update(ctx, id, dto);
@@ -58,6 +62,8 @@ export class VehiclesController {
   }
 
   @Get(':id/location-reports')
+  @ApiOperation({ summary: 'Localisations déclarées du véhicule, les plus récentes d’abord (limitées aux sociétés visibles).' })
+  @ApiPageResponse(LocationReportViewDto)
   listLocationReports(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Query() query: PageQueryDto): Promise<Page<LocationReportViewDto>> {
     return this.vehicles.listLocationReports(ctx, id, query);
   }
@@ -65,19 +71,23 @@ export class VehiclesController {
   @Post(':id/location-reports')
   @HttpCode(201)
   @ApiOperation({ summary: 'Déclare une localisation (site ou lieu libre, date d’observation, commentaire).' })
-  @ApiOkResponse({ type: LocationReportViewDto })
+  @ApiCreatedResponse({ type: LocationReportViewDto })
   addLocationReport(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateLocationReportDto): Promise<LocationReportViewDto> {
     return this.vehicles.addLocationReport(ctx, id, dto);
   }
 
   @Post(':id/photos')
   @HttpCode(201)
+  @ApiOperation({ summary: 'Rattache une photo (JPEG ou PNG déjà téléversée) au véhicule (opérateur, audité).' })
+  @ApiCreatedResponse({ type: VehiclePhotoResultDto })
   attachPhoto(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body() dto: AttachPhotoDto): Promise<{ attachmentId: string }> {
     return this.vehicles.attachPhoto(ctx, id, dto.attachmentId);
   }
 
   @Post(':id/qr/regenerate')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Régénère le QR code interne du véhicule (chef de parc, audité).' })
+  @ApiOkResponse({ type: QrTokenDto })
   regenerateQr(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string): Promise<{ qrToken: string }> {
     return this.vehicles.regenerateQr(ctx, id);
   }

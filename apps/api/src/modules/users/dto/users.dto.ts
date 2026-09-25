@@ -5,7 +5,7 @@ import { PERMISSIONS, ROLES, type PermissionKey, type RoleKey } from '@parc-auto
 import { PageQueryDto } from '../../../common/pagination.js';
 
 export class MembershipInputDto {
-  @ApiPropertyOptional({ description: 'Société ; null pour le rôle ADMIN (niveau groupe).', nullable: true })
+  @ApiPropertyOptional({ type: String, description: 'Société ; null pour le rôle ADMIN (niveau groupe).', nullable: true })
   @IsOptional()
   @IsUUID()
   companyId?: string | null;
@@ -62,7 +62,7 @@ export class UpdateUserDto {
   @ValidateNested({ each: true })
   @Type(() => MembershipInputDto)
   memberships?: MembershipInputDto[];
-  @ApiPropertyOptional({ nullable: true }) @IsOptional() @IsUUID() driverId?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsUUID() driverId?: string | null;
   @ApiProperty() @Type(() => Number) expectedVersion!: number;
 }
 

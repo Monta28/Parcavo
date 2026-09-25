@@ -153,7 +153,8 @@ export function boundsHint(key: string): string | null {
   switch (d.kind) {
     case 'integer':
     case 'number': {
-      const kindText = d.kind === 'integer' ? 'Nombre entier' : 'Nombre (décimales avec une virgule ou un point)';
+      const decimalsText = d.decimals !== undefined ? `, ${d.decimals} décimales au plus` : '';
+      const kindText = d.kind === 'integer' ? 'Nombre entier' : `Nombre (décimales avec une virgule ou un point${decimalsText})`;
       if (d.min !== undefined && d.max !== undefined) return `${kindText} de ${NUMBER.format(d.min)} à ${NUMBER.format(d.max)}${unit}.`;
       return `${kindText}.`;
     }

@@ -1,0 +1,114 @@
+# Production Parc Auto (CDC 16.3) : reverse proxy HTTPS, web, api, worker, PostgreSQL privé,
+# volumes persistants. Les secrets viennent du fichier .env (jamais versionné, modèle : .env.example).
+#
+#   docker compose -f docker-compose.prod.yml build
+#   docker compose -f docker-compose.prod.yml run --rm migrate     # migrations explicites
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# PostgreSQL et le stockage des pièces jointes ne sont exposés sur aucun port de l'hôte.
+
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: postgresql://${POSTGRES_USER:-parc_auto}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis}@postgres:5432/${POSTGRES_DB:-parc_auto}
+  APP_ORIGIN: https://${DOMAIN:?DOMAIN requis}
+  COOKIE_SECURE: 'true'
+  TRUST_PROXY: 'true'
+  STORAGE_DIR: /data/storage
+  SECRETS_ENCRYPTION_KEY: ${SECRETS_ENCRYPTION_KEY:?SECRETS_ENCRYPTION_KEY requis (openssl rand -base64 32)}
+  SECRETS_ENCRYPTION_KEY_ID: ${SECRETS_ENCRYPTION_KEY_ID:-k1}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_SECURE: ${SMTP_SECURE:-false}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_FROM: ${SMTP_FROM:-}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  APP_VERSION: ${APP_VERSION:-}
+
+services:
+  proxy:
+    image: caddy:2.11.4-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN requis}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL requis}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+
+  web:
+    build: { context: ., target: web }
+    image: parc-auto/web:${APP_VERSION:-local}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      API_INTERNAL_URL: http://api:3001
+    depends_on:
+      api:
+        condition: service_healthy
+
+  api:
+    build: { context: ., target: api }
+    image: parc-auto/api:${APP_VERSION:-local}
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      PORT: '3001'
+    volumes:
+      - storage:/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    build: { context: ., target: worker }
+    image: parc-auto/worker:${APP_VERSION:-local}
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+    volumes:
+      - storage:/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  migrate:
+    build: { context: ., target: migrate }
+    image: parc-auto/migrate:${APP_VERSION:-local}
+    profiles: ['migrate']
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-parc_auto}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis}@postgres:5432/${POSTGRES_DB:-parc_auto}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-parc_auto}
+      POSTGRES_USER: ${POSTGRES_USER:-parc_auto}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # TCP : le serveur temporaire de l'initialisation d'un volume neuf n'écoute que sur le socket local.
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-parc_auto} -d ${POSTGRES_DB:-parc_auto}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
+  storage:
+  caddy-data:
+  caddy-config:

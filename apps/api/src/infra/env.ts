@@ -8,6 +8,11 @@ export interface AppEnv {
   nodeEnv: 'development' | 'test' | 'production';
   port: number;
   databaseUrl: string;
+  /**
+   * Délai borné d'obtention d'une connexion du pool PostgreSQL (DATABASE_CONNECTION_TIMEOUT_MS, 10 000 ms
+   * par défaut) : au-delà, la requête échoue au lieu d'attendre sans limite une connexion libre.
+   */
+  databaseConnectionTimeoutMs: number;
   /** Origine publique du site (contrôle d'origine des mutations, cookies). */
   appOrigin: string;
   cookieSecure: boolean;
@@ -55,6 +60,8 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     }
     const databaseUrl = read('DATABASE_URL');
     if (!databaseUrl) throw new Error('DATABASE_URL est obligatoire.');
+    const databaseConnectionTimeoutMs = readInt('DATABASE_CONNECTION_TIMEOUT_MS', 10_000);
+    if (databaseConnectionTimeoutMs <= 0) throw new Error('DATABASE_CONNECTION_TIMEOUT_MS doit être un nombre de millisecondes strictement positif.');
     const appOrigin = read('APP_ORIGIN') ?? 'http://localhost:3000';
     const keyB64 = read('SECRETS_ENCRYPTION_KEY');
     let secretsEncryptionKey: Buffer | null = null;
@@ -86,6 +93,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
       nodeEnv,
       port: readInt('PORT', 3001),
       databaseUrl,
+      databaseConnectionTimeoutMs,
       appOrigin,
       cookieSecure: readBool('COOKIE_SECURE', nodeEnv === 'production'),
       storageDir: read('STORAGE_DIR') ?? './storage',

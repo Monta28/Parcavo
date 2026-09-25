@@ -36,6 +36,8 @@ export interface RequestContext {
 export interface RequestWithContext extends Request {
   context?: RequestContext;
   requestId: string;
+  /** Empreinte du jeton CSRF de la session, lue par la garde d'authentification avec le contexte. */
+  sessionCsrfTokenHash?: string;
 }
 
 export const Ctx = createParamDecorator((_data: unknown, ctx: ExecutionContext): RequestContext => {

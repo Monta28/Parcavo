@@ -6,6 +6,7 @@ import { AfterCommit } from '../../common/after-commit.js';
 import { Clock } from '../../common/clock.js';
 import { BusinessRuleError, ConflictError, ErrorCodes, NotFoundOrOutOfScopeError } from '../../common/errors.js';
 import { IdempotencyService } from '../../common/idempotency.service.js';
+import { organizationTimezone } from '../../common/request-memo.js';
 import { assertExpectedVersion } from '../../common/optimistic-lock.js';
 import { type Page, pageOf, skipTake } from '../../common/pagination.js';
 import type { RequestContext } from '../../common/request-context.js';
@@ -19,8 +20,8 @@ import { AlertsService } from '../alerts/alerts.service.js';
 import { AttachmentsService } from '../attachments/attachments.service.js';
 import { DriversService } from '../drivers/drivers.service.js';
 import { IncidentsService } from '../incidents/incidents.service.js';
-import { OdometerIngestionService, lockDriver, lockVehicle } from '../odometer/odometer-ingestion.service.js';
-import { parseKm } from '../odometer/odometer.service.js';
+import { OdometerIngestionService, lockDriver, lockDriverForWrite, lockVehicle, lockVehicleForWrite } from '../odometer/odometer-ingestion.service.js';
+import { READING_SETTINGS, parseKm } from '../odometer/odometer.service.js';
 import { recomputeUsageDistance } from '../odometer/usage-distance.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { VehiclesService } from '../vehicles/vehicles.service.js';
@@ -45,12 +46,15 @@ const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
 const LATE_TOLERANCE_KEY = 'usage.lateReturnToleranceMinutes';
 
 type ConflictingReservation = { id: string; startAt: string; endAt: string; driverName: string };
+/** Réservation convertible, lue sous verrou (colonnes utiles à la conversion). */
+type ConvertibleReservation = Pick<Reservation, 'id' | 'companyId' | 'vehicleId' | 'driverId' | 'status' | 'startAt' | 'endAt' | 'version'>;
 
 /**
  * Verrou de la ligne d'utilisation (SELECT … FOR UPDATE), pris après le véhicule puis le conducteur
  * (ordre constant, D-138), puis relecture : statut et version sont contrôlés sur l'état verrouillé.
- * En isolation sérialisable, une ligne modifiée par une transaction concurrente validée lève un conflit
- * de sérialisation, repris par PrismaService.serializable avec un nouvel instantané.
+ * En READ COMMITTED (restitution, D-016), la relecture suit le verrou et voit la dernière version validée ;
+ * en isolation sérialisable (prolongation, régularisation), une ligne modifiée par une transaction
+ * concurrente validée lève un conflit de sérialisation, repris par PrismaService.serializable.
  */
 async function lockUsage(tx: Tx, usageId: string): Promise<VehicleUsage> {
   await tx.$queryRaw`SELECT id FROM "VehicleUsage" WHERE id = ${usageId}::uuid FOR UPDATE`;
@@ -110,9 +114,9 @@ export class UsagesService {
   }
 
   async checkout(ctx: RequestContext, dto: CheckoutDto, idempotencyKey: string): Promise<UsageViewDto> {
-    const vehicle = await this.vehicles.load(ctx, dto.vehicleId);
+    const vehicle = await this.vehicles.loadRef(ctx, dto.vehicleId);
     this.access.requireOperational(ctx, vehicle.companyId);
-    await this.drivers.load(ctx, dto.driverId);
+    await this.drivers.assertReadable(ctx, dto.driverId);
     const checkedOutAt = new Date(dto.checkedOutAt);
     const expectedReturnAt = new Date(dto.expectedReturnAt);
     this.validateTimes(checkedOutAt, expectedReturnAt);
@@ -126,11 +130,20 @@ export class UsagesService {
     const body = { ...dto, idempotencyKey: undefined };
     const result = await this.idempotency.run({ organizationId: ctx.organizationId, userId: ctx.userId, operation: 'usage.checkout', key: idempotencyKey }, body, async () => {
       const timezone = await this.timezone(ctx.organizationId);
+      // Paramètres consultés par la remise, son relevé, ses recalculs dépendants et sa vue : une lecture.
+      await this.settings.prefetch(ctx.organizationId, ['reservations.conversionEarlyMinutes', LATE_TOLERANCE_KEY, ...READING_SETTINGS], vehicle.companyId);
+      // D-016 : READ COMMITTED sous verrous de ligne. Véhicule puis conducteur verrouillés (ordre constant, 13.3) :
+      // toute écriture qui peut invalider un contrôle ci-dessous (utilisation, restitution, réservation confirmée,
+      // immobilisation, relevé, cycle de vie, transfert) prend l'un de ces verrous ; chaque lecture qui suit voit donc
+      // l'état validé le plus récent. Les lignes verrouillées reçoivent une nouvelle version : une transaction
+      // sérialisable qui attendait le verrou est reprise au lieu de décider sur un instantané antérieur. Index uniques
+      // partiels (une utilisation ouverte par véhicule et par conducteur) et unicité du relevé par instant : garde
+      // finale, convertie en 409 métier.
       const { usageId, after } = await this.prisma
-        .serializable(async (tx) => {
+        .lockedReadCommitted(async (tx) => {
           const after = new AfterCommit();
-          await lockVehicle(tx, dto.vehicleId);
-          await lockDriver(tx, dto.driverId);
+          await lockVehicleForWrite(tx, dto.vehicleId);
+          await lockDriverForWrite(tx, dto.driverId);
           const [v, d] = await Promise.all([tx.vehicle.findUniqueOrThrow({ where: { id: dto.vehicleId } }), tx.driver.findUniqueOrThrow({ where: { id: dto.driverId } })]);
           const blockers = await this.checks.check(tx, v, d, checkedOutAt, { timezone });
           this.enforceBlockers(ctx, v.companyId, blockers, dto.overrideReason);
@@ -180,8 +193,11 @@ export class UsagesService {
             if (ingested.outcome === 'EN_ATTENTE') {
               throw new BusinessRuleError('RELEVE_NON_ACCEPTE', `Le relevé doit être accepté pour valider le départ : ${ingested.anomaly?.reason ?? 'anomalie à vérifier'}`, { fieldErrors: { 'reading.physicalKm': [ingested.anomaly?.reason ?? 'Relevé non accepté.'] } });
             }
-            const linked = await tx.vehicleUsage.findFirst({ where: { OR: [{ checkoutReadingId: ingested.reading.id }, { returnReadingId: ingested.reading.id }] } });
-            if (linked) throw new ConflictError('RELEVE_DEJA_UTILISE', 'Ce relevé est déjà rattaché à une autre remise ou restitution.');
+            // Seul un relevé existant rejoué (IDEMPOTENT) peut déjà être rattaché : un relevé créé par cette remise a un nouvel identifiant.
+            if (ingested.outcome === 'IDEMPOTENT') {
+              const linked = await tx.vehicleUsage.findFirst({ where: { OR: [{ checkoutReadingId: ingested.reading.id }, { returnReadingId: ingested.reading.id }] } });
+              if (linked) throw new ConflictError('RELEVE_DEJA_UTILISE', 'Ce relevé est déjà rattaché à une autre remise ou restitution.');
+            }
             await tx.vehicleUsage.update({ where: { id: usage.id }, data: { checkoutReadingId: ingested.reading.id, distanceStatus: 'NON_VALIDEE' } });
             if (dto.reading.attachmentId) {
               await this.attachments.attach(ctx, tx, dto.reading.attachmentId, 'RELEVE', ingested.reading.id, v.companyId);
@@ -244,7 +260,7 @@ export class UsagesService {
   // ---------------------------------------------------------------------------
 
   async return(ctx: RequestContext, usageId: string, dto: ReturnDto, idempotencyKey: string): Promise<UsageViewDto> {
-    const usage = await this.load(ctx, usageId);
+    const usage = await this.loadRef(ctx, usageId);
     this.access.requireOperational(ctx, usage.companyId);
     const returnedAt = new Date(dto.returnedAt);
     if (returnedAt.getTime() > this.clock.now().getTime() + FUTURE_TOLERANCE_MS) throw new BusinessRuleError('DATE_FUTURE', 'La date de retour ne peut pas être future.', { fieldErrors: { returnedAt: ['Date future refusée.'] } });
@@ -259,10 +275,14 @@ export class UsagesService {
     const body = { ...dto, idempotencyKey: undefined };
     const result = await this.idempotency.run({ organizationId: ctx.organizationId, userId: ctx.userId, operation: `usage.return:${usageId}`, key: idempotencyKey }, body, async () => {
       const timezone = await this.timezone(ctx.organizationId);
-      const { after, damage } = await this.prisma.serializable(async (tx) => {
+      // Paramètres consultés par la restitution, son relevé, ses recalculs dépendants et sa vue : une lecture.
+      await this.settings.prefetch(ctx.organizationId, [LATE_TOLERANCE_KEY, ...READING_SETTINGS], usage.companyId);
+      // D-016 : READ COMMITTED sous verrous véhicule → conducteur → utilisation (13.3), lignes versionnées comme à
+      // la remise ; statut et version relus sous verrou, relevé de retour par le service d'ingestion unique.
+      const { after, damage } = await this.prisma.lockedReadCommitted(async (tx) => {
         const after = new AfterCommit();
-        await lockVehicle(tx, usage.vehicleId);
-        await lockDriver(tx, usage.driverId);
+        await lockVehicleForWrite(tx, usage.vehicleId);
+        await lockDriverForWrite(tx, usage.driverId);
         // Statut et version relus sous verrou : deux retours concurrents ne produisent qu'une restitution.
         const fresh = await lockUsage(tx, usageId);
         if (fresh.status !== 'EN_COURS') throw new ConflictError('ETAT_INVALIDE', 'Cette utilisation est déjà terminée.');
@@ -278,8 +298,11 @@ export class UsagesService {
             { organizationId: ctx.organizationId, vehicleId: fresh.vehicleId, origin: 'MANUAL', context: 'RESTITUTION', measurementKind: 'COMPTEUR_AFFICHE', physicalKm: parseKm(dto.reading.physicalKm), observedAt: returnedAt, author: { kind: 'STAFF', userId: ctx.userId }, allowAutoInit: true },
             after,
           );
-          const linked = await tx.vehicleUsage.findFirst({ where: { id: { not: usageId }, OR: [{ checkoutReadingId: ingested.reading.id }, { returnReadingId: ingested.reading.id }] } });
-          if (linked) throw new ConflictError('RELEVE_DEJA_UTILISE', 'Ce relevé est déjà rattaché à une autre utilisation.');
+          // Seul un relevé existant rejoué (IDEMPOTENT) peut déjà être rattaché : un relevé créé par ce retour a un nouvel identifiant.
+          if (ingested.outcome === 'IDEMPOTENT') {
+            const linked = await tx.vehicleUsage.findFirst({ where: { id: { not: usageId }, OR: [{ checkoutReadingId: ingested.reading.id }, { returnReadingId: ingested.reading.id }] } });
+            if (linked) throw new ConflictError('RELEVE_DEJA_UTILISE', 'Ce relevé est déjà rattaché à une autre utilisation.');
+          }
           returnReadingId = ingested.reading.id;
           if (ingested.outcome === 'EN_ATTENTE') pendingReason = ingested.anomaly?.reason ?? 'relevé en attente de validation';
           if (dto.reading.attachmentId) {
@@ -338,13 +361,16 @@ export class UsagesService {
           after: { returnedAt, reading: dto.reading?.physicalKm ?? null, distanceStatus: distance.distanceStatus, distanceKm: distance.distanceKm, pendingReason, damageIncidentId: damage?.id ?? null },
         }, tx);
         after.add('restitution → alertes', async () => {
-          await this.alerts.resolve({ organizationId: ctx.organizationId, type: 'RETOUR_DEPASSE', objectType: 'VehicleUsage', objectId: usageId }, 'retour constaté');
-          await this.alerts.resolve({ organizationId: ctx.organizationId, type: 'DEPART_SANS_RELEVE', objectType: 'VehicleUsage', objectId: usageId }, 'utilisation terminée');
-          await this.alerts.resolve({ organizationId: ctx.organizationId, type: 'IMMOBILISATION_PENDANT_UTILISATION', objectType: 'VehicleUsage', objectId: usageId }, 'véhicule restitué');
           const compromised = await this.prisma.client.alert.findMany({ where: { organizationId: ctx.organizationId, type: 'RESERVATION_COMPROMISE', status: 'ACTIVE', condition: { path: ['usageId'], equals: usageId } }, select: { id: true } });
           if (compromised.length) await this.prisma.client.alert.updateMany({ where: { id: { in: compromised.map((a) => a.id) } }, data: { status: 'RESOLUE', resolvedAt: this.clock.now(), resolutionReason: 'véhicule restitué' } });
-          if (distance.distanceStatus !== 'VALIDEE') {
-            await this.alerts.raise({
+          // Alertes de l'utilisation lues et écrites en lot (AlertsService.sync : mêmes règles que resolve / raise).
+          await this.alerts.sync({
+            resolutions: [
+              { key: { organizationId: ctx.organizationId, type: 'RETOUR_DEPASSE', objectType: 'VehicleUsage', objectId: usageId }, reason: 'retour constaté' },
+              { key: { organizationId: ctx.organizationId, type: 'DEPART_SANS_RELEVE', objectType: 'VehicleUsage', objectId: usageId }, reason: 'utilisation terminée' },
+              { key: { organizationId: ctx.organizationId, type: 'IMMOBILISATION_PENDANT_UTILISATION', objectType: 'VehicleUsage', objectId: usageId }, reason: 'véhicule restitué' },
+            ],
+            raises: distance.distanceStatus === 'VALIDEE' ? [] : [{
               organizationId: ctx.organizationId,
               companyId: fresh.companyId,
               type: 'DISTANCE_NON_VALIDEE',
@@ -357,8 +383,8 @@ export class UsagesService {
               message: dto.readingException ? `Retour constaté sans relevé (motif : ${dto.readingException.reason}).` : fresh.checkoutWithoutReading ? 'Départ sans relevé : distance indéterminée.' : `Relevé de retour à régulariser${pendingReason ? ` : ${pendingReason}` : ''}.`,
               condition: { usageId, distanceStatus: distance.distanceStatus },
               actionPath: `/utilisations/${usageId}`,
-            });
-          }
+            }],
+          });
         });
         return { after, damage };
       });
@@ -536,13 +562,24 @@ export class UsagesService {
 
   async load(ctx: RequestContext, id: string): Promise<UsageRow> {
     const u = await this.prisma.client.vehicleUsage.findFirst({ where: { id, organizationId: ctx.organizationId }, include: usageInclude });
+    this.assertUsageVisible(ctx, u);
+    return u;
+  }
+
+  /** Même contrôle de visibilité que load, en une lecture sans les relations de la vue (mutations). */
+  private async loadRef(ctx: RequestContext, id: string): Promise<Pick<VehicleUsage, 'id' | 'companyId' | 'vehicleId' | 'driverId' | 'checkedOutAt'>> {
+    const u = await this.prisma.client.vehicleUsage.findFirst({ where: { id, organizationId: ctx.organizationId }, select: { id: true, companyId: true, vehicleId: true, driverId: true, checkedOutAt: true } });
+    this.assertUsageVisible(ctx, u);
+    return u;
+  }
+
+  private assertUsageVisible<T extends { companyId: string; driverId: string }>(ctx: RequestContext, u: T | null): asserts u is T {
     if (!u) throw new NotFoundOrOutOfScopeError('Utilisation');
     if (ctx.isDriverOnly) {
       if (u.driverId !== ctx.driverId) throw new NotFoundOrOutOfScopeError('Utilisation');
     } else if (!this.access.canReadCompany(ctx, u.companyId)) {
       throw new NotFoundOrOutOfScopeError('Utilisation');
     }
-    return u;
   }
 
   // ---------------------------------------------------------------------------
@@ -663,13 +700,21 @@ export class UsagesService {
    * [début − reservations.conversionEarlyMinutes, fin[, sinon refus explicite. Implicite : la réservation
    * CONFIRMEE du même couple dont la fenêtre contient le départ, s'il en existe une.
    */
-  private async reservationToConvert(ctx: RequestContext, tx: Tx, vehicle: { id: string; companyId: string }, driverId: string, checkedOutAt: Date, reservationId: string | null, timezone: string): Promise<Reservation | null> {
+  private async reservationToConvert(ctx: RequestContext, tx: Tx, vehicle: { id: string; companyId: string }, driverId: string, checkedOutAt: Date, reservationId: string | null, timezone: string): Promise<ConvertibleReservation | null> {
     const early = await this.settings.get(ctx.organizationId, 'reservations.conversionEarlyMinutes', vehicle.companyId, tx);
+    // Réservations lues sous verrou de ligne (après véhicule et conducteur, 13.3) : une annulation ou une
+    // non-présentation concurrente (qui verrouille la réservation) précède ou suit entièrement la conversion.
     if (!reservationId) {
-      const candidates = await tx.reservation.findMany({ where: { organizationId: ctx.organizationId, vehicleId: vehicle.id, driverId, status: 'CONFIRMEE', endAt: { gt: checkedOutAt } } });
+      const candidates = await tx.$queryRaw<ConvertibleReservation[]>`
+        SELECT "id", "companyId", "vehicleId", "driverId", "status"::text AS "status", "startAt", "endAt", "version" FROM "Reservation"
+        WHERE "organizationId" = ${ctx.organizationId}::uuid AND "vehicleId" = ${vehicle.id}::uuid AND "driverId" = ${driverId}::uuid
+          AND "status" = 'CONFIRMEE'::"ReservationStatus" AND "endAt" > ${checkedOutAt}::timestamptz
+        ORDER BY "id" FOR UPDATE`;
       return pickReservationToConvert(candidates, checkedOutAt, early);
     }
-    const reservation = await tx.reservation.findFirst({ where: { id: reservationId, organizationId: ctx.organizationId } });
+    const [reservation] = await tx.$queryRaw<ConvertibleReservation[]>`
+      SELECT "id", "companyId", "vehicleId", "driverId", "status"::text AS "status", "startAt", "endAt", "version" FROM "Reservation"
+      WHERE "id" = ${reservationId}::uuid AND "organizationId" = ${ctx.organizationId}::uuid FOR UPDATE`;
     if (!reservation || !this.access.canReadCompany(ctx, reservation.companyId)) throw new NotFoundOrOutOfScopeError('Réservation');
     if (reservation.status !== 'CONFIRMEE') {
       throw new ConflictError('ETAT_INVALIDE', `Seule une réservation confirmée peut être convertie (statut actuel : ${RESERVATION_STATUS_LABELS[reservation.status].toLowerCase()}).`, { reservationId: reservation.id, status: reservation.status });
@@ -709,8 +754,7 @@ export class UsagesService {
   }
 
   private async timezone(organizationId: string): Promise<string> {
-    const org = await this.prisma.client.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { timezone: true } });
-    return org.timezone;
+    return organizationTimezone(this.prisma.client, organizationId);
   }
 
   async view(id: string): Promise<UsageViewDto> {

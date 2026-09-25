@@ -8,7 +8,7 @@ import type { RequestContext } from '../../common/request-context.js';
 import { AuditService } from '../../infra/audit.service.js';
 import { closeAssignmentsOnDriverDeactivation } from '../assignments/assignment-exit.js';
 import { lockDriver } from '../odometer/odometer-ingestion.service.js';
-import { PrismaService, isUniqueViolation } from '../../infra/prisma.service.js';
+import { PrismaService, isUniqueViolation, type Tx } from '../../infra/prisma.service.js';
 import { AccessControlService } from '../access-control/access-control.service.js';
 import { AttachmentsService } from '../attachments/attachments.service.js';
 import type { CreateDriverDto, DriverSummaryDto, DriverViewDto, DriversQueryDto, PermitViewDto, UpdateDriverDto, UpsertPermitDto } from './dto/drivers.dto.js';
@@ -73,31 +73,45 @@ export class DriversService {
     this.access.requireOperational(ctx, dto.companyId);
     await this.assertSiteAndDepartment(ctx, dto.companyId, dto.siteId ?? null, dto.departmentId ?? null);
     try {
-      const created = await this.prisma.client.$transaction(async (tx) => {
-        const d = await tx.driver.create({
-          data: {
-            organizationId: ctx.organizationId,
-            companyId: dto.companyId,
-            code: dto.code,
-            firstName: dto.firstName.trim(),
-            lastName: dto.lastName.trim(),
-            phone: dto.phone ?? null,
-            email: dto.email?.toLowerCase() ?? null,
-            siteId: dto.siteId ?? null,
-            departmentId: dto.departmentId ?? null,
-            notes: dto.notes ?? null,
-            createdById: ctx.userId,
-          },
-          include: this.include(),
-        });
-        await this.audit.record(ctx, { action: 'conducteur.creation', objectType: 'Driver', objectId: d.id, companyId: d.companyId, after: this.view(d) }, tx);
-        return d;
-      });
+      const created = await this.prisma.client.$transaction((tx) => this.insertInTx(tx, ctx, dto, { active: true }));
       return this.view(created);
     } catch (error) {
-      if (isUniqueViolation(error)) throw new ConflictError('CODE_CONDUCTEUR_EXISTANT', 'Ce code conducteur existe déjà dans l’organisation.');
-      throw error;
+      throw this.mapUnique(error);
     }
+  }
+
+  /** Traduit une violation d'unicité du code conducteur en conflit métier lisible. */
+  mapUnique(error: unknown): unknown {
+    if (isUniqueViolation(error)) return new ConflictError('CODE_CONDUCTEUR_EXISTANT', 'Ce code conducteur existe déjà dans l’organisation.');
+    return error;
+  }
+
+  /**
+   * Écriture d'un nouveau conducteur dans une transaction existante (formulaire ou import, 12.1).
+   * Un conducteur importé « inactif » est créé désactivé ; périmètre et références sont contrôlés par
+   * l'appelant, les violations d'unicité remontent telles quelles.
+   */
+  async insertInTx(tx: Tx, ctx: RequestContext, dto: CreateDriverDto, options: { active: boolean; reason?: string }) {
+    const d = await tx.driver.create({
+      data: {
+        organizationId: ctx.organizationId,
+        companyId: dto.companyId,
+        code: dto.code,
+        firstName: dto.firstName.trim(),
+        lastName: dto.lastName.trim(),
+        phone: dto.phone ?? null,
+        email: dto.email?.toLowerCase() ?? null,
+        siteId: dto.siteId ?? null,
+        departmentId: dto.departmentId ?? null,
+        notes: dto.notes ?? null,
+        status: options.active ? 'ACTIF' : 'INACTIF',
+        deactivatedAt: options.active ? null : this.clock.now(),
+        createdById: ctx.userId,
+      },
+      include: this.include(),
+    });
+    await this.audit.record(ctx, { action: 'conducteur.creation', objectType: 'Driver', objectId: d.id, companyId: d.companyId, reason: options.reason ?? null, after: this.view(d) }, tx);
+    return d;
   }
 
   async update(ctx: RequestContext, id: string, dto: UpdateDriverDto): Promise<DriverViewDto> {
@@ -210,6 +224,13 @@ export class DriversService {
     if (!d) throw new NotFoundOrOutOfScopeError('Conducteur');
     if (!ctx.isDriverOnly) this.access.assertCompanyReadable(ctx, d.companyId);
     return d;
+  }
+
+  /** Même contrôle que load (404 hors organisation ou hors périmètre), en une lecture sans permis ni utilisations. */
+  async assertReadable(ctx: RequestContext, id: string): Promise<void> {
+    const d = await this.prisma.client.driver.findFirst({ where: { id, organizationId: ctx.organizationId }, select: { companyId: true } });
+    if (!d) throw new NotFoundOrOutOfScopeError('Conducteur');
+    if (!ctx.isDriverOnly) this.access.assertCompanyReadable(ctx, d.companyId);
   }
 
   private async assertSiteAndDepartment(ctx: RequestContext, companyId: string, siteId: string | null, departmentId: string | null): Promise<void> {

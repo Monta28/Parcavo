@@ -38,9 +38,12 @@ export function isVehicleOptional(category: ExpenseCategoryKey): boolean {
   return VEHICLE_OPTIONAL_CATEGORIES.includes(category);
 }
 
+/** Statut des dépenses comptées dans les totaux ; les filtres en base (rapports paginés) en dérivent. */
+export const COUNTED_EXPENSE_STATUS = 'VALIDEE' as const satisfies ExpenseStatusKey;
+
 /** Seules les dépenses validées comptent : une annulation ou un remplacement retire le coût de sa période d'origine (D-229). */
 export function countsInTotals(status: ExpenseStatusKey): boolean {
-  return status === 'VALIDEE';
+  return status === COUNTED_EXPENSE_STATUS;
 }
 
 /** Achat de véhicule : exclu par défaut du coût d'exploitation (8.4, D-233), selon le paramètre du groupe. */
@@ -84,6 +87,11 @@ export interface LedgerRow {
   amount: Decimal.Value;
   vehicleId: string | null;
   excludedFromOperatingCost: boolean;
+  /**
+   * Ligne agrégée en base (rapports paginés, CDC 17.2) : nombre de dépenses qu'elle représente, `amount`
+   * étant leur somme exacte. Absent : une dépense.
+   */
+  count?: number;
 }
 
 export interface LedgerBucket {
@@ -116,7 +124,7 @@ function add(bucket: LedgerBucket, row: LedgerRow): void {
   if (row.kind === 'AVOIR') bucket.credits = bucket.credits.plus(amount);
   else bucket.expenses = bucket.expenses.plus(amount);
   bucket.net = bucket.net.plus(signedAmount(row.kind, amount));
-  bucket.count += 1;
+  bucket.count += row.count ?? 1;
 }
 
 function orderedCategories(map: Map<ExpenseCategoryKey, LedgerBucket>): Array<{ category: ExpenseCategoryKey } & LedgerBucket> {

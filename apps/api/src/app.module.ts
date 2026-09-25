@@ -1,8 +1,9 @@
 import { type DynamicModule, Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import type { Clock } from './common/clock.js';
 import { GlobalHttpExceptionFilter } from './common/http-exception.filter.js';
+import { RequestMemoInterceptor } from './common/request-memo.interceptor.js';
 import { createValidationPipe } from './common/validation.js';
 import { loadEnv, type AppEnv } from './infra/env.js';
 import { InfraModule } from './infra/infra.module.js';
@@ -31,8 +32,12 @@ import { OrganizationsModule } from './modules/organizations/organizations.modul
 import { UsersModule } from './modules/users/users.module.js';
 import { VehiclesModule } from './modules/vehicles/vehicles.module.js';
 import { VehicleTransferModule } from './modules/vehicles/vehicle-transfer.module.js';
+import { ImportsModule } from './modules/imports/imports.module.js';
+import { ReportsModule } from './modules/reports/reports.module.js';
+import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 import { AlertsModule } from './modules/alerts/alerts.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
+import { AuditModule } from './modules/audit/audit.module.js';
 
 export interface AppModuleOptions {
   env?: AppEnv;
@@ -40,7 +45,7 @@ export interface AppModuleOptions {
 }
 
 /** Modules métier chargés dans l'API. Chaque lot ajoute ses modules ici. */
-export const FEATURE_MODULES = [HealthModule, SettingsModule, AlertsCoreModule, UsersModule, OrganizationsModule, AttachmentsModule, DriversModule, VehiclesModule, OdometerModule, UsagesModule, ReservationsModule, AssignmentsModule, MaintenanceModule, ImmobilizationsModule, SuppliersModule, InterventionsModule, DocumentsModule, IncidentsModule, ExpensesModule, FuelModule, AlertsModule, NotificationsModule, VehicleTransferModule];
+export const FEATURE_MODULES = [HealthModule, SettingsModule, AlertsCoreModule, UsersModule, OrganizationsModule, AttachmentsModule, DriversModule, VehiclesModule, OdometerModule, UsagesModule, ReservationsModule, AssignmentsModule, MaintenanceModule, ImmobilizationsModule, SuppliersModule, InterventionsModule, DocumentsModule, IncidentsModule, ExpensesModule, FuelModule, ImportsModule, DashboardModule, AlertsModule, NotificationsModule, ReportsModule, VehicleTransferModule, AuditModule];
 
 @Module({})
 export class AppModule {
@@ -61,6 +66,8 @@ export class AppModule {
         { provide: APP_GUARD, useClass: ThrottlerGuard },
         { provide: APP_GUARD, useClass: SessionAuthGuard },
         { provide: APP_GUARD, useClass: CsrfGuard },
+        // Mémoire propre à chaque requête HTTP (paramètres, fuseau) : common/request-memo.ts.
+        { provide: APP_INTERCEPTOR, useClass: RequestMemoInterceptor },
       ],
     };
   }

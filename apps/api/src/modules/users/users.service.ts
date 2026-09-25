@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 import type { Membership, MembershipRole, Permission, Prisma, User } from '@parc-auto/db';
-import { ROLES } from '@parc-auto/contracts';
+import { PASSWORD_RESET_LINK_TTL_MINUTES, ROLES } from '@parc-auto/contracts';
 import { Clock } from '../../common/clock.js';
 import { BusinessRuleError, ConflictError, NotFoundOrOutOfScopeError } from '../../common/errors.js';
 import { assertExpectedVersion } from '../../common/optimistic-lock.js';
@@ -211,7 +211,7 @@ export class UsersService {
     if (user.status !== 'ACTIF') throw new BusinessRuleError('COMPTE_INACTIF', 'Le compte est désactivé : réactivez-le avant de générer un lien.');
     const token = randomBytes(32).toString('base64url');
     const now = this.clock.now();
-    const expiresAt = new Date(now.getTime() + (purpose === 'INVITATION' ? 72 * 3600 * 1000 : 30 * 60 * 1000));
+    const expiresAt = new Date(now.getTime() + (purpose === 'INVITATION' ? 72 * 3600 * 1000 : PASSWORD_RESET_LINK_TTL_MINUTES * 60 * 1000));
     await this.prisma.client.$transaction(async (tx) => {
       await tx.passwordResetToken.updateMany({ where: { userId: id, usedAt: null, expiresAt: { gt: now } }, data: { usedAt: now } });
       await tx.passwordResetToken.create({ data: { organizationId: ctx.organizationId, userId: id, tokenHash: createHash('sha256').update(token).digest('hex'), expiresAt } });

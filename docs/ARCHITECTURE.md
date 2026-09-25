@@ -42,6 +42,7 @@ Aucune image Docker `:latest` ; les images sont épinglées par tag et digest da
 │   │   │   │   ├── fuel-events.ts           # remplissage, baisse anormale, écart ticket (8.5)
 │   │   │   │   ├── civil-date.ts            # dates civiles Africa/Tunis, fin de journée locale
 │   │   │   │   └── money.ts                 # décimaux exacts, tolérance litres x prix (8.2)
+│   │   │   ├── cli/               # seed-demo.ts (jeu de démonstration, jamais en production), export OpenAPI
 │   │   │   ├── infra/             # Prisma (adapter pg), stockage de fichiers, chiffrement, SMTP, audit sink
 │   │   │   └── modules/           # un dossier par module de la section 14.2
 │   │   │       ├── auth/            access-control/   organizations/   users/
@@ -66,11 +67,11 @@ Aucune image Docker `:latest` ; les images sont épinglées par tag et digest da
 │   │   └── lib/                   # client API typé (contrats OpenAPI), session côté serveur, formats FR
 │   └── telemetry-rpa/             # ABSENT en V1 : canal RPA non retenu (interface documentée seulement)
 ├── packages/
-│   ├── db/                        # Prisma : schéma, migrations SQL, client généré, seed de démonstration
+│   ├── db/                        # Prisma : schéma, migrations SQL, client généré, CLI create-admin
 │   │   ├── prisma/schema.prisma
 │   │   ├── prisma/migrations/     # migrations Prisma + SQL manuel (EXCLUDE, CHECK, triggers, partitions)
 │   │   ├── prisma.config.ts
-│   │   └── src/                   # client, seed-demo.ts (jamais en production), create-admin.ts (CLI)
+│   │   └── src/                   # client, create-admin.ts (CLI) ; le jeu de démonstration est dans apps/api/src/cli
 │   ├── contracts/                 # types OpenAPI générés + énumérations et libellés français partagés
 │   └── config/                    # configurations ESLint / TypeScript / Prettier partagées
 ├── tests/e2e/                     # Playwright : parcours clés (connexion, remise/retour, relevé, entretien, mobile)
@@ -115,7 +116,7 @@ La cohérence de ce tableau avec le dépôt est vérifiée par `apps/api/src/arc
 - **Autorisation au point d'accès aux données** : chaque service reçoit un `RequestContext` (utilisateur, organisation, sociétés autorisées par rôle, permissions). Les requêtes Prisma passent par des « portées » (`scope.companyIds`) construites côté serveur ; le `companyId` envoyé par le client n'est qu'un filtre recoupé. Un objet hors périmètre renvoie 404.
 - **Une règle, un endroit** : les calculs de la section 5 à 8 vivent dans `apps/api/src/domain/` sous forme de fonctions pures avec injection de l'horloge (`Clock`). Le worker réutilise les modules de l'API (même package) ; le frontend n'implémente aucune formule.
 - **Ingestion unique des relevés** : `OdometerIngestionService` traite MANUAL, IMPORT et TELEMATICS avec les mêmes contrôles ; seuls le worker et les tests peuvent produire la source TELEMATICS.
-- **Transactions, idempotence, verrou optimiste** : remise, retour, correction, validation de plein, clôture d'intervention, transfert et ingestion télématique s'exécutent dans une transaction Prisma (isolation `Serializable` avec reprise bornée sur `P2034`), avec `IdempotencyRecord` (utilisateur + organisation + opération + clé) et `expectedVersion`.
+- **Transactions, idempotence, verrou optimiste** : remise, retour, correction, validation de plein, clôture d'intervention, transfert et ingestion télématique s'exécutent dans une transaction Prisma (isolation `Serializable` avec reprise bornée sur `P2034` ; remise et retour en `READ COMMITTED` sous verrous de ligne véhicule → conducteur → utilisation, contraintes uniques partielles en garde finale, D-016), avec `IdempotencyRecord` (utilisateur + organisation + opération + clé) et `expectedVersion`. Les recalculs dépendants d'un relevé accepté (fraîcheur, échéances d'entretien et leurs alertes) sont groupés dans une transaction après validation, sauf pour une correction où ils restent dans la transaction de correction (13.3).
 - **Contraintes en base** : index uniques partiels (une utilisation ouverte par véhicule et par conducteur, une dépense par source, un segment ouvert par véhicule), contraintes d'exclusion `gist` sur les réservations et affectations, contrôles `CHECK`, trigger d'immuabilité de l'audit, partitionnement mensuel des échantillons télématiques.
 - **Décimaux et temps** : `Decimal` (decimal.js via Prisma) pour montants, litres et kilomètres ; horodatages `timestamptz` en UTC ; dates civiles en `date` ; calculs de jour local avec le fuseau du groupe (`Africa/Tunis`).
 - **Sécurité** : Argon2id (`@node-rs/argon2`), session serveur en cookie `HttpOnly`/`Secure`/`SameSite=Lax` avec jeton haché, CSRF par jeton synchronisé + contrôle d'origine, limitation de débit persistante, secrets télématiques chiffrés AES-256-GCM avec clé hors base, fichiers privés servis après autorisation, exports neutralisés contre l'injection de formules.

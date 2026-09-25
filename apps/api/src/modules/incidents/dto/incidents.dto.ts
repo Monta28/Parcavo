@@ -9,7 +9,7 @@ const SEVERITIES = ['FAIBLE', 'MOYENNE', 'ELEVEE', 'CRITIQUE'] as const;
 const STATUSES = ['OUVERT', 'EN_TRAITEMENT', 'RESOLU', 'CLOTURE'] as const;
 
 export class CreateIncidentDto {
-  @ApiPropertyOptional({ description: 'Véhicule (fixé par le serveur pour un conducteur : véhicule de son utilisation).' }) @IsOptional() @IsUUID() vehicleId?: string;
+  @ApiPropertyOptional({ description: 'Véhicule. Conducteur : véhicule de son utilisation (en cours ou terminée depuis moins de incidents.driverLateDeclarationHours) ou, si drivers.allowHabitualVehicleSubmissions est actif et sans utilisation en cours, véhicule dont il est responsable habituel (D-268) ; sans valeur, le serveur retient son utilisation la plus récente.' }) @IsOptional() @IsUUID() vehicleId?: string;
   @ApiProperty({ enum: TYPES }) @IsIn(TYPES) type!: (typeof TYPES)[number];
   @ApiPropertyOptional({ enum: SEVERITIES, description: 'Défaut : MOYENNE (ACCIDENT : ELEVEE).' }) @IsOptional() @IsIn(SEVERITIES) severity?: (typeof SEVERITIES)[number];
   @ApiPropertyOptional({ format: 'date-time', description: 'Date/heure du fait (défaut : maintenant).' }) @IsOptional() @IsDateString() occurredAt?: string;

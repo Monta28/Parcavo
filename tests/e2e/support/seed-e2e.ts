@@ -22,6 +22,9 @@ export const E2E = {
 export async function seedE2E(databaseUrl: string): Promise<void> {
   const prisma = createPrismaClient({ databaseUrl, log: ['error'] });
   try {
+    // Base de test uniquement (CDC 18) : la base réellement ouverte, quelle que soit l'URL, avant de tout vider.
+    const [current] = await prisma.$queryRaw<Array<{ name: string }>>`SELECT current_database() AS name`;
+    if (!current || !/^parc_auto_test/.test(current.name)) throw new Error(`Seed e2e refusé : la base « ${current?.name ?? 'inconnue'} » n'est pas une base de test parc_auto_test….`);
     const tables = await prisma.$queryRaw<Array<{ tablename: string }>>`
       SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'
         AND tablename NOT LIKE '%\\_default' AND tablename !~ '_[0-9]{6}$'`;

@@ -6,6 +6,7 @@ import { Clock } from '../../common/clock.js';
 import { BusinessRuleError, ConflictError, NotFoundOrOutOfScopeError } from '../../common/errors.js';
 import { cumulativeKm, evaluateReading, instantWindow, isOrdinaryFirstSegment, ordinaryFirstSegmentStart, readingFieldForAnomaly, type Evaluation, type NeighborReading } from '../../domain/odometer-rules.js';
 import { type Tx, isUniqueViolation } from '../../infra/prisma.service.js';
+import { organizationTimezone } from '../../common/request-memo.js';
 import { AlertsService } from '../alerts/alerts.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { OdometerEventsService } from './odometer-events.service.js';
@@ -39,6 +40,8 @@ export interface IngestResult {
   reading: OdometerReading;
   outcome: 'ACCEPTE' | 'EN_ATTENTE' | 'IDEMPOTENT';
   anomaly: { code: string; reason: string } | null;
+  /** Rang du compteur du relevé créé (absent pour une réponse IDEMPOTENT : relevé existant à relire). */
+  segmentSequence?: number;
 }
 
 /**
@@ -90,8 +93,7 @@ export class OdometerIngestionService {
     if (input.origin === 'TELEMATICS' && input.author.kind !== 'SYSTEM') {
       throw new BusinessRuleError('SOURCE_INTERDITE', 'La source TELEMATICS est réservée au connecteur télématique.');
     }
-    await lockVehicle(tx, input.vehicleId);
-    const vehicle = await tx.vehicle.findFirst({ where: { id: input.vehicleId, organizationId: input.organizationId }, select: { id: true, companyId: true } });
+    const vehicle = await lockVehicleOf(tx, input.vehicleId, input.organizationId);
     if (!vehicle) throw new NotFoundOrOutOfScopeError('Véhicule');
 
     // Idempotence télématique (5.6) : (fournisseur, unité, sourceReference).
@@ -150,7 +152,9 @@ export class OdometerIngestionService {
       if (pendingSame) return { reading: pendingSame, outcome: 'IDEMPOTENT', anomaly: null };
     }
 
-    const evaluation = await this.evaluate(tx, input, segment, null);
+    // Segment 1 d'initialisation ordinaire (D-167) : évalué une fois, réutilisé par evaluate et refreshSegmentLast.
+    const ordinary = await isOrdinarySegment(tx, segment);
+    const evaluation = await this.evaluate(tx, input, segment, null, vehicle.companyId, { ordinary });
     const companyId = await companyAt(tx, input.vehicleId, input.observedAt, vehicle.companyId);
 
     if (evaluation.outcome === 'IDEMPOTENT') {
@@ -175,12 +179,13 @@ export class OdometerIngestionService {
 
     const reading = await this.insert(tx, input, companyId, segment, status, anomaly);
     if (status === 'ACCEPTE') {
-      await refreshSegmentLast(tx, segment.id);
-      this.scheduleAccepted(afterCommit, { organizationId: input.organizationId, companyId, vehicleId: input.vehicleId, readingId: reading.id, origin: input.origin, measurementKind: input.measurementKind });
+      // Le relevé inséré ne modifie pas le segment ; un relevé d'initialisation retire au segment son caractère ordinaire.
+      await refreshSegmentLast(tx, segment.id, { segment, ordinary: ordinary && input.context !== 'INITIALISATION' });
+      this.scheduleAccepted(afterCommit, { organizationId: input.organizationId, companyId, vehicleId: input.vehicleId, readingId: reading.id, origin: input.origin, measurementKind: input.measurementKind }, { acceptedAtInsert: true });
     } else {
       this.schedulePendingAlert(afterCommit, reading, input);
     }
-    return { reading, outcome: status, anomaly };
+    return { reading, outcome: status, anomaly, segmentSequence: segment.sequence };
   }
 
   /**
@@ -193,8 +198,7 @@ export class OdometerIngestionService {
    * sourceReference) comme pour ingest.
    */
   async ingestGpsEstimate(tx: Tx, input: GpsEstimateInput, afterCommit: AfterCommit): Promise<GpsEstimateResult> {
-    await lockVehicle(tx, input.vehicleId);
-    const vehicle = await tx.vehicle.findFirst({ where: { id: input.vehicleId, organizationId: input.organizationId }, select: { id: true, companyId: true } });
+    const vehicle = await lockVehicleOf(tx, input.vehicleId, input.organizationId);
     if (!vehicle) throw new NotFoundOrOutOfScopeError('Véhicule');
     if (!input.replaces && input.telematics.sourceReference) {
       const dup = await tx.odometerReading.findFirst({
@@ -257,7 +261,7 @@ export class OdometerIngestionService {
       if (isUniqueViolation(error, 'reading_telematics_source_ref')) throw new ConflictError('DOUBLON_TELEMATIQUE', 'Échantillon télématique déjà enregistré.');
       throw error;
     }
-    this.scheduleAccepted(afterCommit, { organizationId: input.organizationId, companyId, vehicleId: input.vehicleId, readingId: reading.id, origin: 'TELEMATICS', measurementKind: 'DISTANCE_GPS', isEstimate: true });
+    this.scheduleAccepted(afterCommit, { organizationId: input.organizationId, companyId, vehicleId: input.vehicleId, readingId: reading.id, origin: 'TELEMATICS', measurementKind: 'DISTANCE_GPS', isEstimate: true }, { acceptedAtInsert: true });
     return { reading, outcome: 'ACCEPTE', reason: null };
   }
 
@@ -272,8 +276,7 @@ export class OdometerIngestionService {
     if (input.origin !== 'TELEMATICS' || input.author.kind !== 'SYSTEM') {
       throw new BusinessRuleError('SOURCE_INTERDITE', 'La mise en attente d’office est réservée au connecteur télématique.');
     }
-    await lockVehicle(tx, input.vehicleId);
-    const vehicle = await tx.vehicle.findFirst({ where: { id: input.vehicleId, organizationId: input.organizationId }, select: { id: true, companyId: true } });
+    const vehicle = await lockVehicleOf(tx, input.vehicleId, input.organizationId);
     if (!vehicle) throw new NotFoundOrOutOfScopeError('Véhicule');
     if (input.telematics?.sourceReference) {
       const dup = await tx.odometerReading.findFirst({
@@ -303,28 +306,41 @@ export class OdometerIngestionService {
     return this.evaluate(tx, { organizationId: reading.organizationId, vehicleId: reading.vehicleId, origin: 'MANUAL', physicalKm: physical, observedAt: reading.observedAt }, segment, reading.id, reading.companyId);
   }
 
-  async evaluate(tx: Tx, input: Pick<IngestInput, 'vehicleId' | 'origin' | 'physicalKm' | 'observedAt' | 'organizationId'>, segment: OdometerSegment, excludeId: string | null, companyId?: string): Promise<Evaluation> {
-    const baseWhere = { segmentId: segment.id, status: 'ACCEPTE' as const, isEstimate: false, ...(excludeId ? { id: { not: excludeId } } : {}) };
+  async evaluate(tx: Tx, input: Pick<IngestInput, 'vehicleId' | 'origin' | 'physicalKm' | 'observedAt' | 'organizationId'>, segment: OdometerSegment, excludeId: string | null, companyId?: string, known?: { ordinary?: boolean }): Promise<Evaluation> {
     const instant = instantWindow(input.origin, input.observedAt);
-    const [previous, next, sameInstant, following] = await Promise.all([
-      tx.odometerReading.findFirst({ where: { ...baseWhere, observedAt: { lt: instant.gte } }, orderBy: [{ observedAt: 'desc' }, { enteredAt: 'desc' }] }),
-      tx.odometerReading.findFirst({ where: { ...baseWhere, observedAt: { gte: instant.lt } }, orderBy: [{ observedAt: 'asc' }, { enteredAt: 'asc' }] }),
-      tx.odometerReading.findFirst({ where: { ...baseWhere, observedAt: instant }, orderBy: [{ observedAt: 'asc' }, { enteredAt: 'asc' }] }),
+    // Voisins physiques acceptés du segment (lui-même exclu) : précédent, suivant et même instant, en une lecture.
+    const [neighbors, following] = await Promise.all([
+      tx.$queryRaw<Array<{ slot: 'previous' | 'next' | 'same'; id: string; physicalKm: string | null; observedAt: Date }>>`
+        (SELECT 'previous' AS "slot", "id", "physicalKm"::text AS "physicalKm", "observedAt" FROM "OdometerReading"
+          WHERE "segmentId" = ${segment.id}::uuid AND "status" = 'ACCEPTE'::"ReadingStatus" AND "isEstimate" = false AND (${excludeId}::uuid IS NULL OR "id" <> ${excludeId}::uuid)
+            AND "observedAt" < ${instant.gte}::timestamptz
+          ORDER BY "observedAt" DESC, "enteredAt" DESC LIMIT 1)
+        UNION ALL
+        (SELECT 'next' AS "slot", "id", "physicalKm"::text AS "physicalKm", "observedAt" FROM "OdometerReading"
+          WHERE "segmentId" = ${segment.id}::uuid AND "status" = 'ACCEPTE'::"ReadingStatus" AND "isEstimate" = false AND (${excludeId}::uuid IS NULL OR "id" <> ${excludeId}::uuid)
+            AND "observedAt" >= ${instant.lt}::timestamptz
+          ORDER BY "observedAt" ASC, "enteredAt" ASC LIMIT 1)
+        UNION ALL
+        (SELECT 'same' AS "slot", "id", "physicalKm"::text AS "physicalKm", "observedAt" FROM "OdometerReading"
+          WHERE "segmentId" = ${segment.id}::uuid AND "status" = 'ACCEPTE'::"ReadingStatus" AND "isEstimate" = false AND (${excludeId}::uuid IS NULL OR "id" <> ${excludeId}::uuid)
+            AND "observedAt" >= ${instant.gte}::timestamptz AND "observedAt" < ${instant.lt}::timestamptz
+          ORDER BY "observedAt" ASC, "enteredAt" ASC LIMIT 1)`,
       segment.endedAt ? tx.odometerSegment.findFirst({ where: { vehicleId: segment.vehicleId, sequence: { gt: segment.sequence } }, orderBy: { sequence: 'asc' } }) : null,
     ]);
+    const slot = (name: 'previous' | 'next' | 'same') => neighbors.find((n) => n.slot === name) ?? null;
+    const previous = slot('previous');
+    const next = slot('next');
+    const sameInstant = slot('same');
     const vehicleCompany = companyId ?? (await tx.vehicle.findUniqueOrThrow({ where: { id: input.vehicleId }, select: { companyId: true } })).companyId;
-    const [maxKmPerDay, minKm] = await Promise.all([
-      this.settings.get(input.organizationId, 'odometer.plausibilityMaxKmPerDay', vehicleCompany, tx),
-      this.settings.get(input.organizationId, 'odometer.plausibilityMinKm', vehicleCompany, tx),
-    ]);
-    const { timezone } = await tx.organization.findUniqueOrThrow({ where: { id: input.organizationId }, select: { timezone: true } });
+    const { 'odometer.plausibilityMaxKmPerDay': maxKmPerDay, 'odometer.plausibilityMinKm': minKm } = await this.settings.getMany(input.organizationId, ['odometer.plausibilityMaxKmPerDay', 'odometer.plausibilityMinKm'], vehicleCompany, tx);
+    const timezone = await organizationTimezone(tx, input.organizationId);
     return evaluateReading({
       origin: input.origin,
       physicalKm: input.physicalKm,
       observedAt: input.observedAt,
       now: this.clock.now(),
       timezone,
-      segment: { startPhysicalKm: dec(segment.startPhysicalKm), startCumulativeKm: dec(segment.startCumulativeKm), startedAt: segment.startedAt, ordinary: await isOrdinarySegment(tx, segment) },
+      segment: { startPhysicalKm: dec(segment.startPhysicalKm), startCumulativeKm: dec(segment.startCumulativeKm), startedAt: segment.startedAt, ordinary: known?.ordinary ?? (await isOrdinarySegment(tx, segment)) },
       sameInstant: neighbor(sameInstant),
       previous: neighbor(previous),
       next: neighbor(next) ?? closedSegmentBound(segment, following),
@@ -345,10 +361,22 @@ export class OdometerIngestionService {
     });
   }
 
-  scheduleAccepted(afterCommit: AfterCommit, event: Parameters<OdometerEventsService['onAccepted']>[1] extends (e: infer E) => Promise<void> ? Omit<E, 'isEstimate'> & { isEstimate?: boolean } : never): void {
+  scheduleAccepted(
+    afterCommit: AfterCommit,
+    event: Parameters<OdometerEventsService['onAccepted']>[1] extends (e: infer E) => Promise<void> ? Omit<E, 'isEstimate'> & { isEstimate?: boolean } : never,
+    options: { acceptedAtInsert?: boolean } = {},
+  ): void {
+    const accepted = { ...event, isEstimate: event.isEstimate ?? false };
+    // Fraîcheur, échéances d'entretien et leurs alertes : une seule transaction après validation (lectures et
+    // écritures groupées), au lieu d'une transaction par plan et d'écritures unitaires.
+    afterCommit.add('relevé accepté → données dépendantes (fraîcheur, entretien)', async () => {
+      await this.events.recomputeDependents(accepted);
+    });
     for (const { name, listener } of this.events.subscribers()) {
-      afterCommit.add(`relevé accepté → ${name}`, () => listener({ ...event, isEstimate: event.isEstimate ?? false }));
+      afterCommit.add(`relevé accepté → ${name}`, () => listener(accepted));
     }
+    // Relevé accepté dès son insertion (nouvel identifiant, jamais en attente) : aucune alerte « à valider » ne le vise.
+    if (options.acceptedAtInsert) return;
     afterCommit.add('relevé accepté → alertes de validation', async () => {
       await this.alerts.resolve({ organizationId: event.organizationId, type: 'RELEVE_A_VALIDER', objectType: 'OdometerReading', objectId: event.readingId }, 'relevé accepté');
     });
@@ -422,7 +450,7 @@ export class OdometerIngestionService {
     const companyId = await companyAt(tx, input.vehicleId, input.observedAt, vehicleCompanyId);
     const reading = await this.insert(tx, input, companyId, segment, 'EN_ATTENTE', { code, reason });
     this.schedulePendingAlert(afterCommit, reading, input);
-    return { reading, outcome: 'EN_ATTENTE', anomaly: { code, reason } };
+    return { reading, outcome: 'EN_ATTENTE', anomaly: { code, reason }, segmentSequence: segment.sequence };
   }
 
   /** Soumission conducteur sur un véhicule sans compteur initialisé : segment provisoire créé à l'approbation. */
@@ -442,7 +470,7 @@ export class OdometerIngestionService {
     const reason = 'Soumission conducteur : validation par le chef de parc requise.';
     const reading = await this.insert(tx, input, vehicleCompanyId, segment, 'EN_ATTENTE', { code: 'SOUMISSION_CONDUCTEUR', reason });
     this.schedulePendingAlert(afterCommit, reading, input);
-    return { reading, outcome: 'EN_ATTENTE', anomaly: { code: 'SOUMISSION_CONDUCTEUR', reason } };
+    return { reading, outcome: 'EN_ATTENTE', anomaly: { code: 'SOUMISSION_CONDUCTEUR', reason }, segmentSequence: segment.sequence };
   }
 }
 
@@ -464,7 +492,7 @@ export function dec(value: { toString(): string } | string | number): Decimal {
   return new Decimal(typeof value === 'object' ? value.toString() : value);
 }
 
-function neighbor(r: OdometerReading | null): NeighborReading | null {
+function neighbor(r: { id: string; physicalKm: { toString(): string } | string | null; observedAt: Date } | null): NeighborReading | null {
   return r && r.physicalKm ? { id: r.id, physicalKm: dec(r.physicalKm), observedAt: r.observedAt } : null;
 }
 
@@ -486,8 +514,35 @@ export async function lockVehicle(tx: Tx, vehicleId: string): Promise<void> {
   await tx.$queryRaw`SELECT id FROM "Vehicle" WHERE id = ${vehicleId}::uuid FOR UPDATE`;
 }
 
+/**
+ * Même verrou que lockVehicle, avec la société courante lue sur la ligne verrouillée (une instruction au lieu
+ * du verrou puis d'une relecture) ; null si le véhicule n'existe pas dans cette organisation.
+ */
+export async function lockVehicleOf(tx: Tx, vehicleId: string, organizationId: string): Promise<{ id: string; companyId: string } | null> {
+  const [row] = await tx.$queryRaw<Array<{ id: string; companyId: string; organizationId: string }>>`SELECT "id", "companyId", "organizationId" FROM "Vehicle" WHERE "id" = ${vehicleId}::uuid FOR UPDATE`;
+  return row && row.organizationId === organizationId ? { id: row.id, companyId: row.companyId } : null;
+}
+
 export async function lockDriver(tx: Tx, driverId: string): Promise<void> {
   await tx.$queryRaw`SELECT id FROM "Driver" WHERE id = ${driverId}::uuid FOR UPDATE`;
+}
+
+/**
+ * Verrou du véhicule pris par une transaction READ COMMITTED (remise, restitution, D-016) : même verrou que
+ * lockVehicle (FOR UPDATE, même ordre), et nouvelle version de la ligne sans changement de valeur. Une
+ * transaction sérialisable qui attendait ce verrou (archivage, réservation, immobilisation, transfert…) lit un
+ * instantané antérieur à la remise : la nouvelle version la fait échouer en conflit de sérialisation (reprise
+ * avec un instantané à jour) au lieu de décider sur un état périmé. Une instruction.
+ */
+export async function lockVehicleForWrite(tx: Tx, vehicleId: string): Promise<void> {
+  await tx.$executeRaw`WITH "locked" AS (SELECT "id" FROM "Vehicle" WHERE "id" = ${vehicleId}::uuid FOR UPDATE)
+    UPDATE "Vehicle" AS v SET "updatedAt" = v."updatedAt" FROM "locked" WHERE v."id" = "locked"."id"`;
+}
+
+/** Même principe que lockVehicleForWrite pour le conducteur (verrou pris après celui du véhicule). */
+export async function lockDriverForWrite(tx: Tx, driverId: string): Promise<void> {
+  await tx.$executeRaw`WITH "locked" AS (SELECT "id" FROM "Driver" WHERE "id" = ${driverId}::uuid FOR UPDATE)
+    UPDATE "Driver" AS d SET "updatedAt" = d."updatedAt" FROM "locked" WHERE d."id" = "locked"."id"`;
 }
 
 /**
@@ -510,12 +565,13 @@ export async function companyAt(tx: Tx, vehicleId: string, at: Date, fallback: s
  * relevé antérieur, correction du premier relevé, soumission provisoire rejetée). Appelée après tout
  * changement de l'ensemble des relevés acceptés, dans la transaction qui l'opère.
  */
-export async function refreshSegmentLast(tx: Tx, segmentId: string): Promise<void> {
+export async function refreshSegmentLast(tx: Tx, segmentId: string, known?: { segment: OdometerSegment; ordinary: boolean }): Promise<void> {
   const accepted = { segmentId, status: 'ACCEPTE' as const, isEstimate: false };
   const last = await tx.odometerReading.findFirst({ where: accepted, orderBy: [{ observedAt: 'desc' }, { enteredAt: 'desc' }] });
-  const segment = await tx.odometerSegment.findUniqueOrThrow({ where: { id: segmentId } });
+  // `known` : segment lu dans la même transaction et inchangé depuis, avec son caractère ordinaire courant (ingest).
+  const segment = known && known.segment.id === segmentId ? known.segment : await tx.odometerSegment.findUniqueOrThrow({ where: { id: segmentId } });
   let start: ReturnType<typeof ordinaryFirstSegmentStart> = null;
-  if (await isOrdinarySegment(tx, segment)) {
+  if (known && known.segment.id === segmentId ? known.ordinary : await isOrdinarySegment(tx, segment)) {
     const first = await tx.odometerReading.findFirst({ where: { ...accepted, physicalKm: { not: null } }, orderBy: [{ observedAt: 'asc' }, { enteredAt: 'asc' }] });
     start = ordinaryFirstSegmentStart({ startedAt: segment.startedAt, startPhysicalKm: dec(segment.startPhysicalKm) }, first?.physicalKm ? { observedAt: first.observedAt, physicalKm: dec(first.physicalKm) } : null);
   }

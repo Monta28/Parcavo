@@ -52,8 +52,15 @@ export async function startTestApp(options: { now?: string; smtp?: boolean; rate
   };
 }
 
-/** Vide toutes les tables métier (ordre indifférent grâce à TRUNCATE ... CASCADE). */
-export async function resetDatabase(prisma: PrismaService): Promise<void> {
+/** Base de test : seul nom accepté pour toute réinitialisation (jamais une base de production, CDC 18). */
+export const TEST_DATABASE_NAME = /^parc_auto_test/;
+
+/** Vide toutes les tables métier (ordre indifférent grâce à TRUNCATE ... CASCADE), sur une base de test uniquement. */
+export async function resetDatabase(prisma: Pick<PrismaService, 'client'>): Promise<void> {
+  const [current] = await prisma.client.$queryRaw<Array<{ name: string }>>`SELECT current_database() AS name`;
+  if (!current || !TEST_DATABASE_NAME.test(current.name)) {
+    throw new Error(`Réinitialisation refusée : la base « ${current?.name ?? 'inconnue'} » n'est pas une base de test parc_auto_test….`);
+  }
   const tables = await prisma.client.$queryRaw<Array<{ tablename: string }>>`
     SELECT tablename FROM pg_tables
     WHERE schemaname = 'public' AND tablename NOT IN ('_prisma_migrations')

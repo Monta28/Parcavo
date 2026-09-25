@@ -487,6 +487,8 @@ enum ImportRowStatus {
   VALIDE
   ERREUR
   IMPORTEE
+  /// Ligne identique à une donnée déjà présente (relevé au même instant, même valeur) : idempotente (D-280).
+  IGNOREE
 }
 
 enum IdempotencyStatus {
@@ -1023,6 +1025,8 @@ model VehicleUsage {
   @@unique([driverId], map: "usage_one_open_per_driver", where: raw("\"status\" = 'EN_COURS'"))
   @@unique([id, organizationId])
   @@index([organizationId, companyId, status])
+  /// Liste paginée des utilisations d'une société (CDC 17.2) : statut puis départ le plus récent.
+  @@index([organizationId, companyId, status, checkedOutAt(sort: Desc)])
   @@index([vehicleId, checkedOutAt])
   @@index([driverId, checkedOutAt])
   @@index([status, expectedReturnAt])
@@ -1148,6 +1152,9 @@ model OdometerReading {
   @@index([segmentId, status, observedAt])
   @@index([organizationId, companyId, status])
   @@index([organizationId, status, enteredAt])
+  /// Listes paginées des relevés (CDC 17.2) : ordre observé puis saisi, sans tri de la table entière.
+  @@index([organizationId, observedAt(sort: Desc), enteredAt(sort: Desc)])
+  @@index([organizationId, companyId, observedAt(sort: Desc), enteredAt(sort: Desc)])
 }
 
 // -----------------------------------------------------------------------------

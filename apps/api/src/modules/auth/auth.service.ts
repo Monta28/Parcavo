@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
+import { PASSWORD_RESET_LINK_TTL_MINUTES } from '@parc-auto/contracts';
 import type { Response } from 'express';
 import { Clock } from '../../common/clock.js';
 import { BusinessRuleError, ForbiddenActionError, NotFoundOrOutOfScopeError, RateLimitedError, UnauthenticatedError } from '../../common/errors.js';
@@ -15,7 +16,8 @@ import { SessionService } from './session.service.js';
 const LOCKOUT_WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILURES_PER_EMAIL = 5;
 const MAX_FAILURES_PER_IP = 20;
-const RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
+/** Validité du lien « Mot de passe oublié » : constante partagée avec l'écran de demande (packages/contracts). */
+const RESET_TOKEN_TTL_MS = PASSWORD_RESET_LINK_TTL_MINUTES * 60 * 1000;
 const GENERIC_LOGIN_MESSAGE = 'Adresse e-mail ou mot de passe incorrect.';
 
 export function normalizeEmail(email: string): string {

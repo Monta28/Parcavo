@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBody, ApiConsumes, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiCreatedResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiProduces, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 import type { Response } from 'express';
 import { SETTING_DESCRIPTORS } from '@parc-auto/contracts';
@@ -25,7 +25,7 @@ class UploadBodyDto {
   @IsOptional() @IsUUID() companyId?: string;
 }
 class RemoveBodyDto {
-  @IsString() @MinLength(3) @MaxLength(500) reason!: string;
+  @ApiProperty({ description: 'Motif de la suppression, tracé dans l’audit (fichier et objets détachés).' }) @IsString() @MinLength(3) @MaxLength(500) reason!: string;
 }
 
 @ApiTags('attachments')
@@ -42,7 +42,7 @@ export class AttachmentsController {
   @ApiConsumes('multipart/form-data')
   @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' }, companyId: { type: 'string', format: 'uuid' } }, required: ['file'] } })
   @ApiOperation({ summary: 'Téléverse un fichier privé (PDF, JPEG, PNG ; 10 Mo max) en zone temporaire.' })
-  @ApiOkResponse({ type: UploadResultDto })
+  @ApiCreatedResponse({ type: UploadResultDto })
   async upload(@Ctx() ctx: RequestContext, @UploadedFile() file: UploadedMulterFile | undefined, @Body() body: UploadBodyDto): Promise<AttachmentViewDto> {
     if (!file) throw new BusinessRuleError('FICHIER_REQUIS', 'Aucun fichier reçu (champ « file »).', { fieldErrors: { file: ['Fichier requis.'] } });
     return this.attachments.upload(ctx, file, body.companyId ?? null);
@@ -50,6 +50,8 @@ export class AttachmentsController {
 
   @Get(':id/download')
   @ApiOperation({ summary: 'Téléchargement privé : autorisé après contrôle du propriétaire métier.' })
+  @ApiProduces('application/pdf', 'image/jpeg', 'image/png')
+  @ApiOkResponse({ description: 'Contenu du fichier (images en ligne, PDF en pièce jointe).', schema: { type: 'string', format: 'binary' } })
   async download(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Res() res: Response): Promise<void> {
     const { attachment, stream } = await this.attachments.open(ctx, id, this.ownerAuth);
     res.setHeader('Content-Type', attachment.mimeType);
@@ -65,7 +67,12 @@ export class AttachmentsController {
 
   @Delete(':id')
   @HttpCode(200)
+  @ApiOperation({
+    summary: 'Suppression logique motivée : droit de gestion du propriétaire requis ; la référence métier est détachée (justificatif absent) dans la même transaction.',
+  })
   @ApiOkResponse({ type: OkDto })
+  @ApiForbiddenResponse({ description: 'Objet lisible mais non gérable (ex. document sans la permission documents.manage).' })
+  @ApiNotFoundResponse({ description: 'Pièce jointe introuvable, déjà supprimée ou hors périmètre.' })
   async remove(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body() body: RemoveBodyDto): Promise<OkDto> {
     await this.attachments.remove(ctx, id, this.ownerAuth, body.reason);
     return { ok: true };

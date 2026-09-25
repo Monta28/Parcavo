@@ -20,6 +20,7 @@ import type { VehicleSynthesis } from '@/lib/vehicles-types';
 import { AssignmentsPanel } from './assignments-panel';
 import { ConsumptionPanel } from './consumption-panel';
 import { VehicleDocumentsPanel } from './documents-panel';
+import { VehicleHistoryPanel } from './history-panel';
 import { LifecycleDialog } from './lifecycle-dialog';
 import { LocationPanel } from './location-panel';
 import { MaintenancePanel } from './maintenance-panel';
@@ -30,8 +31,8 @@ import { ReservationsPanel } from './reservations-panel';
 import { TransferDialog } from './transfer-dialog';
 
 /** Onglets atteignables par lien (?onglet=…, liens d'alerte) ; les onglets de gestion sont refusés au conducteur. */
-const STAFF_TABS = new Set(['synthese', 'localisation', 'kilometrage', 'photos', 'affectations', 'reservations', 'entretien', 'documents', 'carburant']);
-const DRIVER_TABS = new Set(['synthese', 'localisation']);
+const STAFF_TABS = new Set(['synthese', 'localisation', 'kilometrage', 'photos', 'affectations', 'reservations', 'entretien', 'documents', 'historique', 'carburant']);
+const DRIVER_TABS = new Set(['synthese', 'localisation', 'historique']);
 
 function initialTab(requested: string | null, driverOnly: boolean): string {
   return requested && (driverOnly ? DRIVER_TABS : STAFF_TABS).has(requested) ? requested : 'synthese';
@@ -71,6 +72,11 @@ export function VehicleDetail({ id }: { id: string }) {
         description={`${v.make} ${v.model} · ${v.categoryLabel} · Société ${v.companyCode}`}
         actions={
           <>
+            {session.isDriverOnly ? null : (
+              <Button variant="outline" asChild>
+                <Link href={`/vehicules/${id}/fiche`}>Fiche imprimable</Link>
+              </Button>
+            )}
             {isOperational && v.lifecycleStatus !== 'ARCHIVE' && v.lifecycleStatus !== 'CEDE' ? (
               <Button variant="outline" asChild>
                 <Link href={`/vehicules/${id}/modifier`}>Modifier</Link>
@@ -109,6 +115,7 @@ export function VehicleDetail({ id }: { id: string }) {
           {session.isDriverOnly ? null : <TabsTrigger value="entretien">Entretien</TabsTrigger>}
           {session.isDriverOnly ? null : <TabsTrigger value="documents">Documents</TabsTrigger>}
           {session.isDriverOnly ? null : <TabsTrigger value="carburant">Carburant</TabsTrigger>}
+          <TabsTrigger value="historique">Historique</TabsTrigger>
         </TabsList>
 
         <TabsContent value="synthese">
@@ -293,6 +300,10 @@ export function VehicleDetail({ id }: { id: string }) {
             <ConsumptionPanel vehicleId={id} companyId={v.companyId} />
           </TabsContent>
         )}
+
+        <TabsContent value="historique">
+          <VehicleHistoryPanel vehicleId={id} />
+        </TabsContent>
       </Tabs>
 
       <LifecycleDialog open={lifecycleOpen} onOpenChange={setLifecycleOpen} current={v.lifecycleStatus} pending={lifecycle.isPending} onSubmit={(input) => lifecycle.mutate(input)} />

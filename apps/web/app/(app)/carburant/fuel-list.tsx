@@ -86,7 +86,7 @@ function StaffFuelList() {
     <div>
       <PageHeader
         title="Carburant"
-        description="Pleins saisis par le personnel et tickets soumis par les conducteurs : validation, rejet, correction et justificatifs. La consommation estimée se consulte dans l’onglet « Consommation » de chaque véhicule."
+        description="Pleins saisis par le personnel et tickets soumis par les conducteurs : validation, rejet, correction et justificatifs. La consommation estimée se consulte dans l’onglet « Carburant » de chaque véhicule."
         actions={
           canCreate ? (
             <Button asChild>

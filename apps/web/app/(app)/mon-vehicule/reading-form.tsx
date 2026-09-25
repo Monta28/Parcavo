@@ -20,7 +20,6 @@ import type { AttachmentView } from '@/lib/drivers-types';
 import { formatDateTime } from '@/lib/format';
 import { PhotoPreparationError, prepareCameraPhoto } from '@/lib/image-capture';
 import type { IngestResult } from '@/lib/odometer-types';
-import type { UsageDetailView } from '@/lib/usages-types';
 import { useOnlineStatus } from '@/lib/use-online-status';
 import { localInputToIso, nowLocalInput } from '@/lib/zoned-time';
 
@@ -36,7 +35,23 @@ interface Draft {
   idempotencyKey: string;
 }
 
-const draftStorageKey = (usageId: string) => `parc-auto:mon-vehicule:kilometrage:${usageId}`;
+/**
+ * Véhicule visé par le relevé, fourni par l'API (GET /driver-submissions/vehicles) : celui de l'utilisation en
+ * cours ou, si l'organisation l'autorise, celui dont le conducteur est responsable habituel (D-268).
+ */
+export interface ReadingTarget {
+  vehicleId: string;
+  vehicleCode: string;
+  registration: string;
+  /** Société de rattachement de la photo : celle de l'utilisation, sinon celle de la fiche conducteur. */
+  companyId: string;
+  /** Clé du brouillon : l'utilisation en cours, ou le véhicule dont le conducteur est responsable habituel. */
+  draftId: string;
+  /** Remise de l'utilisation en cours ; null pour le véhicule dont le conducteur est responsable habituel. */
+  checkedOutAt: string | null;
+}
+
+const draftStorageKey = (draftId: string) => `parc-auto:mon-vehicule:kilometrage:${draftId}`;
 
 function isDraft(value: unknown): value is Draft {
   if (!value || typeof value !== 'object') return false;
@@ -46,9 +61,9 @@ function isDraft(value: unknown): value is Draft {
 }
 
 /** Brouillon conservé en sessionStorage (D-267) : jamais présenté comme enregistré. */
-function readDraft(usageId: string): Draft | null {
+function readDraft(draftId: string): Draft | null {
   try {
-    const raw = window.sessionStorage.getItem(draftStorageKey(usageId));
+    const raw = window.sessionStorage.getItem(draftStorageKey(draftId));
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     return isDraft(parsed) ? parsed : null;
@@ -57,18 +72,18 @@ function readDraft(usageId: string): Draft | null {
   }
 }
 
-function writeDraft(usageId: string, draft: Draft): void {
+function writeDraft(draftId: string, draft: Draft): void {
   try {
-    if (draft.physicalKm || draft.note || draft.photo) window.sessionStorage.setItem(draftStorageKey(usageId), JSON.stringify(draft));
-    else window.sessionStorage.removeItem(draftStorageKey(usageId));
+    if (draft.physicalKm || draft.note || draft.photo) window.sessionStorage.setItem(draftStorageKey(draftId), JSON.stringify(draft));
+    else window.sessionStorage.removeItem(draftStorageKey(draftId));
   } catch {
     // Stockage indisponible (navigation privée, quota) : le brouillon reste en mémoire seulement.
   }
 }
 
-function clearDraft(usageId: string): void {
+function clearDraft(draftId: string): void {
   try {
-    window.sessionStorage.removeItem(draftStorageKey(usageId));
+    window.sessionStorage.removeItem(draftStorageKey(draftId));
   } catch {
     // Stockage indisponible : rien à effacer.
   }
@@ -81,14 +96,15 @@ function freshDraft(timezone: string): Draft {
 /**
  * « Ajouter un kilométrage » (CDC 10.3, D-153, D-162, D-267) : valeur lue au compteur, date et heure
  * (maintenant par défaut), photo facultative prise avec l'appareil du téléphone. Envoi idempotent vers
- * POST /vehicles/:vehicleId/readings ; un conducteur obtient toujours une soumission en attente de validation.
+ * POST /vehicles/:vehicleId/readings (véhicule cible fourni par l'API) ; un conducteur obtient toujours une
+ * soumission en attente de validation.
  */
-export function ReadingForm({ usage, reference, onClose }: { usage: UsageDetailView; reference: string | null; onClose: () => void }) {
+export function ReadingForm({ target, reference, onClose }: { target: ReadingTarget; reference: string | null; onClose: () => void }) {
   const session = useSession();
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
   const [initial] = useState(() => {
-    const saved = readDraft(usage.id);
+    const saved = readDraft(target.draftId);
     return { draft: saved ?? freshDraft(session.timezone), restored: saved !== null };
   });
   const [draft, setDraft] = useState<Draft>(initial.draft);
@@ -100,8 +116,8 @@ export function ReadingForm({ usage, reference, onClose }: { usage: UsageDetailV
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!result) writeDraft(usage.id, draft);
-  }, [usage.id, draft, result]);
+    if (!result) writeDraft(target.draftId, draft);
+  }, [target.draftId, draft, result]);
 
   // Focus sur la saisie à l'ouverture (et après « Ajouter un autre kilométrage »), sur la confirmation après envoi.
   useEffect(() => {
@@ -116,7 +132,7 @@ export function ReadingForm({ usage, reference, onClose }: { usage: UsageDetailV
       const prepared = await prepareCameraPhoto(file);
       const form = new FormData();
       form.append('file', prepared);
-      form.append('companyId', usage.companyId);
+      form.append('companyId', target.companyId);
       return api<AttachmentView>('/attachments', { method: 'POST', formData: form });
     },
     onSuccess: (att) => update({ photo: { id: att.id, name: att.originalName } }),
@@ -124,13 +140,13 @@ export function ReadingForm({ usage, reference, onClose }: { usage: UsageDetailV
 
   const submit = useMutation({
     mutationFn: (body: { physicalKm: string; observedAt: string; attachmentId?: string; note?: string }) =>
-      api<IngestResult>(`/vehicles/${usage.vehicleId}/readings`, { method: 'POST', body, idempotencyKey: draft.idempotencyKey }),
+      api<IngestResult>(`/vehicles/${target.vehicleId}/readings`, { method: 'POST', body, idempotencyKey: draft.idempotencyKey }),
     onSuccess: (res) => {
-      clearDraft(usage.id);
+      clearDraft(target.draftId);
       setFieldErrors({});
       setResult(res);
       void queryClient.invalidateQueries({ queryKey: ['readings'] });
-      void queryClient.invalidateQueries({ queryKey: ['vehicle', usage.vehicleId] });
+      void queryClient.invalidateQueries({ queryKey: ['vehicle', target.vehicleId] });
       toast.success(res.reading.status === 'EN_ATTENTE' ? 'Kilométrage envoyé : en attente de validation.' : `Kilométrage enregistré : ${READING_STATUS_LABELS[res.reading.status] ?? res.reading.status}.`);
     },
     onError: (error) => {
@@ -167,7 +183,7 @@ export function ReadingForm({ usage, reference, onClose }: { usage: UsageDetailV
   }
 
   function cancel() {
-    clearDraft(usage.id);
+    clearDraft(target.draftId);
     onClose();
   }
 
@@ -221,7 +237,7 @@ export function ReadingForm({ usage, reference, onClose }: { usage: UsageDetailV
           <h2>Ajouter un kilométrage</h2>
         </CardTitle>
         <CardDescription>
-          {usage.vehicleCode} · {usage.vehicleRegistration}.{' '}
+          {target.vehicleCode} · {target.registration}.{' '}
           {session.isDriverOnly ? 'Le relevé sera soumis à la validation du gestionnaire du parc.' : 'Le statut du relevé (accepté ou en attente de validation) est déterminé par le serveur.'}
         </CardDescription>
       </CardHeader>
@@ -270,7 +286,7 @@ export function ReadingForm({ usage, reference, onClose }: { usage: UsageDetailV
               aria-describedby={describedBy(fieldErrors, 'observedAt', 'reading-observed-at-hint')}
             />
             <p id="reading-observed-at-hint" className="text-xs text-muted-foreground">
-              Par défaut, maintenant : indiquez le moment où vous avez lu le compteur (véhicule remis le {formatDateTime(usage.checkedOutAt, session.timezone)}). Une date future est refusée.
+              Par défaut, maintenant : indiquez le moment où vous avez lu le compteur ({target.checkedOutAt ? `véhicule remis le ${formatDateTime(target.checkedOutAt, session.timezone)}` : 'véhicule dont vous êtes responsable habituel'}). Une date future est refusée.
             </p>
             <FieldError errors={fieldErrors} name="observedAt" />
           </div>

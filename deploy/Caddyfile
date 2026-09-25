@@ -1,0 +1,34 @@
+# Reverse proxy HTTPS (CDC 16.3) : certificat automatique pour {$DOMAIN} (Let's Encrypt).
+# /api/* va directement à l'API NestJS ; tout le reste au serveur Next.js.
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Corps de requête bornés : 10 Mo de pièce jointe + marge multipart.
+	request_body {
+		max_size 12MB
+	}
+
+	handle /api/* {
+		reverse_proxy api:3001
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

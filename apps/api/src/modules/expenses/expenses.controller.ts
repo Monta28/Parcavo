@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiIdempotent, IdempotencyKey } from '../../common/idempotency.decorator.js';
 import type { Page } from '../../common/pagination.js';
 import { Ctx, type RequestContext } from '../../common/request-context.js';
@@ -38,7 +38,7 @@ export class ExpensesController {
   @HttpCode(201)
   @ApiIdempotent()
   @ApiOperation({ summary: 'Saisir une dépense ou un avoir (costs.write, clé d’idempotence obligatoire) : société imputée = société gestionnaire du véhicule à la date ; référence fournisseur unique.' })
-  @ApiOkResponse({ type: ExpenseViewDto })
+  @ApiCreatedResponse({ type: ExpenseViewDto })
   create(@Ctx() ctx: RequestContext, @Body() dto: CreateExpenseDto, @IdempotencyKey() key: string): Promise<ExpenseViewDto> {
     return this.expenses.create(ctx, dto, key);
   }
@@ -47,7 +47,7 @@ export class ExpensesController {
   @HttpCode(201)
   @ApiIdempotent()
   @ApiOperation({ summary: 'Corriger une dépense validée (chef ou administrateur, costs.read et costs.write, motif, clé d’idempotence obligatoire) : nouvelle version, l’ancienne passe REMPLACEE.' })
-  @ApiOkResponse({ type: ExpenseViewDto })
+  @ApiCreatedResponse({ type: ExpenseViewDto })
   correct(@Ctx() ctx: RequestContext, @Param('id', ParseUUIDPipe) id: string, @Body() dto: CorrectExpenseDto, @IdempotencyKey() key: string): Promise<ExpenseViewDto> {
     return this.expenses.correct(ctx, id, dto, key);
   }

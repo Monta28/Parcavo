@@ -38,4 +38,11 @@ describe('Périmètre d’un compte mixte gestionnaire / conducteur (CDC 2.3)', 
     const drivers = await mixed.get('/drivers');
     expect(drivers.body.items.every((d: { companyId: string }) => d.companyId === f.companies.A)).toBe(true);
   });
+
+  it('agrégats : le tableau de bord ne compte pas la flotte de B', async () => {
+    const dashboard = await mixed.get('/dashboard');
+    expect(dashboard.status).toBe(200);
+    const active = (dashboard.body.indicators as Array<{ key: string; value: number | null }>).find((i) => i.key === 'vehicles.active');
+    expect(active?.value).toBe(1);
+  });
 });

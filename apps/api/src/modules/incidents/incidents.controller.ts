@@ -49,7 +49,7 @@ export class IncidentsController {
   @Post()
   @HttpCode(201)
   @ApiIdempotent({ required: false })
-  @ApiOperation({ summary: 'Déclarer un incident (le conducteur déclare sur son utilisation). En-tête Idempotency-Key facultatif : même clé et même corps rejouent la déclaration initiale, corps différent : 409.' })
+  @ApiOperation({ summary: 'Déclarer un incident (le conducteur déclare sur son utilisation, ou sur le véhicule dont il est responsable habituel si drivers.allowHabitualVehicleSubmissions est actif, D-268). En-tête Idempotency-Key facultatif : même clé et même corps rejouent la déclaration initiale, corps différent : 409.' })
   @ApiCreatedResponse({ type: IncidentViewDto })
   create(@Ctx() ctx: RequestContext, @Body() dto: CreateIncidentDto, @Headers(IDEMPOTENCY_HEADER_NAME) idempotencyKey?: string): Promise<IncidentViewDto> {
     return this.incidents.create(ctx, dto, idempotencyKey);

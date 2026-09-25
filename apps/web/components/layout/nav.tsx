@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { AlertTriangle, Bell, Calendar, Car, CircleSlash, ClipboardList, FileText, Fuel, Gauge, Hammer, LayoutDashboard, Receipt, Settings, Smartphone, Truck, Users, Wrench, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, BarChart3, Bell, Calendar, Car, CircleSlash, ClipboardList, FileText, Fuel, Gauge, Hammer, LayoutDashboard, Receipt, Settings, Smartphone, Truck, Upload, Users, Wrench, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCan, useSession } from './session-context';
 
@@ -32,10 +32,16 @@ const STAFF_ITEMS: NavItem[] = [
   { href: '/depenses', label: 'Dépenses', icon: Receipt, audience: 'costs' },
   { href: '/fournisseurs', label: 'Fournisseurs', icon: Truck, audience: 'staff' },
   { href: '/alertes', label: 'Alertes', icon: Bell, audience: 'staff' },
+  { href: '/rapports', label: 'Rapports', icon: BarChart3, audience: 'staff' },
+  { href: '/imports', label: 'Imports', icon: Upload, audience: 'manager' },
   { href: '/administration', label: 'Administration', icon: Settings, audience: 'admin' },
 ];
 
-const DRIVER_ITEMS: NavItem[] = [{ href: '/mon-vehicule', label: 'Mon véhicule', icon: Smartphone, audience: 'staff' }];
+/** Compte uniquement conducteur : son espace mobile et ses documents consultables (D-209, D-268). */
+const DRIVER_ITEMS: NavItem[] = [
+  { href: '/mon-vehicule', label: 'Mon véhicule', icon: Smartphone, audience: 'staff' },
+  { href: '/documents', label: 'Documents', icon: FileText, audience: 'staff' },
+];
 
 export function MainNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();

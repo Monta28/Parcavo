@@ -19,38 +19,68 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { api, newIdempotencyKey, toQuery } from '@/lib/api-client';
 import { isApiError } from '@/lib/api-error';
 import type { Page } from '@/lib/api-types';
+import type { DriverView } from '@/lib/drivers-types';
 import { formatDateTime } from '@/lib/format';
 import type { IncidentSeverity, IncidentType, IncidentView } from '@/lib/incidents-types';
 import type { UsageView } from '@/lib/usages-types';
 import { useOnlineStatus } from '@/lib/use-online-status';
 import { localInputToIso, nowLocalInput } from '@/lib/zoned-time';
+import { HABITUAL_VEHICLE_LABEL, useSubmissionTargets } from './submission-targets';
 
 /** Gravité laissée au serveur : il applique sa valeur par défaut selon le type. */
 const AUTO = '__defaut__';
 
+/** Véhicule proposé pour un signalement : fourni par l'API (cible de soumission ou dernière utilisation). */
+interface Candidate {
+  vehicleId: string;
+  label: string;
+  detail: string;
+  /** Société de rattachement des photos (celle de l'utilisation, sinon celle de la fiche conducteur). */
+  companyId: string;
+}
+
 /**
- * « Signaler un problème » (CDC 10.3, 7.3, D-216) pour le conducteur sur mobile : type, gravité proposée,
- * description, lieu et photos prises avec l'appareil (POST /attachments puis POST /incidents). Le serveur
- * fixe le véhicule, l'utilisation et le conducteur. Une clé d'idempotence est générée à l'ouverture du
+ * Véhicules proposés (D-216, D-268) : cibles de soumission renvoyées par l'API (utilisation EN_COURS, ou véhicule
+ * dont le conducteur est responsable habituel si l'organisation l'autorise), et véhicule de sa dernière
+ * utilisation terminée (déclaration après restitution, dans le délai paramétré). Le serveur tranche à l'envoi.
+ */
+function useCandidates(driverId: string) {
+  const session = useSession();
+  const targets = useSubmissionTargets();
+  // Utilisation la plus récente (en cours d'abord) : société des photos et déclaration tardive.
+  const latest = useQuery({ queryKey: ['usages', 'mon-vehicule', 'derniere'], queryFn: () => api<Page<UsageView>>(`/usages${toQuery({ pageSize: 1 })}`) });
+  const driver = useQuery({ queryKey: ['driver', driverId], queryFn: () => api<DriverView>(`/drivers/${driverId}`) });
+  const usage = latest.data?.items[0] ?? null;
+  const candidates: Candidate[] = [];
+  for (const t of targets.data ?? []) {
+    const companyId = usage && t.usageId === usage.id ? usage.companyId : driver.data?.companyId;
+    if (!companyId) continue;
+    candidates.push({ vehicleId: t.vehicleId, label: `${t.vehicleCode} · ${t.registration}`, detail: t.basis === 'UTILISATION_EN_COURS' ? 'Utilisation en cours' : HABITUAL_VEHICLE_LABEL, companyId });
+  }
+  if (usage && usage.status === 'TERMINEE' && !candidates.some((c) => c.vehicleId === usage.vehicleId)) {
+    candidates.push({ vehicleId: usage.vehicleId, label: `${usage.vehicleCode} · ${usage.vehicleRegistration}`, detail: `Dernière utilisation, restituée le ${formatDateTime(usage.returnedAt, session.timezone)}`, companyId: usage.companyId });
+  }
+  const pending = targets.isPending || latest.isPending || driver.isPending;
+  const error = targets.error ?? latest.error ?? driver.error ?? null;
+  return { candidates, usage, pending, error };
+}
+
+/**
+ * « Signaler un problème » (CDC 10.3, 7.3, D-216, D-268) pour le conducteur sur mobile : véhicule proposé par
+ * l'API, type, gravité proposée, description, lieu et photos prises avec l'appareil (POST /attachments puis
+ * POST /incidents). Le serveur vérifie le véhicule et fixe l'utilisation et le conducteur. Une clé d'idempotence est générée à l'ouverture du
  * formulaire et réutilisée à chaque nouvel envoi (D-308) : un renvoi après une coupure ne crée pas de
  * doublon. Suivi « Mes signalements » avec statut et commentaires partagés (le suivi interne n'est pas
  * exposé, D-216). Hors connexion, rien n'est prétendu enregistré.
  */
-export function ReportIncident() {
+export function ReportIncident({ driverId }: { driverId: string }) {
   const session = useSession();
-  const [formOpen, setFormOpen] = useState(false);
-  // Nouvelle instance du formulaire à chaque ouverture.
-  const [formKey, setFormKey] = useState(0);
-  const latestUsage = useQuery({
-    queryKey: ['usages', 'mon-vehicule', 'derniere'],
-    queryFn: () => api<Page<UsageView>>(`/usages${toQuery({ pageSize: 1 })}`),
-    enabled: session.isDriverOnly,
-  });
 
   if (!session.isDriverOnly) {
     return (
@@ -69,53 +99,60 @@ export function ReportIncident() {
     );
   }
 
-  const usage = latestUsage.data?.items[0] ?? null;
-  const noUsage = latestUsage.isSuccess && usage === null;
-  // Société de rattachement des photos : celle de l'utilisation (jamais devinée).
-  const uploadCompanyId = usage?.companyId ?? null;
-
   return (
     <div className="space-y-6">
-      <section aria-labelledby="report-title" className="space-y-2">
-        <h2 id="report-title" className="sr-only">
-          Signaler un problème
-        </h2>
-        {formOpen && !noUsage ? (
-          <ReportForm key={formKey} usage={usage} uploadCompanyId={uploadCompanyId} onClose={() => setFormOpen(false)} />
-        ) : (
-          <>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 w-full text-base"
-              disabled={noUsage || latestUsage.isPending}
-              aria-describedby={noUsage ? 'report-unavailable' : undefined}
-              onClick={() => {
-                setFormKey((k) => k + 1);
-                setFormOpen(true);
-              }}
-            >
-              <TriangleAlert className="size-5" aria-hidden="true" /> Signaler un problème
-            </Button>
-            {noUsage ? (
-              <p id="report-unavailable" className="text-sm text-muted-foreground">
-                Aucune utilisation n’est enregistrée à votre nom : un signalement se fait sur votre utilisation en cours ou tout juste terminée.
-              </p>
-            ) : null}
-            {latestUsage.isError ? (
-              <p role="alert" className="text-sm text-destructive">
-                {isApiError(latestUsage.error) ? latestUsage.error.message : 'Utilisation indisponible.'}
-              </p>
-            ) : null}
-          </>
-        )}
-      </section>
+      <DriverReport driverId={driverId} />
       <MyReports />
     </div>
   );
 }
 
+function DriverReport({ driverId }: { driverId: string }) {
+  const [formOpen, setFormOpen] = useState(false);
+  // Nouvelle instance du formulaire à chaque ouverture.
+  const [formKey, setFormKey] = useState(0);
+  const { candidates, usage, pending, error } = useCandidates(driverId);
+  const unavailable = !pending && candidates.length === 0;
+
+  return (
+    <section aria-labelledby="report-title" className="space-y-2">
+      <h2 id="report-title" className="sr-only">
+        Signaler un problème
+      </h2>
+      {formOpen && candidates.length > 0 ? (
+        <ReportForm key={formKey} usage={usage} candidates={candidates} onClose={() => setFormOpen(false)} />
+      ) : (
+        <>
+          <Button
+            size="lg"
+            variant="outline"
+            className="h-14 w-full text-base"
+            disabled={pending || candidates.length === 0}
+            aria-describedby={unavailable ? 'report-unavailable' : undefined}
+            onClick={() => {
+              setFormKey((k) => k + 1);
+              setFormOpen(true);
+            }}
+          >
+            <TriangleAlert className="size-5" aria-hidden="true" /> Signaler un problème
+          </Button>
+          {error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {isApiError(error) ? error.message : 'Véhicules disponibles indisponibles.'}
+            </p>
+          ) : unavailable ? (
+            <p id="report-unavailable" className="text-sm text-muted-foreground">
+              Aucun véhicule ne vous est attribué pour un signalement : un problème se signale pendant une utilisation ou juste après la restitution, ou sur le véhicule dont vous êtes responsable habituel si votre organisation l’autorise.
+            </p>
+          ) : null}
+        </>
+      )}
+    </section>
+  );
+}
+
 interface Draft {
+  vehicleId: string;
   type: IncidentType | '';
   severity: IncidentSeverity | typeof AUTO;
   description: string;
@@ -124,11 +161,13 @@ interface Draft {
   photos: UploadedPhoto[];
 }
 
-function ReportForm({ usage, uploadCompanyId, onClose }: { usage: UsageView | null; uploadCompanyId: string | null; onClose: () => void }) {
+function ReportForm({ usage, candidates, onClose }: { usage: UsageView | null; candidates: readonly Candidate[]; onClose: () => void }) {
   const session = useSession();
   const online = useOnlineStatus();
   const queryClient = useQueryClient();
-  const [draft, setDraft] = useState<Draft>(() => ({ type: '', severity: AUTO, description: '', locationLabel: '', occurredAt: nowLocalInput(session.timezone), photos: [] }));
+  const [draft, setDraft] = useState<Draft>(() => ({ vehicleId: candidates[0]?.vehicleId ?? '', type: '', severity: AUTO, description: '', locationLabel: '', occurredAt: nowLocalInput(session.timezone), photos: [] }));
+  // Véhicule retenu : celui choisi s'il est toujours proposé par l'API, sinon le premier proposé.
+  const candidate = candidates.find((c) => c.vehicleId === draft.vehicleId) ?? candidates[0] ?? null;
   // Clé propre à ce formulaire ouvert, réutilisée pour chaque nouvel essai du même signalement.
   const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
   const [local, setLocal] = useState<FieldErrors>({});
@@ -186,7 +225,7 @@ function ReportForm({ usage, uploadCompanyId, onClose }: { usage: UsageView | nu
                 setLocal({});
                 setResult(null);
                 setIdempotencyKey(newIdempotencyKey());
-                setDraft({ type: '', severity: AUTO, description: '', locationLabel: '', occurredAt: nowLocalInput(session.timezone), photos: [] });
+                setDraft({ vehicleId: candidate?.vehicleId ?? '', type: '', severity: AUTO, description: '', locationLabel: '', occurredAt: nowLocalInput(session.timezone), photos: [] });
               }}
             >
               Signaler un autre problème
@@ -206,12 +245,14 @@ function ReportForm({ usage, uploadCompanyId, onClose }: { usage: UsageView | nu
     e.preventDefault();
     const next: FieldErrors = {};
     const occurredIso = localInputToIso(draft.occurredAt, session.timezone);
+    if (!candidate) next.vehicleId = ['Aucun véhicule disponible pour ce signalement.'];
     if (!draft.type) next.type = ['Choisissez le type de problème.'];
     if (draft.description.trim().length < 5) next.description = ['Décrivez le problème (5 caractères au moins).'];
     if (!occurredIso) next.occurredAt = ['Indiquez la date et l’heure.'];
     setLocal(next);
-    if (Object.keys(next).length > 0 || !online) return;
+    if (Object.keys(next).length > 0 || !candidate || !online) return;
     submit.mutate({
+      vehicleId: candidate.vehicleId,
       type: draft.type,
       severity: draft.severity === AUTO ? undefined : draft.severity,
       occurredAt: occurredIso ?? undefined,
@@ -231,11 +272,37 @@ function ReportForm({ usage, uploadCompanyId, onClose }: { usage: UsageView | nu
           {usage
             ? `Dernière utilisation : ${usage.vehicleCode} · ${usage.vehicleRegistration} — ${usage.status === 'EN_COURS' ? 'en cours' : `restitué le ${formatDateTime(usage.returnedAt, session.timezone)}`}. `
             : ''}
-          Le véhicule et l’utilisation concernés sont déterminés par le serveur (utilisation en cours ou tout juste terminée).
+          Le serveur vérifie que ce véhicule vous est attribué et rattache le signalement à votre utilisation lorsqu’il y en a une.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form className="space-y-5" noValidate onSubmit={onSubmit}>
+          {candidates.length > 1 ? (
+            <div className="space-y-2">
+              <p id="report-vehicle-label" className="text-sm leading-none font-medium">
+                Véhicule concerné *
+              </p>
+              <RadioGroup aria-labelledby="report-vehicle-label" value={candidate?.vehicleId ?? ''} onValueChange={(v) => update({ vehicleId: v })} className="gap-2">
+                {candidates.map((c) => (
+                  <div key={c.vehicleId} className="flex items-center gap-3 rounded-md border p-3">
+                    <RadioGroupItem id={`report-vehicle-${c.vehicleId}`} value={c.vehicleId} />
+                    <Label htmlFor={`report-vehicle-${c.vehicleId}`} className="font-normal">
+                      <span className="font-medium">{c.label}</span>
+                      <span className="block text-xs text-muted-foreground">{c.detail}</span>
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+              <FieldError errors={errors} name="vehicleId" />
+            </div>
+          ) : candidate ? (
+            <div className="rounded-md border p-3 text-sm">
+              <p className="font-medium">{candidate.label}</p>
+              <p className="text-xs text-muted-foreground">{candidate.detail}</p>
+              <FieldError errors={errors} name="vehicleId" />
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <Label htmlFor="report-type">Type de problème *</Label>
             <Select value={draft.type} onValueChange={(v) => update({ type: v as IncidentType })}>
@@ -298,12 +365,12 @@ function ReportForm({ usage, uploadCompanyId, onClose }: { usage: UsageView | nu
           <PhotoUploader
             id="report-photos"
             label="Photos (recommandées)"
-            companyId={uploadCompanyId}
+            companyId={candidate?.companyId ?? null}
             photos={draft.photos}
             onChange={(photos) => update({ photos })}
             errors={errors}
             large
-            disabledReason="Photos indisponibles : votre utilisation n’a pas pu être chargée. Vous pouvez envoyer le signalement sans photo."
+            disabledReason="Photos indisponibles : le véhicule concerné n’a pas pu être chargé. Vous pouvez envoyer le signalement sans photo."
           />
 
           {!online ? (

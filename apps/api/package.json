@@ -13,7 +13,9 @@
     "test": "vitest run --config vitest.config.ts && vitest run --config vitest.config.integration.ts",
     "test:unit": "vitest run --config vitest.config.ts",
     "test:integration": "vitest run --config vitest.config.integration.ts",
-    "openapi:export": "node dist/openapi-export.js"
+    "openapi:export": "pnpm run build && node dist/cli/export-openapi.js",
+    "seed:demo": "node dist/cli/seed-demo.js",
+    "seed:load": "node dist/cli/seed-load.js"
   },
   "dependencies": {
     "@nestjs/common": "12.1.0",

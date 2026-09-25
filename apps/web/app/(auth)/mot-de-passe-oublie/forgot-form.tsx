@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { PASSWORD_RESET_LINK_TTL_MINUTES } from '@parc-auto/contracts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,7 +34,7 @@ export function ForgotPasswordForm() {
     <Card>
       <CardHeader>
         <CardTitle>Réinitialiser le mot de passe</CardTitle>
-        <CardDescription>Si un compte actif existe pour cette adresse, un lien de réinitialisation valable une heure lui est envoyé lorsque le canal e-mail est configuré.</CardDescription>
+        <CardDescription>Si un compte actif existe pour cette adresse, un lien de réinitialisation valable {PASSWORD_RESET_LINK_TTL_MINUTES} minutes lui est envoyé lorsque le canal e-mail est configuré.</CardDescription>
       </CardHeader>
       <CardContent>
         {done ? (

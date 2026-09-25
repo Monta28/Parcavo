@@ -31,3 +31,7 @@ blob-report/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Fichiers d’instructions générés automatiquement par `next dev` (Next.js 16) : hors livrable.
+apps/web/AGENTS.md
+apps/web/CLAUDE.md

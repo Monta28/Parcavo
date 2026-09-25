@@ -37,8 +37,9 @@ export class CsrfGuard implements CanActivate {
     if (!header || typeof cookie !== 'string' || header !== cookie) {
       throw new ForbiddenActionError('Jeton CSRF absent ou invalide.');
     }
-    const session = await this.prisma.client.session.findUnique({ where: { id: req.context.sessionId }, select: { csrfTokenHash: true } });
-    if (!session || session.csrfTokenHash !== hashToken(header)) {
+    // Empreinte lue avec la session par la garde d'authentification de cette requête ; relue sinon.
+    const expected = req.sessionCsrfTokenHash ?? (await this.prisma.client.session.findUnique({ where: { id: req.context.sessionId }, select: { csrfTokenHash: true } }))?.csrfTokenHash;
+    if (!expected || expected !== hashToken(header)) {
       throw new ForbiddenActionError('Jeton CSRF absent ou invalide.');
     }
     return true;

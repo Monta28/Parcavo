@@ -1,7 +1,8 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
-import type { PlanStatus, Prisma, VehicleMaintenancePlan } from '@parc-auto/db';
-import type { AfterCommit } from '../../common/after-commit.js';
+import { Prisma, type PlanStatus, type VehicleLifecycle, type VehicleMaintenancePlan } from '@parc-auto/db';
+import { AfterCommit } from '../../common/after-commit.js';
+import { organizationTimezone } from '../../common/request-memo.js';
 import { Clock } from '../../common/clock.js';
 import { BusinessRuleError, ConflictError, NotFoundOrOutOfScopeError } from '../../common/errors.js';
 import { assertExpectedVersion } from '../../common/optimistic-lock.js';
@@ -26,7 +27,7 @@ import { AuditService } from '../../infra/audit.service.js';
 import { PrismaService, isRetryable, isUniqueViolation, type Tx } from '../../infra/prisma.service.js';
 import { AccessControlService } from '../access-control/access-control.service.js';
 import { OPERATIONAL_ROLES } from '../access-control/permissions.js';
-import { AlertsService } from '../alerts/alerts.service.js';
+import { AlertsService, type AlertCondition, type AlertResolution } from '../alerts/alerts.service.js';
 import { OdometerEventsService } from '../odometer/odometer-events.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { VehiclesService } from '../vehicles/vehicles.service.js';
@@ -36,6 +37,14 @@ const planInclude = { maintenanceType: { select: { label: true, status: true } }
 type PlanRow = Prisma.VehicleMaintenancePlanGetPayload<{ include: typeof planInclude }>;
 /** Forme minimale acceptée par la vue (le rapport d'échéances fournit ses propres inclusions). */
 type PlanViewSource = VehicleMaintenancePlan & { maintenanceType: { label: string }; vehicle: { code: string } };
+
+/** Relations lues pour les alertes d'échéance d'un plan (libellé de l'opération, véhicule et son cycle de vie). */
+const alertInclude = { maintenanceType: { select: { label: true } }, vehicle: { select: { code: true, lifecycleStatus: true } } } satisfies Prisma.VehicleMaintenancePlanInclude;
+/** Plan tel que les alertes d'échéance le lisent (valeurs matérialisées courantes). */
+type PlanAlertSource = Pick<VehicleMaintenancePlan, 'id' | 'organizationId' | 'companyId' | 'vehicleId' | 'active' | 'computedStatus' | 'nextDueKm' | 'nextDueDate' | 'responsibleUserId'> & {
+  maintenanceType: { label: string };
+  vehicle: { code: string; lifecycleStatus: VehicleLifecycle };
+};
 
 /** Champs d'un plan nécessaires à l'évaluation de son statut (intervalles, relevés admis, rattachements). */
 type PlanCore = Pick<VehicleMaintenancePlan, 'id' | 'organizationId' | 'companyId' | 'vehicleId' | 'acceptedSources' | 'intervalKm' | 'intervalMonths' | 'intervalDays' | 'noticeKm' | 'noticeDays'>;
@@ -119,11 +128,9 @@ export class MaintenancePlansService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    // Un relevé accepté (manuel, import ou télématique) recalcule les échéances du véhicule (T15, T42).
-    this.events.onAccepted('entretien', async (event) => {
-      await this.recomputeVehicle(event.vehicleId);
-    });
-    // Correction d'un relevé accepté (5.3, 13.3) : échéances et alertes recalculées dans la transaction de correction.
+    // Relevé accepté (manuel, import ou télématique ; T15, T42) : échéances et alertes du véhicule recalculées
+    // après validation, dans la transaction unique des données dépendantes (OdometerEventsService.recomputeDependents).
+    // Correction d'un relevé accepté (5.3, 13.3) : même recalcul dans la transaction de correction.
     this.events.onDependentsInTx('entretien', async (tx, event, after) => {
       await this.recomputeVehicleInTx(tx, event.vehicleId, after);
     });
@@ -375,21 +382,19 @@ export class MaintenancePlansService implements OnModuleInit {
     const [context, tasks] = await Promise.all([
       this.loadContext(tx, plans),
       // Opérations effectivement terminées de ce type sur ce véhicule (liées au plan, à un plan antérieur
-      // du même type, ou saisies sans plan) : seules elles mettent à jour la base (6.4).
-      db.interventionTask.findMany({
-        where: {
-          completed: true,
-          intervention: { status: 'TERMINEE', vehicleId: { in: vehicleIds } },
-          OR: [{ planId: { in: plans.map((p) => p.id) } }, { maintenanceTypeId: { in: [...new Set(plans.map((p) => p.maintenanceTypeId))] } }],
-        },
-        select: { id: true, planId: true, maintenanceTypeId: true, intervention: { select: { vehicleId: true, performedOn: true, performedKm: true } } },
-      }),
+      // du même type, ou saisies sans plan) : seules elles mettent à jour la base (6.4). Tâche et intervention
+      // lues ensemble (jointure) : une requête pour tout le lot.
+      db.$queryRaw<Array<{ id: string; planId: string | null; maintenanceTypeId: string | null; vehicleId: string; performedOn: Date | null; performedKm: string | null }>>`
+        SELECT t."id", t."planId", t."maintenanceTypeId", i."vehicleId", i."performedOn", i."performedKm"::text AS "performedKm"
+        FROM "InterventionTask" t JOIN "Intervention" i ON i."id" = t."interventionId" AND i."organizationId" = t."organizationId"
+        WHERE t."completed" = true AND i."status" = 'TERMINEE'::"InterventionStatus" AND i."vehicleId" = ANY(${vehicleIds}::uuid[])
+          AND (t."planId" = ANY(${plans.map((p) => p.id)}::uuid[]) OR t."maintenanceTypeId" = ANY(${[...new Set(plans.map((p) => p.maintenanceTypeId))]}::uuid[]))`,
     ]);
     const tasksByVehicle = new Map<string, typeof tasks>();
     for (const t of tasks) {
-      const list = tasksByVehicle.get(t.intervention.vehicleId) ?? [];
+      const list = tasksByVehicle.get(t.vehicleId) ?? [];
       list.push(t);
-      tasksByVehicle.set(t.intervention.vehicleId, list);
+      tasksByVehicle.set(t.vehicleId, list);
     }
     for (const plan of plans) {
       const timezone = context.timezones.get(plan.organizationId) as string;
@@ -401,7 +406,7 @@ export class MaintenancePlansService implements OnModuleInit {
         initialBaseDate: fromDbDate(plan.initialBaseDate),
         initialNextDueKm: dec(plan.initialNextDueKm),
         initialNextDueDate: fromDbDate(plan.initialNextDueDate),
-        operations: operations.map((t) => ({ taskId: t.id, date: fromDbDate(t.intervention.performedOn), km: dec(t.intervention.performedKm) })),
+        operations: operations.map((t) => ({ taskId: t.id, date: fromDbDate(t.performedOn), km: dec(t.performedKm) })),
       });
       const live = this.liveStatus(plan, { nextDueKm: due.nextDueKm, nextDueDate: due.nextDueDate }, context);
       out.set(plan.id, {
@@ -428,40 +433,96 @@ export class MaintenancePlansService implements OnModuleInit {
     return this.materialize(tx, plans, await this.evaluateMany(tx, plans), { force: false });
   }
 
+  /**
+   * Recalcul des plans actifs d'un véhicule et de leurs alertes hors transaction appelante : une seule
+   * transaction (recomputeVehicleInTx), reprise bornée sur conflit (création concurrente d'une même
+   * occurrence d'alerte, interblocage) ; les notifications partent après validation.
+   */
   async recomputeVehicle(vehicleId: string): Promise<void> {
-    const plans = await this.prisma.client.vehicleMaintenancePlan.findMany({ where: { vehicleId, active: true }, select: { id: true } });
-    for (const p of plans) {
-      await this.prisma.client.$transaction((tx) => this.recomputePlan(tx, p.id));
-      await this.syncAlerts(p.id);
-    }
+    await this.withDependentsRetry(async () => {
+      const after = new AfterCommit();
+      await this.prisma.transaction((tx) => this.recomputeVehicleInTx(tx, vehicleId, after));
+      await after.run();
+    });
   }
 
   /**
-   * Recalcul transactionnel des plans actifs d'un véhicule (correction d'un relevé accepté, CDC 5.3 et 13.3) :
-   * plans verrouillés dans l'ordre des identifiants, échéances et statuts matérialisés, alertes d'échéance
-   * synchronisées dans la même transaction ; les notifications partent après validation (after).
+   * Recalcul transactionnel des plans actifs d'un véhicule (relevé accepté, correction d'un relevé accepté,
+   * CDC 5.3 et 13.3) : plans verrouillés dans l'ordre des identifiants, évaluation en lot, échéances et
+   * statuts matérialisés en une écriture, alertes d'échéance synchronisées en lot dans la même transaction ;
+   * les notifications partent après validation (after).
    */
   async recomputeVehicleInTx(tx: Tx, vehicleId: string, after: AfterCommit): Promise<string[]> {
     const locked = await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "VehicleMaintenancePlan" WHERE "vehicleId" = ${vehicleId}::uuid AND "active" = true ORDER BY "id" FOR UPDATE`;
     if (locked.length === 0) return [];
-    const plans = await tx.vehicleMaintenancePlan.findMany({ where: { id: { in: locked.map((l) => l.id) } }, orderBy: { id: 'asc' } });
-    await this.materialize(tx, plans, await this.evaluateMany(tx, plans), { force: true });
-    for (const plan of plans) await this.syncAlerts(plan.id, tx, after);
+    const plans = await tx.vehicleMaintenancePlan.findMany({ where: { id: { in: locked.map((l) => l.id) } }, orderBy: { id: 'asc' }, include: alertInclude });
+    const evaluations = await this.evaluateMany(tx, plans);
+    await this.materialize(tx, plans, evaluations, { force: true });
+    // Alertes sur les valeurs qui viennent d'être écrites (aucune relecture des plans).
+    await this.syncAlertsFor(plans.map((plan) => ({ ...plan, ...materializedFields(plan, evaluations.get(plan.id) as PlanEvaluation) })), tx, after);
     return plans.map((plan) => plan.id);
   }
 
-  /** Rattrapage (15 min) : transitions temporelles et événements manqués. Idempotent. */
+  /**
+   * Rattrapage (15 min) : transitions temporelles et événements manqués. Idempotent. Traitement par lots de
+   * plans (verrou, évaluation, matérialisation et alertes groupés) ; un lot en échec est repris plan par plan
+   * pour qu'un plan en erreur n'empêche pas le recalcul des autres.
+   */
   async recomputeAll(organizationId?: string): Promise<number> {
-    const plans = await this.prisma.client.vehicleMaintenancePlan.findMany({ where: { active: true, ...(organizationId ? { organizationId } : {}) }, select: { id: true } });
-    for (const p of plans) {
+    const plans = await this.prisma.client.vehicleMaintenancePlan.findMany({ where: { active: true, ...(organizationId ? { organizationId } : {}) }, select: { id: true }, orderBy: { id: 'asc' } });
+    for (let i = 0; i < plans.length; i += REFRESH_BATCH) {
+      const ids = plans.slice(i, i + REFRESH_BATCH).map((p) => p.id);
       try {
-        await this.prisma.client.$transaction((tx) => this.recomputePlan(tx, p.id));
-        await this.syncAlerts(p.id);
+        await this.recomputePlanBatch(ids);
       } catch (error) {
-        this.logger.error(`Recalcul du plan ${p.id} en échec : ${error instanceof Error ? error.message : String(error)}`);
+        this.logger.warn(`Recalcul groupé de ${ids.length} plan(s) en échec, reprise plan par plan : ${error instanceof Error ? error.message : String(error)}`);
+        for (const id of ids) {
+          try {
+            // Reprise unitaire : échéance validée d'abord, alertes ensuite (une alerte en échec ne bloque pas l'échéance).
+            await this.prisma.client.$transaction((tx) => this.recomputePlan(tx, id));
+            await this.syncAlerts(id);
+          } catch (planError) {
+            this.logger.error(`Recalcul du plan ${id} en échec : ${planError instanceof Error ? planError.message : String(planError)}`);
+          }
+        }
       }
     }
     return plans.length;
+  }
+
+  /** Recalcul forcé d'un lot de plans actifs et de leurs alertes, dans une transaction (verrous par identifiant). */
+  private async recomputePlanBatch(ids: readonly string[]): Promise<void> {
+    await this.withDependentsRetry(async () => {
+      const after = new AfterCommit();
+      await this.prisma.client.$transaction(
+        async (tx) => {
+          const locked = await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "VehicleMaintenancePlan" WHERE "id" = ANY(${[...ids]}::uuid[]) AND "active" = true ORDER BY "id" FOR UPDATE`;
+          if (locked.length === 0) return;
+          const plans = await tx.vehicleMaintenancePlan.findMany({ where: { id: { in: locked.map((l) => l.id) } }, orderBy: { id: 'asc' }, include: alertInclude });
+          const evaluations = await this.evaluateMany(tx, plans);
+          await this.materialize(tx, plans, evaluations, { force: true });
+          await this.syncAlertsFor(plans.map((plan) => ({ ...plan, ...materializedFields(plan, evaluations.get(plan.id) as PlanEvaluation) })), tx, after);
+        },
+        { maxWait: 5_000, timeout: 60_000 },
+      );
+      await after.run();
+    });
+  }
+
+  /**
+   * Reprise bornée d'un recalcul transactionnel : création concurrente de la même occurrence d'alerte
+   * (index unique) ou conflit d'écriture / interblocage. La transaction annulée est rejouée en entier.
+   */
+  private async withDependentsRetry(work: () => Promise<void>): Promise<void> {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        await work();
+        return;
+      } catch (error) {
+        if ((isUniqueViolation(error) || isRetryable(error)) && attempt < 2) continue;
+        throw error;
+      }
+    }
   }
 
   /**
@@ -470,44 +531,63 @@ export class MaintenancePlansService implements OnModuleInit {
    * les notifications partent après validation via `after`.
    */
   async syncAlerts(planId: string, tx?: Tx, after?: AfterCommit): Promise<void> {
-    const plan = await (tx ?? this.prisma.client).vehicleMaintenancePlan.findUniqueOrThrow({ where: { id: planId }, include: { maintenanceType: { select: { label: true } }, vehicle: { select: { code: true, lifecycleStatus: true } } } });
-    const key = { organizationId: plan.organizationId, type: 'ENTRETIEN_ECHEANCE' as const, objectType: 'VehicleMaintenancePlan', objectId: plan.id };
-    const incompleteKey = { ...key, type: 'ENTRETIEN_PLAN_INCOMPLET' as const };
-    if (!plan.active || plan.vehicle.lifecycleStatus !== 'ACTIF') {
-      // D-171 : statuts calculés et affichés, mais aucune alerte pour un véhicule hors service, cédé ou archivé.
-      const reason = !plan.active ? 'plan désactivé' : plan.vehicle.lifecycleStatus === 'HORS_SERVICE' ? 'véhicule hors service' : 'véhicule cédé ou archivé';
-      await this.alerts.resolve(key, reason, tx);
-      await this.alerts.resolve(incompleteKey, reason, tx);
-      return;
+    await this.syncAlertsMany([planId], tx, after);
+  }
+
+  /** Alertes d'échéance de plusieurs plans (même règle que syncAlerts), lues et écrites en lot. */
+  async syncAlertsMany(planIds: readonly string[], tx?: Tx, after?: AfterCommit): Promise<void> {
+    if (planIds.length === 0) return;
+    const plans = await (tx ?? this.prisma.client).vehicleMaintenancePlan.findMany({ where: { id: { in: [...planIds] } }, orderBy: { id: 'asc' }, include: alertInclude });
+    if (plans.length !== new Set(planIds).size) throw new NotFoundOrOutOfScopeError('Plan d’entretien');
+    await this.syncAlertsFor(plans, tx, after);
+  }
+
+  /**
+   * Règle unique des alertes d'échéance d'un plan, appliquée à un lot : résolutions dans l'ordre des
+   * appels unitaires d'origine (plan par plan), puis créations ou mises à jour, par AlertsService.sync.
+   */
+  private async syncAlertsFor(plans: readonly PlanAlertSource[], tx?: Tx, after?: AfterCommit): Promise<void> {
+    const resolutions: AlertResolution[] = [];
+    const raises: AlertCondition[] = [];
+    for (const plan of plans) {
+      const key = { organizationId: plan.organizationId, type: 'ENTRETIEN_ECHEANCE' as const, objectType: 'VehicleMaintenancePlan', objectId: plan.id };
+      const incompleteKey = { ...key, type: 'ENTRETIEN_PLAN_INCOMPLET' as const };
+      if (!plan.active || plan.vehicle.lifecycleStatus !== 'ACTIF') {
+        // D-171 : statuts calculés et affichés, mais aucune alerte pour un véhicule hors service, cédé ou archivé.
+        const reason = !plan.active ? 'plan désactivé' : plan.vehicle.lifecycleStatus === 'HORS_SERVICE' ? 'véhicule hors service' : 'véhicule cédé ou archivé';
+        resolutions.push({ key, reason }, { key: incompleteKey, reason });
+        continue;
+      }
+      const status = plan.computedStatus;
+      if (status === 'INCOMPLET') {
+        resolutions.push({ key, reason: 'plan incomplet' });
+        raises.push({ ...incompleteKey, companyId: plan.companyId, severity: 'ATTENTION', vehicleId: plan.vehicleId, occurrenceKey: 'incomplet', title: `Plan d’entretien incomplet — ${plan.vehicle.code}`, message: `${plan.maintenanceType.label} : base ou kilométrage manquant, échéance non calculable.`, condition: { planId: plan.id }, actionPath: `/entretiens?plan=${plan.id}`, responsibleUserId: plan.responsibleUserId });
+        continue;
+      }
+      resolutions.push({ key: incompleteKey, reason: 'plan complété' });
+      // Clé d'occurrence (identifiant technique, inchangé) ; les textes affichent des km tronqués (13.1).
+      const occurrenceKey = `echeance:${plan.nextDueKm?.toFixed(0) ?? '-'}:${fromDbDate(plan.nextDueDate) ?? '-'}`;
+      resolutions.push({ key, keepOccurrenceKey: occurrenceKey, reason: 'nouvelle échéance (entretien réalisé ou plan modifié)' });
+      if (status === 'A_JOUR') {
+        resolutions.push({ key, reason: 'échéance non atteinte' });
+        continue;
+      }
+      const dueKm = truncatedKm(dec(plan.nextDueKm));
+      const dueDate = fromDbDate(plan.nextDueDate);
+      raises.push({
+        ...key,
+        companyId: plan.companyId,
+        severity: SEVERITY[status],
+        vehicleId: plan.vehicleId,
+        occurrenceKey,
+        title: `Entretien ${STATUS_LABEL[status]} — ${plan.vehicle.code}`,
+        message: `${plan.maintenanceType.label} : échéance ${dueKm ? `${dueKm} km` : ''}${dueKm && dueDate ? ' / ' : ''}${dueDate ? formatCivilDate(dueDate) : ''} — ${STATUS_LABEL[status]}.`,
+        condition: { planId: plan.id, status, nextDueKm: plan.nextDueKm?.toString() ?? null, nextDueDate: dueDate },
+        actionPath: `/entretiens?plan=${plan.id}`,
+        responsibleUserId: plan.responsibleUserId,
+      });
     }
-    const status = plan.computedStatus;
-    if (status === 'INCOMPLET') {
-      await this.alerts.resolve(key, 'plan incomplet', tx);
-      await this.alerts.raise({ ...incompleteKey, companyId: plan.companyId, severity: 'ATTENTION', vehicleId: plan.vehicleId, occurrenceKey: 'incomplet', title: `Plan d’entretien incomplet — ${plan.vehicle.code}`, message: `${plan.maintenanceType.label} : base ou kilométrage manquant, échéance non calculable.`, condition: { planId: plan.id }, actionPath: `/entretiens?plan=${plan.id}`, responsibleUserId: plan.responsibleUserId }, tx, after);
-      return;
-    }
-    await this.alerts.resolve(incompleteKey, 'plan complété', tx);
-    // Clé d'occurrence (identifiant technique, inchangé) ; les textes affichent des km tronqués (13.1).
-    const occurrenceKey = `echeance:${plan.nextDueKm?.toFixed(0) ?? '-'}:${fromDbDate(plan.nextDueDate) ?? '-'}`;
-    await this.alerts.resolveOtherOccurrences(key, occurrenceKey, 'nouvelle échéance (entretien réalisé ou plan modifié)', tx);
-    if (status === 'A_JOUR') {
-      await this.alerts.resolve(key, 'échéance non atteinte', tx);
-      return;
-    }
-    const dueKm = truncatedKm(dec(plan.nextDueKm));
-    const dueDate = fromDbDate(plan.nextDueDate);
-    await this.alerts.raise({
-      ...key,
-      companyId: plan.companyId,
-      severity: SEVERITY[status],
-      vehicleId: plan.vehicleId,
-      occurrenceKey,
-      title: `Entretien ${STATUS_LABEL[status]} — ${plan.vehicle.code}`,
-      message: `${plan.maintenanceType.label} : échéance ${dueKm ? `${dueKm} km` : ''}${dueKm && dueDate ? ' / ' : ''}${dueDate ? formatCivilDate(dueDate) : ''} — ${STATUS_LABEL[status]}.`,
-      condition: { planId: plan.id, status, nextDueKm: plan.nextDueKm?.toString() ?? null, nextDueDate: dueDate },
-      actionPath: `/entretiens?plan=${plan.id}`,
-      responsibleUserId: plan.responsibleUserId,
-    }, tx, after);
+    await this.alerts.sync({ resolutions, raises }, tx, after);
   }
 
   // ---------------------------------------------------------------------------
@@ -628,8 +708,7 @@ export class MaintenancePlansService implements OnModuleInit {
   // ---------------------------------------------------------------------------
 
   private async timezone(organizationId: string): Promise<string> {
-    const org = await this.prisma.client.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { timezone: true } });
-    return org.timezone;
+    return organizationTimezone(this.prisma.client, organizationId);
   }
 
   /**
@@ -675,13 +754,22 @@ export class MaintenancePlansService implements OnModuleInit {
         }
       }
     }
-    for (const planId of changed) {
+    // Alertes des plans dont l'échéance ou le statut a changé : lues et écrites par lots (même règle que
+    // syncAlerts) ; un lot en échec est repris plan par plan.
+    for (let i = 0; i < changed.length; i += REFRESH_BATCH) {
+      const ids = changed.slice(i, i + REFRESH_BATCH);
       try {
-        await this.syncAlerts(planId);
-      } catch (error) {
-        // Une synchronisation concurrente (relevé, rattrapage) a pu créer la même occurrence : le statut
-        // matérialisé reste juste, le rattrapage périodique réaligne les alertes.
-        this.logger.warn(`Alertes du plan ${planId} non synchronisées à la lecture : ${error instanceof Error ? error.message : String(error)}`);
+        await this.syncAlertsMany(ids);
+      } catch {
+        for (const planId of ids) {
+          try {
+            await this.syncAlerts(planId);
+          } catch (error) {
+            // Une synchronisation concurrente (relevé, rattrapage) a pu créer la même occurrence : le statut
+            // matérialisé reste juste, le rattrapage périodique réaligne les alertes.
+            this.logger.warn(`Alertes du plan ${planId} non synchronisées à la lecture : ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
       }
     }
     return true;
@@ -689,23 +777,17 @@ export class MaintenancePlansService implements OnModuleInit {
 
   /**
    * Écrit les valeurs matérialisées. Les plans dont rien ne change reçoivent seulement leur horodatage
-   * de calcul, en une requête ; les autres sont mis à jour un par un. Le statut d'un plan désactivé
-   * reste figé. Renvoie les plans dont l'échéance ou le statut a changé.
+   * de calcul, en une requête ; les autres sont mis à jour ensemble, en une requête. Le statut d'un plan
+   * désactivé reste figé. Renvoie les plans dont l'échéance ou le statut a changé.
    */
   private async materialize(tx: Tx, plans: readonly VehicleMaintenancePlan[], evaluations: Map<string, PlanEvaluation>, options: { force: boolean }): Promise<string[]> {
     const now = this.clock.now();
     const unchanged: string[] = [];
     const changed: string[] = [];
+    const writes: Array<{ id: string; data: MaterializedData }> = [];
     for (const plan of plans) {
       const e = evaluations.get(plan.id) as PlanEvaluation;
-      const data = {
-        baseKm: e.baseKm?.toString() ?? null,
-        baseDate: e.baseDate,
-        baseTaskId: e.baseTaskId,
-        nextDueKm: e.nextDueKm?.toString() ?? null,
-        nextDueDate: e.nextDueDate,
-        computedStatus: plan.active ? e.status : plan.computedStatus,
-      };
+      const data = materializedData(plan, e);
       const same =
         sameDecimal(plan.baseKm, data.baseKm) &&
         fromDbDate(plan.baseDate) === data.baseDate &&
@@ -717,8 +799,25 @@ export class MaintenancePlansService implements OnModuleInit {
         unchanged.push(plan.id);
         continue;
       }
-      await tx.vehicleMaintenancePlan.update({ where: { id: plan.id }, data: { ...data, baseDate: toDbDate(data.baseDate), nextDueDate: toDbDate(data.nextDueDate), statusComputedAt: now } });
+      writes.push({ id: plan.id, data });
       if (!same) changed.push(plan.id);
+    }
+    if (writes.length > 0) {
+      // Une instruction pour tout le lot (valeurs par plan) ; updatedAt suit la même règle que Prisma (@updatedAt).
+      await tx.$executeRaw`
+        UPDATE "VehicleMaintenancePlan" AS p
+        SET "baseKm" = v."baseKm", "baseDate" = v."baseDate", "baseTaskId" = v."baseTaskId", "nextDueKm" = v."nextDueKm",
+            "nextDueDate" = v."nextDueDate", "computedStatus" = v."computedStatus"::"PlanStatus", "statusComputedAt" = ${now}::timestamptz, "updatedAt" = ${new Date()}::timestamptz
+        FROM unnest(
+          ${writes.map((w) => w.id)}::uuid[],
+          ${writes.map((w) => w.data.baseKm)}::numeric[],
+          ${writes.map((w) => w.data.baseDate)}::date[],
+          ${writes.map((w) => w.data.baseTaskId)}::uuid[],
+          ${writes.map((w) => w.data.nextDueKm)}::numeric[],
+          ${writes.map((w) => w.data.nextDueDate)}::date[],
+          ${writes.map((w) => w.data.computedStatus)}::text[]
+        ) AS v("id", "baseKm", "baseDate", "baseTaskId", "nextDueKm", "nextDueDate", "computedStatus")
+        WHERE p."id" = v."id"`;
     }
     if (unchanged.length > 0) await tx.vehicleMaintenancePlan.updateMany({ where: { id: { in: unchanged } }, data: { statusComputedAt: now } });
     return changed;
@@ -732,7 +831,8 @@ export class MaintenancePlansService implements OnModuleInit {
     const missingOrgs = [...new Set(plans.map((p) => p.organizationId))].filter((id) => !context.timezones.has(id));
     const companies = [...new Map(plans.map((p) => [`${p.organizationId}:${p.companyId}`, p] as const)).values()];
     const [orgs, readings, segments, staleDays] = await Promise.all([
-      missingOrgs.length > 0 ? db.organization.findMany({ where: { id: { in: missingOrgs } }, select: { id: true, timezone: true } }) : Promise.resolve([]),
+      // Fuseau lu une fois par requête HTTP (common/request-memo.ts).
+      Promise.all(missingOrgs.map(async (id) => ({ id, timezone: await organizationTimezone(db, id) }))),
       // Dernier relevé accepté par véhicule : tous relevés, et relevés manuels ou CAN seulement (5.6).
       db.$queryRaw<Array<{ vehicleId: string; allKm: unknown; allEstimate: boolean | null; allKind: string | null; allObservedAt: Date | null; physicalKm: unknown; physicalKind: string | null; physicalObservedAt: Date | null }>>`
         SELECT v."id" AS "vehicleId",
@@ -913,4 +1013,38 @@ function validateBase(base: PlanBaseDto, intervals: PlanIntervals): { baseMode: 
     return { baseMode: base.baseMode, baseKm: null, baseDate: null, nextDueKm: base.nextDueKm ?? null, nextDueDate: day(base.nextDueDate) };
   }
   return { baseMode: 'AUCUNE', baseKm: null, baseDate: null, nextDueKm: null, nextDueDate: null };
+}
+
+/** Valeurs matérialisées d'un plan pour une évaluation (écriture et alertes lisent la même chose). */
+interface MaterializedData {
+  baseKm: string | null;
+  baseDate: CivilDate | null;
+  baseTaskId: string | null;
+  nextDueKm: string | null;
+  nextDueDate: CivilDate | null;
+  computedStatus: PlanStatus;
+}
+
+function materializedData(plan: Pick<VehicleMaintenancePlan, 'active' | 'computedStatus'>, e: PlanEvaluation): MaterializedData {
+  return {
+    baseKm: e.baseKm?.toString() ?? null,
+    baseDate: e.baseDate,
+    baseTaskId: e.baseTaskId,
+    nextDueKm: e.nextDueKm?.toString() ?? null,
+    nextDueDate: e.nextDueDate,
+    computedStatus: plan.active ? e.status : plan.computedStatus,
+  };
+}
+
+/**
+ * Champs du plan tels que la base les renvoie après materialize (DECIMAL(15,3) arrondi comme PostgreSQL,
+ * DATE à minuit UTC) : les alertes lisent exactement les valeurs écrites, sans relire les plans.
+ */
+function materializedFields(plan: Pick<VehicleMaintenancePlan, 'active' | 'computedStatus'>, e: PlanEvaluation): Pick<VehicleMaintenancePlan, 'nextDueKm' | 'nextDueDate' | 'computedStatus'> {
+  const data = materializedData(plan, e);
+  return {
+    nextDueKm: data.nextDueKm === null ? null : new Prisma.Decimal(new Prisma.Decimal(data.nextDueKm).toDecimalPlaces(3, Prisma.Decimal.ROUND_HALF_UP).toFixed(3)),
+    nextDueDate: toDbDate(data.nextDueDate),
+    computedStatus: data.computedStatus,
+  };
 }

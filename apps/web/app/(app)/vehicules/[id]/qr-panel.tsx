@@ -8,12 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api-client';
 import { isApiError } from '@/lib/api-error';
+import { vehicleQrLink } from '@/lib/qr-link';
 
 /** QR interne (CDC 10.3) : lien opaque vers la fiche, valable seulement après authentification. */
 export function QrPanel({ vehicleId, qrToken, canRegenerate }: { vehicleId: string; qrToken: string; canRegenerate: boolean }) {
   const queryClient = useQueryClient();
   const [dataUrl, setDataUrl] = useState<string | null>(null);
-  const link = typeof window !== 'undefined' ? `${window.location.origin}/qr/${qrToken}` : `/qr/${qrToken}`;
+  const link = vehicleQrLink(typeof window !== 'undefined' ? window.location.origin : '', qrToken);
   useEffect(() => {
     let cancelled = false;
     QRCode.toDataURL(link, { margin: 1, width: 220 })

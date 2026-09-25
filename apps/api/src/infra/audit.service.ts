@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@parc-auto/db';
 import { Decimal } from 'decimal.js';
+import { isSensitiveAuditKey } from '../common/audit-redaction.js';
 import type { RequestContext } from '../common/request-context.js';
 import { PrismaService, type Tx } from './prisma.service.js';
 
@@ -13,20 +14,6 @@ export interface AuditEntry {
   before?: unknown;
   after?: unknown;
 }
-
-const REDACTED_KEYS = new Set([
-  'password',
-  'passwordHash',
-  'tokenHash',
-  'csrfTokenHash',
-  'token',
-  'secret',
-  'ciphertext',
-  'iv',
-  'authTag',
-  'authorization',
-  'cookie',
-]);
 
 /**
  * Journal d'audit (CDC 16.1) : acteur, date, objet, motif et valeurs avant/après expurgées.
@@ -84,7 +71,8 @@ export function redact(value: unknown): unknown {
   if (typeof value === 'object') {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      if (REDACTED_KEYS.has(k) || /secret|password|token/i.test(k)) {
+      // Règle de clés unique, partagée avec la lecture défensive de GET /audit (common/audit-redaction.ts).
+      if (isSensitiveAuditKey(k)) {
         out[k] = '[expurgé]';
       } else if (Buffer.isBuffer(v)) {
         out[k] = '[binaire]';

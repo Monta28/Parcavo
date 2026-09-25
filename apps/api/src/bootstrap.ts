@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule, type OpenAPIObject } from '@nestjs/swag
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule, type AppModuleOptions } from './app.module.js';
+import { applyOpenApiSecurity } from './common/openapi-security.js';
 import { requestIdMiddleware } from './common/request-id.middleware.js';
 import { APP_ENV, type AppEnv } from './infra/env.js';
 
@@ -29,9 +30,9 @@ export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
     .setTitle('Parc Auto — API')
     .setDescription('API REST de gestion de parc automobile multi-sociétés (CDC v1.1). Authentification par session (cookie HttpOnly) et jeton CSRF (en-tête X-CSRF-Token) sur les mutations.')
     .setVersion('1.0.0')
-    .addCookieAuth('pa_session')
     .build();
-  return SwaggerModule.createDocument(app, config);
+  // Schémas « session » (cookie pa_session) et « csrf » (en-tête X-CSRF-Token), exigés opération par opération.
+  return applyOpenApiSecurity(app, SwaggerModule.createDocument(app, config));
 }
 
 export function mountOpenApi(app: INestApplication): void {

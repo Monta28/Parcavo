@@ -316,6 +316,7 @@ export const SETTING_DEFAULTS = {
   'incidents.driverLateDeclarationHours': 24,
   'reservations.noShowGraceMinutes': 60,
   'reservations.conversionEarlyMinutes': 120,
+  'reports.minObservedCoverage': 0.5,
   /** D-268 : ouvre les soumissions du conducteur sur le véhicule dont il est responsable habituel en cours. */
   'drivers.allowHabitualVehicleSubmissions': false,
 } as const;
@@ -379,8 +380,15 @@ export const SETTING_DESCRIPTORS: Record<SettingKey, SettingDescriptor> = {
   'reservations.conversionEarlyMinutes': { label: 'Avance maximale d’une remise convertissant une réservation (avant le début prévu)', kind: 'integer', min: 0, max: 1440, unit: 'minutes', companyOverride: true },
   'fuel.amountToleranceTnd': { label: 'Écart toléré (litres × prix / total), part fixe', kind: 'number', min: 0, max: 100, unit: 'TND', decimals: 3, companyOverride: true },
   'fuel.driverLateSubmissionDays': { label: 'Soumission d’un ticket carburant après restitution', kind: 'integer', min: 0, max: 30, unit: 'jours', companyOverride: true },
+  'reports.minObservedCoverage': { label: 'Couverture minimale de la période observée pour le coût/km', kind: 'number', min: 0, max: 1, unit: 'ratio', companyOverride: false },
   'drivers.allowHabitualVehicleSubmissions': { label: 'Soumissions du conducteur sur le véhicule dont il est responsable habituel (sans utilisation en cours)', kind: 'boolean', companyOverride: false },
 };
 
 /** Bornes de pagination de l'API (CDC 15.1, 17.1) : valeurs fixes des paramètres pagination.* (non modifiables). */
 export const PAGINATION = { defaultPageSize: SETTING_DEFAULTS['pagination.defaultPageSize'], maxPageSize: SETTING_DEFAULTS['pagination.maxPageSize'] } as const;
+
+/**
+ * Durée de validité d'un lien de réinitialisation du mot de passe (« Mot de passe oublié »), en minutes :
+ * appliquée par l'API (auth.service.ts) et annoncée telle quelle par l'écran de demande.
+ */
+export const PASSWORD_RESET_LINK_TTL_MINUTES = 30;

@@ -5,6 +5,7 @@ import { AfterCommit } from '../../common/after-commit.js';
 import { Clock } from '../../common/clock.js';
 import { BusinessRuleError, ConflictError, ErrorCodes, NotFoundOrOutOfScopeError } from '../../common/errors.js';
 import { IdempotencyService } from '../../common/idempotency.service.js';
+import { organizationTimezone } from '../../common/request-memo.js';
 import { assertExpectedVersion } from '../../common/optimistic-lock.js';
 import { type Page, pageOf, skipTake } from '../../common/pagination.js';
 import type { RequestContext } from '../../common/request-context.js';
@@ -28,9 +29,9 @@ import { checkAmountConsistency, toleranceOf } from '../../domain/money.js';
 import { AuditService } from '../../infra/audit.service.js';
 import { PrismaService, isUniqueViolation, type Tx } from '../../infra/prisma.service.js';
 import { AccessControlService } from '../access-control/access-control.service.js';
+import { DriverSubmissionService } from '../assignments/driver-submission.service.js';
 import { AttachmentsService } from '../attachments/attachments.service.js';
 import { OdometerIngestionService, companyAt, dec, lockVehicle } from '../odometer/odometer-ingestion.service.js';
-import { currentAssignmentWhere } from '../../domain/responsible-assignment.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { SuppliersService } from '../suppliers/suppliers.service.js';
 import { VehiclesService } from '../vehicles/vehicles.service.js';
@@ -95,6 +96,7 @@ export class FuelService {
     private readonly idempotency: IdempotencyService,
     private readonly audit: AuditService,
     private readonly clock: Clock,
+    private readonly submissions: DriverSubmissionService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -134,8 +136,8 @@ export class FuelService {
 
   /**
    * Saisie directe (OPERATEUR, CHEF, ADMIN avec costs.write) : plein VALIDE et dépense unique, même
-   * transaction. Compte conducteur : soumission SOUMIS sur le véhicule d'une de ses utilisations (D-226),
-   * ticket obligatoire, relevé proposé laissé EN_ATTENTE. Idempotent (même clé : réponse rejouée).
+   * transaction. Compte conducteur : soumission SOUMIS sur le véhicule d'une de ses utilisations (D-226)
+   * ou, si l'organisation l'autorise, sur celui dont il est responsable habituel (D-268), ticket obligatoire, relevé proposé laissé EN_ATTENTE. Idempotent (même clé : réponse rejouée).
    */
   async create(ctx: RequestContext, dto: CreateFuelEntryDto, idempotencyKey: string): Promise<FuelEntryViewDto> {
     const isDriver = ctx.isDriverOnly;
@@ -434,77 +436,104 @@ export class FuelService {
   async consumption(ctx: RequestContext, vehicleId: string, query: ConsumptionQueryDto): Promise<ConsumptionViewDto> {
     this.access.requireStaff(ctx);
     const vehicle = await this.vehicles.load(ctx, vehicleId);
-    if (query.from && query.to && query.from > query.to) {
-      throw new BusinessRuleError('PERIODE_INVALIDE', 'La fin de période précède son début.', { fieldErrors: { to: ['Fin avant le début.'] } });
-    }
+    assertConsumptionPeriod(query);
+    return (await this.computeConsumptions(ctx, [vehicle], query)).get(vehicle.id) as ConsumptionViewDto;
+  }
+
+  /**
+   * Consommations de plusieurs véhicules sur une même période (rapport carburant) : même périmètre et même
+   * règle que consumption() — computeConsumption (8.3) — avec des lectures
+   * groupées pour tout le lot. Un véhicule inconnu de l'organisation ou hors du périmètre courant (404 pour
+   * consumption()) est absent du résultat.
+   */
+  async consumptionMany(ctx: RequestContext, vehicleIds: readonly string[], query: ConsumptionQueryDto): Promise<Map<string, ConsumptionViewDto>> {
+    this.access.requireStaff(ctx);
+    assertConsumptionPeriod(query);
+    if (vehicleIds.length === 0) return new Map();
+    const vehicles = await this.prisma.client.vehicle.findMany({ where: { id: { in: [...new Set(vehicleIds)] }, organizationId: ctx.organizationId }, select: { id: true, companyId: true, tankCapacityLiters: true } });
+    return this.computeConsumptions(ctx, vehicles.filter((v) => this.access.canReadCompany(ctx, v.companyId)), query);
+  }
+
+  /** Calcul commun : pleins, périodes d'achats incomplets et événements F11 de tous les véhicules lus ensemble. */
+  private async computeConsumptions(ctx: RequestContext, vehicles: ReadonlyArray<{ id: string; tankCapacityLiters: Prisma.Decimal | null }>, query: ConsumptionQueryDto): Promise<Map<string, ConsumptionViewDto>> {
+    const out = new Map<string, ConsumptionViewDto>();
+    if (vehicles.length === 0) return out;
     const timezone = await this.timezone(ctx.organizationId);
     const from = query.from ? startOfLocalDay(query.from, timezone) : null;
     const to = query.to ? endOfLocalDay(query.to, timezone) : null;
     // Seul l'historique des sociétés lisibles est exploité (2.3) : jamais les saisies d'une autre société.
     const scope = this.access.companyWhere(ctx);
+    const ids = vehicles.map((v) => v.id);
     const [rows, gaps, events] = await Promise.all([
       this.prisma.client.fuelEntry.findMany({
-        where: { ...scope, vehicleId: vehicle.id, status: { in: ['SOUMIS', 'VALIDE'] }, ...(to ? { filledAt: { lte: to } } : {}) },
+        where: { ...scope, vehicleId: { in: ids }, status: { in: ['SOUMIS', 'VALIDE'] }, ...(to ? { filledAt: { lte: to } } : {}) },
         select: { id: true, vehicleId: true, filledAt: true, createdAt: true, status: true, energy: true, isFullTank: true, liters: true, tankCapacityExceeded: true, capacityConfirmedAt: true, reading: { select: readingSelect } },
       }),
-      this.prisma.client.fuelPurchaseGap.findMany({ where: { ...scope, vehicleId: vehicle.id }, select: { startsAt: true, endsAt: true } }),
-      this.prisma.client.fuelEvent.findMany({ where: { ...scope, vehicleId: vehicle.id, type: { in: ['REMPLISSAGE_DETECTE', 'ECART_TICKET'] } }, select: { type: true, detectedAt: true, fuelEntryId: true, status: true, qualification: true } }),
+      this.prisma.client.fuelPurchaseGap.findMany({ where: { ...scope, vehicleId: { in: ids } }, select: { vehicleId: true, startsAt: true, endsAt: true } }),
+      this.prisma.client.fuelEvent.findMany({ where: { ...scope, vehicleId: { in: ids }, type: { in: ['REMPLISSAGE_DETECTE', 'ECART_TICKET'] } }, select: { vehicleId: true, type: true, detectedAt: true, fuelEntryId: true, status: true, qualification: true } }),
     ]);
     const odometers = await this.resolveOdometers(rows);
-    const entries: ConsumptionEntry[] = [];
-    for (const r of rows) {
-      if (!isFuelEnergy(r.energy)) continue;
-      entries.push({
-        id: r.id,
-        filledAt: r.filledAt,
-        createdAt: r.createdAt,
-        status: r.status === 'VALIDE' ? 'VALIDE' : 'SOUMIS',
-        energy: r.energy,
-        isFullTank: r.isFullTank,
-        liters: dec(r.liters),
-        odometer: odometers.get(r.id) ?? null,
-        tankCapacityExceeded: r.tankCapacityExceeded,
-        capacityConfirmed: r.capacityConfirmedAt !== null,
+    const results = new Map<string, ReturnType<typeof computeConsumption>>();
+    for (const vehicle of vehicles) {
+      const entries: ConsumptionEntry[] = [];
+      for (const r of rows) {
+        if (r.vehicleId !== vehicle.id || !isFuelEnergy(r.energy)) continue;
+        entries.push({
+          id: r.id,
+          filledAt: r.filledAt,
+          createdAt: r.createdAt,
+          status: r.status === 'VALIDE' ? 'VALIDE' : 'SOUMIS',
+          energy: r.energy,
+          isFullTank: r.isFullTank,
+          liters: dec(r.liters),
+          odometer: odometers.get(r.id) ?? null,
+          tankCapacityExceeded: r.tankCapacityExceeded,
+          capacityConfirmed: r.capacityConfirmedAt !== null,
+        });
+      }
+      const signals = events.filter((e) => e.vehicleId === vehicle.id).map((e) => telemetrySignalOf(e)).filter((s): s is TelemetrySignal => s !== null);
+      results.set(vehicle.id, computeConsumption({ entries, gaps: gaps.filter((g) => g.vehicleId === vehicle.id), signals, period: { from, to } }));
+    }
+    for (const vehicle of vehicles) {
+      const result = results.get(vehicle.id) as ReturnType<typeof computeConsumption>;
+      out.set(vehicle.id, {
+        vehicleId: vehicle.id,
+        from: query.from ?? null,
+        to: query.to ?? null,
+        unit: CONSUMPTION_UNIT,
+        nature: CONSUMPTION_NATURE,
+        available: result.available,
+        reasons: reasonViews(result.reasons),
+        totals: result.totals.map((t) => ({
+          energy: t.energy,
+          available: t.available,
+          liters: t.liters?.toFixed(3) ?? null,
+          distanceKm: t.distanceKm?.toFixed(3) ?? null,
+          litersPer100Km: t.ratio ? formatRatio(t.ratio, 1) : null,
+          litersPer100KmExact: t.ratio?.toFixed() ?? null,
+          reasons: reasonViews(t.reasons),
+          retainedIntervals: t.retainedCount,
+          excludedIntervals: t.excludedCount,
+        })),
+        intervals: result.intervals.map((i) => ({
+          energy: i.energy,
+          startFuelEntryId: i.startEntryId,
+          endFuelEntryId: i.endEntryId,
+          startFilledAt: i.startAt?.toISOString() ?? null,
+          endFilledAt: i.endAt.toISOString(),
+          startKm: i.startKm?.toFixed(3) ?? null,
+          endKm: i.endKm?.toFixed(3) ?? null,
+          distanceKm: i.distanceKm?.toFixed(3) ?? null,
+          liters: i.liters.toFixed(3),
+          fuelEntryIds: i.entryIds,
+          retained: i.retained,
+          litersPer100Km: i.ratio ? formatRatio(i.ratio, 1) : null,
+          litersPer100KmExact: i.ratio?.toFixed() ?? null,
+          reasons: reasonViews(i.reasons),
+        })),
       });
     }
-    const signals = events.map((e) => telemetrySignalOf(e)).filter((s): s is TelemetrySignal => s !== null);
-    const result = computeConsumption({ entries, gaps, signals, period: { from, to } });
-    return {
-      vehicleId: vehicle.id,
-      from: query.from ?? null,
-      to: query.to ?? null,
-      unit: CONSUMPTION_UNIT,
-      nature: CONSUMPTION_NATURE,
-      available: result.available,
-      reasons: reasonViews(result.reasons),
-      totals: result.totals.map((t) => ({
-        energy: t.energy,
-        available: t.available,
-        liters: t.liters?.toFixed(3) ?? null,
-        distanceKm: t.distanceKm?.toFixed(3) ?? null,
-        litersPer100Km: t.ratio ? formatRatio(t.ratio, 1) : null,
-        litersPer100KmExact: t.ratio?.toFixed() ?? null,
-        reasons: reasonViews(t.reasons),
-        retainedIntervals: t.retainedCount,
-        excludedIntervals: t.excludedCount,
-      })),
-      intervals: result.intervals.map((i) => ({
-        energy: i.energy,
-        startFuelEntryId: i.startEntryId,
-        endFuelEntryId: i.endEntryId,
-        startFilledAt: i.startAt?.toISOString() ?? null,
-        endFilledAt: i.endAt.toISOString(),
-        startKm: i.startKm?.toFixed(3) ?? null,
-        endKm: i.endKm?.toFixed(3) ?? null,
-        distanceKm: i.distanceKm?.toFixed(3) ?? null,
-        liters: i.liters.toFixed(3),
-        fuelEntryIds: i.entryIds,
-        retained: i.retained,
-        litersPer100Km: i.ratio ? formatRatio(i.ratio, 1) : null,
-        litersPer100KmExact: i.ratio?.toFixed() ?? null,
-        reasons: reasonViews(i.reasons),
-      })),
-    };
+    return out;
   }
 
   async listPurchaseGaps(ctx: RequestContext, vehicleId: string): Promise<FuelPurchaseGapViewDto[]> {
@@ -553,18 +582,19 @@ export class FuelService {
     return vehicle;
   }
 
-  /** D-226 : utilisation en cours ou terminée récemment, ticket dans la fenêtre de l'utilisation. */
+  /** D-226 : utilisation en cours ou terminée récemment, ticket dans la fenêtre de l'utilisation ; D-268 : responsable habituel. */
   private async assertDriverMaySubmit(ctx: RequestContext, vehicle: VehicleForFuel, filledAt: Date, now: Date): Promise<string> {
     const driverId = ctx.driverId;
     if (!driverId) throw new NotFoundOrOutOfScopeError('Véhicule');
-    const [lateSubmissionDays, allowHabitual, usages, responsible] = await Promise.all([
+    const [lateSubmissionDays, usages, targets] = await Promise.all([
       this.settings.get(ctx.organizationId, 'fuel.driverLateSubmissionDays', vehicle.companyId),
-      this.settings.get(ctx.organizationId, 'drivers.allowHabitualVehicleSubmissions'),
       this.prisma.client.vehicleUsage.findMany({ where: { organizationId: ctx.organizationId, vehicleId: vehicle.id, driverId }, select: { status: true, checkedOutAt: true, returnedAt: true } }),
-      // Responsable habituel EN COURS (règle unique) ; ne compte que si l'organisation l'autorise (D-268).
-      this.prisma.client.vehicleResponsibleAssignment.findFirst({ where: { vehicleId: vehicle.id, driverId, ...currentAssignmentWhere(now) }, select: { id: true } }),
+      // Responsable habituel actif, paramètre drivers.allowHabitualVehicleSubmissions compris (D-268) : règle
+      // unique de DriverSubmissionService, commune au relevé et au signalement.
+      this.submissions.targets(ctx),
     ]);
-    const decision = evaluateDriverSubmission({ filledAt, now, lateSubmissionDays, usages, responsibleForVehicle: allowHabitual === true && responsible !== null });
+    const responsibleForVehicle = targets.some((t) => t.vehicleId === vehicle.id && t.basis === 'RESPONSABLE_HABITUEL');
+    const decision = evaluateDriverSubmission({ filledAt, now, lateSubmissionDays, usages, responsibleForVehicle });
     if (!decision.allowed) {
       if (decision.reason === 'HORS_DROITS') throw new NotFoundOrOutOfScopeError('Véhicule');
       throw new BusinessRuleError('HORS_UTILISATION', 'Ce ticket ne correspond à aucune de vos utilisations de ce véhicule (de la remise − 1 h à la restitution + 1 h).', { fieldErrors: { filledAt: ['Date hors de vos utilisations du véhicule.'] } });
@@ -667,8 +697,7 @@ export class FuelService {
   }
 
   private async timezone(organizationId: string): Promise<string> {
-    const org = await this.prisma.client.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { timezone: true } });
-    return org.timezone;
+    return organizationTimezone(this.prisma.client, organizationId);
   }
 
   /**
@@ -751,6 +780,13 @@ export class FuelService {
         version: r.version,
       };
     });
+  }
+}
+
+/** Période de consommation (8.3) : la fin ne précède pas le début. */
+function assertConsumptionPeriod(query: ConsumptionQueryDto): void {
+  if (query.from && query.to && query.from > query.to) {
+    throw new BusinessRuleError('PERIODE_INVALIDE', 'La fin de période précède son début.', { fieldErrors: { to: ['Fin avant le début.'] } });
   }
 }
 

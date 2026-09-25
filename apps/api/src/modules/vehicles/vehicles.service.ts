@@ -22,6 +22,7 @@ import { eventCompany } from './event-company.js';
 import { lockVehicle } from '../odometer/odometer-ingestion.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import type { ChangeLifecycleDto, CreateLocationReportDto, CreateVehicleDto, LocationReportViewDto, QrResolveDto, UpdateVehicleDto, VehicleSynthesisDto, VehicleViewDto, VehiclesQueryDto } from './dto/vehicles.dto.js';
+import { operationalStatusWhere, vehicleConditionClauses } from './vehicle-conditions.js';
 
 const vehicleInclude = {
   company: { select: { code: true } },
@@ -54,12 +55,10 @@ export class VehiclesService {
     this.access.requireStaff(ctx);
     const where: Prisma.VehicleWhereInput = {
       ...this.access.companyWhere(ctx, query.companyId),
+      ...(query.vehicleId ? { id: query.vehicleId } : {}),
       ...(query.lifecycleStatus ? { lifecycleStatus: query.lifecycleStatus } : query.includeInactive === 'true' ? {} : { lifecycleStatus: { in: ['ACTIF', 'HORS_SERVICE'] } }),
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(query.siteId ? { siteId: query.siteId } : {}),
-      ...(query.operationalStatus === 'IMMOBILISE' ? { lifecycleStatus: 'ACTIF', immobilizations: { some: { status: 'ACTIVE' } } } : {}),
-      ...(query.operationalStatus === 'EN_UTILISATION' ? { lifecycleStatus: 'ACTIF', immobilizations: { none: { status: 'ACTIVE' } }, usages: { some: { status: 'EN_COURS' } } } : {}),
-      ...(query.operationalStatus === 'DISPONIBLE' ? { lifecycleStatus: 'ACTIF', immobilizations: { none: { status: 'ACTIVE' } }, usages: { none: { status: 'EN_COURS' } } } : {}),
       ...(query.q
         ? {
             OR: [
@@ -72,6 +71,12 @@ export class VehiclesService {
           }
         : {}),
     };
+    // Statut opérationnel : même partition que operationalStatus() et que le rapport d'inventaire
+    // (operationalStatusWhere), combinée au filtre de cycle de vie sans le remplacer.
+    const operational = query.operationalStatus ? [operationalStatusWhere(query.operationalStatus)] : [];
+    // Filtres justificatifs du tableau de bord (D-269) : fraîcheur du kilométrage et documents bloquants.
+    const conditions = [...operational, ...(await vehicleConditionClauses({ prisma: this.prisma, settings: this.settings }, ctx, query, operational.length > 0 ? { AND: [where, ...operational] } : where, this.clock.now()))];
+    if (conditions.length > 0) where.AND = conditions;
     const sort = resolveSort(query.sort, ['code', 'registration', 'make', 'createdAt'] as const, 'code');
     const [items, total] = await Promise.all([
       this.prisma.client.vehicle.findMany({ where, ...skipTake(query), orderBy: [{ [sort]: query.order }, { id: 'asc' }], include: vehicleInclude }),
@@ -187,6 +192,17 @@ export class VehiclesService {
   async create(ctx: RequestContext, dto: CreateVehicleDto): Promise<VehicleViewDto> {
     this.access.requireOperational(ctx, dto.companyId);
     await this.assertReferences(ctx, dto.companyId, dto.categoryId, dto.siteId ?? null, dto.departmentId ?? null, dto.contractSupplierId ?? null);
+    const data = this.buildCreateData(ctx, dto);
+    try {
+      const created = await this.prisma.client.$transaction((tx) => this.insertInTx(tx, ctx, data, 'création du dossier'));
+      return this.view(created);
+    } catch (error) {
+      throw this.mapUnique(error);
+    }
+  }
+
+  /** Données d'un nouveau dossier (formulaire ou import) : immatriculation normalisée, VIN normalisé, jeton QR. */
+  buildCreateData(ctx: RequestContext, dto: CreateVehicleDto): Prisma.VehicleUncheckedCreateInput {
     const registration = dto.registration.trim();
     const data: Prisma.VehicleUncheckedCreateInput = {
       organizationId: ctx.organizationId,
@@ -214,17 +230,19 @@ export class VehiclesService {
       createdById: ctx.userId,
     };
     if (data.registrationNormalized.length === 0) throw new BusinessRuleError('IMMATRICULATION_VIDE', 'L’immatriculation ne peut pas être vide après normalisation.', { fieldErrors: { registration: ['Valeur invalide.'] } });
-    try {
-      const created = await this.prisma.client.$transaction(async (tx) => {
-        const v = await tx.vehicle.create({ data, include: vehicleInclude });
-        await tx.vehicleCompanyHistory.create({ data: { organizationId: ctx.organizationId, vehicleId: v.id, fromCompanyId: null, toCompanyId: v.companyId, effectiveAt: this.clock.now(), reason: 'création du dossier', createdById: ctx.userId } });
-        await this.audit.record(ctx, { action: 'vehicule.creation', objectType: 'Vehicle', objectId: v.id, companyId: v.companyId, after: this.view(v) }, tx);
-        return v;
-      });
-      return this.view(created);
-    } catch (error) {
-      throw this.mapUnique(error);
-    }
+    return data;
+  }
+
+  /**
+   * Écriture d'un nouveau dossier dans une transaction existante (formulaire ou import, 12.1) :
+   * fiche, historique de société et audit. Les contrôles de périmètre et de références sont faits par
+   * l'appelant ; les violations d'unicité remontent telles quelles (voir mapUnique).
+   */
+  async insertInTx(tx: Tx, ctx: RequestContext, data: Prisma.VehicleUncheckedCreateInput, reason: string): Promise<VehicleRow> {
+    const v = await tx.vehicle.create({ data, include: vehicleInclude });
+    await tx.vehicleCompanyHistory.create({ data: { organizationId: ctx.organizationId, vehicleId: v.id, fromCompanyId: null, toCompanyId: v.companyId, effectiveAt: this.clock.now(), reason, createdById: ctx.userId } });
+    await this.audit.record(ctx, { action: 'vehicule.creation', objectType: 'Vehicle', objectId: v.id, companyId: v.companyId, reason, after: this.view(v) }, tx);
+    return v;
   }
 
   async update(ctx: RequestContext, id: string, dto: UpdateVehicleDto): Promise<VehicleViewDto> {
@@ -423,6 +441,21 @@ export class VehiclesService {
     return v;
   }
 
+  /**
+   * Même contrôle de visibilité que load (404 hors organisation ou hors périmètre), sans les relations de la
+   * fiche : une seule lecture pour le personnel, qui n'a besoin que de la société et du code (mutations).
+   */
+  async loadRef(ctx: RequestContext, id: string): Promise<{ id: string; organizationId: string; companyId: string; code: string }> {
+    if (ctx.isDriverOnly) {
+      const v = await this.load(ctx, id);
+      return { id: v.id, organizationId: v.organizationId, companyId: v.companyId, code: v.code };
+    }
+    const v = await this.prisma.client.vehicle.findFirst({ where: { id, organizationId: ctx.organizationId }, select: { id: true, organizationId: true, companyId: true, code: true } });
+    if (!v) throw new NotFoundOrOutOfScopeError('Véhicule');
+    this.access.assertCompanyReadable(ctx, v.companyId);
+    return v;
+  }
+
   private async assertVisible(ctx: RequestContext, v: VehicleRow): Promise<void> {
     if (ctx.isDriverOnly) {
       if (!ctx.driverId) throw new NotFoundOrOutOfScopeError('Véhicule');
@@ -473,7 +506,8 @@ export class VehiclesService {
     }
   }
 
-  private mapUnique(error: unknown): unknown {
+  /** Traduit une violation d'unicité (code, immatriculation, VIN) en conflit métier lisible. */
+  mapUnique(error: unknown): unknown {
     if (isUniqueViolation(error, 'code')) return new ConflictError('CODE_VEHICULE_EXISTANT', 'Ce code interne existe déjà dans l’organisation.');
     if (isUniqueViolation(error, 'registrationNormalized')) return new ConflictError('IMMATRICULATION_EXISTANTE', 'Cette immatriculation existe déjà (comparaison normalisée).');
     if (isUniqueViolation(error, 'vin')) return new ConflictError('VIN_EXISTANT', 'Ce VIN est déjà enregistré.');

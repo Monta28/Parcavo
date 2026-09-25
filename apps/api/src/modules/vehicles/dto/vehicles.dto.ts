@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsDateString, IsIn, IsInt, IsNumberString, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { FRESHNESS_STATUS, type FreshnessStatus } from '@parc-auto/contracts';
 import { PageQueryDto } from '../../../common/pagination.js';
 
 const LIFECYCLES = ['ACTIF', 'HORS_SERVICE', 'CEDE', 'ARCHIVE'] as const;
@@ -35,17 +36,17 @@ export class UpdateVehicleDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(80) make?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(80) model?: string;
   @ApiPropertyOptional() @IsOptional() @IsUUID() categoryId?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(30) vin?: string | null;
-  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1950) @Max(2100) year?: number | null;
-  @ApiPropertyOptional({ format: 'date' }) @IsOptional() @IsDateString() commissioningDate?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsString() @MaxLength(30) vin?: string | null;
+  @ApiPropertyOptional({ type: Number, nullable: true }) @IsOptional() @Type(() => Number) @IsInt() @Min(1950) @Max(2100) year?: number | null;
+  @ApiPropertyOptional({ type: String, nullable: true, format: 'date' }) @IsOptional() @IsDateString() commissioningDate?: string | null;
   @ApiPropertyOptional({ enum: ENERGIES }) @IsOptional() @IsIn(ENERGIES) energy?: (typeof ENERGIES)[number] | null;
-  @ApiPropertyOptional() @IsOptional() @IsNumberString() tankCapacityLiters?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsUUID() siteId?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsUUID() departmentId?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsNumberString() tankCapacityLiters?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsUUID() siteId?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsUUID() departmentId?: string | null;
   @ApiPropertyOptional({ enum: OWNERSHIP }) @IsOptional() @IsIn(OWNERSHIP) ownershipMode?: (typeof OWNERSHIP)[number] | null;
-  @ApiPropertyOptional() @IsOptional() @IsUUID() contractSupplierId?: string | null;
-  @ApiPropertyOptional({ format: 'date' }) @IsOptional() @IsDateString() contractEndDate?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(4000) notes?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsUUID() contractSupplierId?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true, format: 'date' }) @IsOptional() @IsDateString() contractEndDate?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) @IsOptional() @IsString() @MaxLength(4000) notes?: string | null;
   @ApiProperty() @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
 }
 
@@ -68,11 +69,23 @@ export class AttachPhotoDto {
 
 export class VehiclesQueryDto extends PageQueryDto {
   @ApiPropertyOptional() @IsOptional() @IsUUID() companyId?: string;
+  @ApiPropertyOptional({ description: 'Restreint la liste à ce véhicule (liste justificative d’un tableau de bord filtré par véhicule, 11.1) ; hors périmètre : liste vide.' })
+  @IsOptional()
+  @IsUUID('all', { message: 'Identifiant de véhicule invalide.' })
+  vehicleId?: string;
   @ApiPropertyOptional({ enum: LIFECYCLES }) @IsOptional() @IsIn(LIFECYCLES) lifecycleStatus?: (typeof LIFECYCLES)[number];
   @ApiPropertyOptional({ enum: ['IMMOBILISE', 'EN_UTILISATION', 'DISPONIBLE'] }) @IsOptional() @IsIn(['IMMOBILISE', 'EN_UTILISATION', 'DISPONIBLE']) operationalStatus?: 'IMMOBILISE' | 'EN_UTILISATION' | 'DISPONIBLE';
   @ApiPropertyOptional() @IsOptional() @IsUUID() categoryId?: string;
   @ApiPropertyOptional() @IsOptional() @IsUUID() siteId?: string;
   @ApiPropertyOptional({ description: 'Inclure les véhicules archivés et cédés.' }) @IsOptional() @IsIn(['true', 'false']) includeInactive?: 'true' | 'false';
+  @ApiPropertyOptional({ enum: FRESHNESS_STATUS, description: 'Fraîcheur du kilométrage (5.5) : INCONNU (aucun relevé accepté), A_ACTUALISER (dernière observation acceptée plus ancienne que le seuil de la société), A_JOUR.' })
+  @IsOptional()
+  @IsIn(FRESHNESS_STATUS, { message: 'Fraîcheur attendue : INCONNU, A_ACTUALISER ou A_JOUR.' })
+  freshness?: FreshnessStatus;
+  @ApiPropertyOptional({ enum: ['true', 'false'], description: 'true : véhicules dont un document bloquant applicable est manquant ou expiré au jour local (7.2) ; false : les autres.' })
+  @IsOptional()
+  @IsIn(['true', 'false'], { message: 'Valeur attendue : true ou false.' })
+  blockingDocuments?: 'true' | 'false';
 }
 
 export class LocationReportViewDto {
@@ -183,4 +196,12 @@ export class QrResolveDto {
   @ApiProperty() vehicleId!: string;
   @ApiProperty() code!: string;
   @ApiProperty() registration!: string;
+}
+
+export class VehiclePhotoResultDto {
+  @ApiProperty({ type: String, format: 'uuid', description: 'Pièce jointe rattachée comme photo du véhicule.' }) attachmentId!: string;
+}
+
+export class QrTokenDto {
+  @ApiProperty({ type: String, format: 'uuid', description: 'Nouveau jeton du QR code interne ; l’ancien n’est plus résolu.' }) qrToken!: string;
 }

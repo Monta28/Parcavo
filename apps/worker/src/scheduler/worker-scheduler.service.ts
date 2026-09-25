@@ -3,6 +3,8 @@ import { Clock, describeErrorSafely } from '@parc-auto/api';
 import { AlertCatchUpJob } from '../jobs/alert-catch-up.job.js';
 import { DailyDigestJob } from '../jobs/daily-digest.job.js';
 import { DailyPurgeJob } from '../jobs/daily-purge.job.js';
+import { DailyRetentionJob } from '../jobs/daily-retention.job.js';
+import { JobQueueJob } from '../jobs/job-queue.job.js';
 import { OutboxDispatcherJob } from '../jobs/outbox-dispatcher.job.js';
 import type { ScheduledTask, TaskSummary } from '../jobs/scheduled-task.js';
 import { WORKER_OPTIONS, type WorkerOptions } from '../worker-options.js';
@@ -40,8 +42,10 @@ export class WorkerScheduler implements OnApplicationBootstrap, OnApplicationShu
     outbox: OutboxDispatcherJob,
     digest: DailyDigestJob,
     purge: DailyPurgeJob,
+    jobQueue: JobQueueJob,
+    retention: DailyRetentionJob,
   ) {
-    this.tasks = new Map<string, ScheduledTask>([catchUp, outbox, digest, purge].map((t) => [t.name, t]));
+    this.tasks = new Map<string, ScheduledTask>([catchUp, outbox, digest, purge, jobQueue, retention].map((t) => [t.name, t]));
   }
 
   taskNames(): string[] {

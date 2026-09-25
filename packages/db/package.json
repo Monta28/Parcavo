@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Schéma Prisma, migrations SQL, client de base de données, seed de démonstration et CLI d'administration",
+  "description": "Schéma Prisma, migrations SQL, client de base de données et CLI d'administration",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

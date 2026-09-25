@@ -97,6 +97,51 @@ describe('Remises, restitutions et réservations (CDC 4 — T04 à T08, T22, T23
     expect(await t.prisma.client.vehicleUsage.count({ where: { driverId: f.drivers.a1, status: 'EN_COURS' } })).toBe(1);
   });
 
+  it('D-016 — remises puis restitutions simultanées de véhicules et de conducteurs distincts : toutes aboutissent, aucun refus CONCURRENCE', async () => {
+    const pairs: Array<{ vehicleId: string; driverId: string }> = [];
+    for (let i = 0; i < 8; i += 1) {
+      const v = await createVehicle(t.prisma, f, 'A', { code: `VP-${i}` });
+      await chefA.post(`/vehicles/${v}/odometer-segments`, { mode: 'INITIAL', startedAt: '2026-09-01T08:00:00Z', physicalKm: '10000' });
+      const d = await t.prisma.client.driver.create({ data: { organizationId: f.organizationId, companyId: f.companies.A, code: `D-P${i}`, firstName: 'Parallèle', lastName: `N${i}` } });
+      await t.prisma.client.driverPermit.create({ data: { organizationId: f.organizationId, driverId: d.id, number: `P-N${i}`, categories: ['B'] } });
+      pairs.push({ vehicleId: v, driverId: d.id });
+    }
+    // READ COMMITTED sous verrous véhicule → conducteur : des remises sans ressource commune ne se gênent pas
+    // (en isolation sérialisable, les verrous de prédicat des index partiels les faisaient échouer entre elles).
+    const out = await Promise.all(pairs.map((p, i) => (i % 2 ? chefA : operateurA).post('/usages/checkout', checkoutBody(p.vehicleId, p.driverId)).set('Idempotency-Key', key())));
+    expect(out.map((r) => r.status)).toEqual(pairs.map(() => 201));
+    t.clock.set('2026-09-24T17:00:00Z');
+    const back = await Promise.all(
+      out.map((r, i) => (i % 2 ? operateurA : chefA).post(`/usages/${r.body.id}/return`, { returnedAt: '2026-09-24T16:30:00Z', reading: { physicalKm: '10350' }, location: { placeLabel: 'Parking siège' }, expectedVersion: r.body.version }).set('Idempotency-Key', key())),
+    );
+    expect(back.map((r) => r.status)).toEqual(pairs.map(() => 200));
+    expect(back.every((r) => r.body.distanceStatus === 'VALIDEE' && r.body.distanceKm === '250.000')).toBe(true);
+    expect(await t.prisma.client.vehicleUsage.count({ where: { status: 'EN_COURS' } })).toBe(0);
+  });
+
+  it('D-016 — conversion d’une réservation à la remise et annulation simultanées : l’une ou l’autre, jamais les deux, jamais 500', async () => {
+    t.clock.set('2026-09-24T08:50:00Z');
+    const r = await chefA.post('/reservations', { vehicleId, driverId: f.drivers.a1, startAt: '2026-09-24T09:00:00Z', endAt: '2026-09-24T18:00:00Z', purpose: 'Mission' });
+    expect(r.status).toBe(201);
+    t.clock.set(NOW);
+    const [out, cancel] = await Promise.all([
+      chefA.post('/usages/checkout', checkoutBody(vehicleId, f.drivers.a1)).set('Idempotency-Key', key()),
+      operateurA.post(`/reservations/${r.body.id}/cancel`, { reason: 'mission annulée', expectedVersion: r.body.version }),
+    ]);
+    expect(out.status).toBe(201);
+    const reservation = (await chefA.get(`/reservations/${r.body.id}`)).body;
+    if (cancel.status === 200) {
+      // Annulation d'abord : la remise, qui verrouille ensuite la réservation, ne la convertit pas.
+      expect(out.body.reservationId).toBeNull();
+      expect(reservation.status).toBe('ANNULEE');
+    } else {
+      // Conversion d'abord : l'annulation relit la réservation convertie sous verrou et est refusée.
+      expect(cancel.status).toBe(409);
+      expect(out.body.reservationId).toBe(r.body.id);
+      expect(reservation).toMatchObject({ status: 'CONVERTIE', convertedUsageId: out.body.id });
+    }
+  });
+
   it('T33 — même clé et même corps : réponse initiale rejouée ; même clé et corps différent : 409', async () => {
     const k = key();
     const first = await chefA.post('/usages/checkout', checkoutBody(vehicleId, f.drivers.a1)).set('Idempotency-Key', k);
